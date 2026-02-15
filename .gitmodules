@@ -1,0 +1,9 @@
+[submodule "frontend/customer"]
+	path = frontend/customer
+	url = https://github.com/sysverax/somerville-mobile-hub.git
+[submodule "frontend/admin"]
+	path = frontend/admin
+	url = https://github.com/sysverax/somerville-admin-hub.git
+[submodule "backend"]
+	path = backend
+	url = https://github.com/sysverax/somerville-mobile-backend.git
