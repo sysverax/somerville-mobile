@@ -1,0 +1,27 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "somerville-mobile backend",
+  "license": "ISC",
+  "author": "thanushanth",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ses": "^3.991.0",
+    "@aws-sdk/client-sqs": "^3.991.0",
+    "aws-sdk": "^2.1693.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "mongoose": "^9.2.1",
+    "morgan": "^1.10.1",
+    "nodemon": "^3.1.11",
+    "uuid": "^13.0.0",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  }
+}
