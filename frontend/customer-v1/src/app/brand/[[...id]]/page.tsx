@@ -182,7 +182,7 @@ const BrandContent = ({ params }: Props) => {
         </div>
       </section>
 
-      {mode === "service" ? <ServiceContent /> : <ShopContent />}
+      <ServiceContent />
     </Layout>
   );
 };
