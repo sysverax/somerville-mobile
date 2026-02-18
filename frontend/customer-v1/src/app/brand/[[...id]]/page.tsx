@@ -22,7 +22,9 @@ type Props = {
 };
 
 const BrandContent = ({ params }: Props) => {
-  const { id: brandId } = use(params); 
+   const resolvedParams = use(params);
+  // Get the first ID from the array (e.g., /brand/b3 -> id is ["b3"])
+  const brandId = resolvedParams.id?.[0]; 
   const searchParams = useSearchParams();
   const mode = searchParams?.get("mode") || "shop";
   
@@ -53,7 +55,7 @@ const BrandContent = ({ params }: Props) => {
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
               {brands.map((b, index) => (
                 <Link key={b.id} href={`/brand/${b.id}?mode=${mode}`}>
                   <BrandCard brand={b} index={index} />
