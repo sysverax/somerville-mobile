@@ -30,6 +30,10 @@ const COOKIE_CONFIG = {
     process.env.COOKIE_EXPIRY_DURATION_IN_MS || 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
 };
 
+const PASSWORD_CONFIG = {
+  PREDEFINED_SALT: "predefined_salt_for_password_hashing",
+};
+
 module.exports = {
   NODE_ENV,
   MONGO_URI,
@@ -38,4 +42,5 @@ module.exports = {
   AWS_CONFIG,
   JWT_CONFIG,
   COOKIE_CONFIG,
+  PASSWORD_CONFIG,
 };

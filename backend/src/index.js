@@ -9,6 +9,8 @@ const errorHandler = require("./middlewares/errorHandler");
 const { PORT, ALLOWED_ORIGINS } = require("./config/envConfig");
 const connectDB = require("./config/db");
 
+const authRoutes = require("./routes/auth.route");
+
 const invalidJsonHandler = (err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
     req.logger.error("Malformed JSON received in request body");
@@ -54,6 +56,8 @@ const server = async () => {
   app.get("/ping", (req, res) => {
     res.send("pong");
   });
+
+  app.use("/api/auth", authRoutes);
 
   app.use(invalidJsonHandler);
   app.use(errorHandler);
