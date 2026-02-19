@@ -1,7 +1,7 @@
 const appError = require("../../utils/errors/errors");
 const {
   isValidPassword,
-} = require("../../utils/validators/password.validator");
+} = require("../../utils/validators/validator");
 
 class RegisterAdminRequestDTO {
   constructor(payload = {}) {
