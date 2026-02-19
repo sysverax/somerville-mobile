@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image"; 
+import Image from "next/image";
 import { Phone, Mail, MapPin, Facebook, Instagram, Clock } from "lucide-react";
 import logo from "@/public/logo.jpeg";
 
@@ -13,14 +13,14 @@ const Footer = () => {
           {/* Brand */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-3">
-              
-<Image 
-  src={logo} 
-  alt="Somerville Mobile" 
-  width={48}
-  height={48}
-  className="rounded-lg object-cover"
-/>
+
+              <Image
+                src={logo}
+                alt="Somerville Mobile"
+                width={48}
+                height={48}
+                className="rounded-lg object-cover"
+              />
               <span className="font-bold text-lg">
                 Somerville<span className="text-primary">Mobile</span>
               </span>
@@ -85,14 +85,14 @@ const Footer = () => {
                 </Link>
               </li>
             </ul>
-            
+
             <h4 className="font-semibold pt-4">Business Hours</h4>
             <div className="flex items-start gap-2 text-muted-foreground text-sm">
               <Clock className="h-4 w-4 text-primary mt-0.5" />
               <div>
-                <p>Mon–Fri: 9:00 AM – 5:30 PM</p>
-                <p>Saturday: 9:00 AM – 3:00 PM</p>
-                <p>Sunday: Closed</p>
+                <p>Mon–Fri: 9:00 AM – 6:00 PM</p>
+                <p>Saturday: 9:30 AM – 4:30 PM</p>
+                <p>Sunday: 10:00 AM – 3:30 PM</p>
               </div>
             </div>
           </div>
@@ -115,7 +115,7 @@ const Footer = () => {
               </li>
               <li className="flex items-start gap-3 text-muted-foreground text-sm">
                 <MapPin className="h-4 w-4 text-primary mt-0.5" />
-                <a 
+                <a
                   href="https://maps.google.com/?q=Shop+14,+49+Eramosa+Road+West,+Somerville+VIC+3912"
                   target="_blank"
                   rel="noopener noreferrer"

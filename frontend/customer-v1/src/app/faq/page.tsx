@@ -136,7 +136,7 @@ const FAQPage = () => {
         },
         {
           question: "What are your business hours?",
-          answer: "We're open Monday to Friday 9:00 AM - 5:30 PM and Saturday 9:00 AM - 3:00 PM. We're closed on Sundays and public holidays. You can book appointments online anytime."
+          answer: "We're open Monday to Friday 9:00 AM - 6:00 PM, Saturday 9:30 AM - 4:30 PM, and Sunday 10:00 AM - 3:30 PM. We're closed on public holidays. You can book appointments online anytime."
         },
         {
           question: "Do I need to make an appointment?",

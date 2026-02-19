@@ -65,13 +65,13 @@ const ContactPage = () => {
   ];
 
   const businessHours = [
-    { day: "Monday", hours: "9:00 AM – 5:30 PM" },
-    { day: "Tuesday", hours: "9:00 AM – 5:30 PM" },
-    { day: "Wednesday", hours: "9:00 AM – 5:30 PM" },
-    { day: "Thursday", hours: "9:00 AM – 5:30 PM" },
-    { day: "Friday", hours: "9:00 AM – 5:30 PM" },
-    { day: "Saturday", hours: "9:00 AM – 3:00 PM" },
-    { day: "Sunday", hours: "Closed" }
+    { day: "Monday", hours: "9:00 AM – 6:00 PM" },
+    { day: "Tuesday", hours: "9:00 AM – 6:00 PM" },
+    { day: "Wednesday", hours: "9:00 AM – 6:00 PM" },
+    { day: "Thursday", hours: "9:00 AM – 6:00 PM" },
+    { day: "Friday", hours: "9:00 AM – 6:00 PM" },
+    { day: "Saturday", hours: "9:30 AM – 4:30 PM" },
+    { day: "Sunday", hours: "10:00 AM – 3:30 PM" },
   ];
 
   return (
@@ -89,7 +89,7 @@ const ContactPage = () => {
               Get in <span className="text-primary">Touch</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Have a question, need a repair quote, or want to book an appointment? 
+              Have a question, need a repair quote, or want to book an appointment?
               We're here to help. Reach out to us using any of the methods below.
             </p>
           </motion.div>
@@ -134,7 +134,7 @@ const ContactPage = () => {
               animate={{ opacity: 1, x: 0 }}
             >
               <h2 className="text-2xl font-bold mb-6">Send Us a Message</h2>
-              
+
               {isSubmitted ? (
                 <div className="bg-card rounded-2xl border border-border/50 p-12 text-center">
                   <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-6">
@@ -164,7 +164,7 @@ const ContactPage = () => {
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address *</Label>
                     <Input
@@ -177,7 +177,7 @@ const ContactPage = () => {
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
                     <Input
@@ -189,7 +189,7 @@ const ContactPage = () => {
                       onChange={handleChange}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="message">Message *</Label>
                     <Textarea
@@ -213,7 +213,7 @@ const ContactPage = () => {
                       </>
                     )}
                   </Button>
-                  
+
                   <p className="text-xs text-muted-foreground text-center">
                     By submitting this form, you agree to our{" "}
                     <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
