@@ -33,7 +33,7 @@ const BrandCard = ({ brand, index = 0 }: BrandCardProps) => {
         <h3 className="font-bold text-lg group-hover:text-primary transition-colors">
           {brand.name}
         </h3>
-        <p className="text-muted-foreground text-sm mt-1">
+        <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
           {brand.description}
         </p>
       </Link>

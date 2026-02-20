@@ -87,7 +87,7 @@ const router = useRouter();
                               onClick={() => handleCategoryClick(category.id)}
                               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-secondary/50 transition-colors group text-left"
                             >
-                              <div className="w-10 h-10 rounded-lg overflow-hidden bg-secondary">
+                              <div className="w-10 h-10  flex-shrink-0 rounded-lg overflow-hidden bg-secondary">
                                 <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
                               </div>
                               <div>

@@ -71,7 +71,10 @@ const ProductFilterCard = () => {
           </div>
           <div>
             <h3 className="font-semibold text-lg">Find Your Device</h3>
-            <p className="text-sm text-muted-foreground">Select your device to shop or request a repair</p>
+            <p className="text-sm text-muted-foreground">Select your device to request a repair</p>
+            {/* TODO: If need shop now please uncomment the following section and delete above section <p> */}
+            {/*Shop feature */}
+            {/* <p className="text-sm text-muted-foreground">Select your device to shop or request a repair</p> */}
           </div>
         </div>
         {(selectedBrandId || selectedCategoryId || selectedSeriesId) && (
@@ -80,10 +83,12 @@ const ProductFilterCard = () => {
       </div>
 
       <div className="flex flex-wrap gap-3 mb-6">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 text-sm text-muted-foreground">
+        {/* TODO: If need shop now please uncomment the following section */}
+        {/*Shop feature */}
+        {/* <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 text-sm text-muted-foreground">
           <ShoppingBag className="h-4 w-4 text-primary" />
           <span>Browse & buy products</span>
-        </div>
+        </div> */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 text-sm text-muted-foreground">
           <Wrench className="h-4 w-4 text-primary" />
           <span>Request repair service</span>
