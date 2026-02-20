@@ -75,7 +75,7 @@ const howItWorks = [
   { step: 4, title: "Quality Check & Collect", description: "Thorough testing before handover" },
 ];
 
-const ServiceContent = () => {
+const ServiceContent = ({ brandId }: { brandId?: string }) => {
   return (
     <section className="py-16 bg-gradient-dark">
       <div className="container mx-auto px-4 space-y-16">
@@ -187,7 +187,7 @@ const ServiceContent = () => {
           viewport={{ once: true }}
           className="text-center"
         >
-          <Link href="/booking">
+           <Link href={brandId ? `/booking?brandId=${brandId}` : "/booking"}>
             <Button size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2">
               <Calendar className="h-5 w-5" />
               Book Time Slot

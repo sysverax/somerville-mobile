@@ -182,7 +182,7 @@ const BrandContent = ({ params }: Props) => {
         </div>
       </section>
 
-      <ServiceContent />
+      <ServiceContent brandId={brandId}/>
     </Layout>
   );
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Calendar as CalendarIcon, Clock, User, Phone, Mail, Check, Wrench, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
@@ -35,6 +35,9 @@ import {
 } from "@/src/services";
 
 interface BookingFormProps {
+  preSelectedBrandId?: string; 
+  preSelectedCategoryId?: string; 
+  preSelectedSeriesId?: string;  
   preSelectedProductId?: string;
   preSelectedServiceId?: string;
   onSuccess?: () => void;
@@ -59,13 +62,13 @@ const generateTimeSlots = () => {
 
 const TIME_SLOTS = generateTimeSlots();
 
-const BookingForm = ({ preSelectedProductId, preSelectedServiceId, onSuccess }: BookingFormProps) => {
+const BookingForm = ({preSelectedBrandId,   preSelectedCategoryId, preSelectedSeriesId, preSelectedProductId, preSelectedServiceId, onSuccess }: BookingFormProps) => {
   const brands = getStorefrontBrands();
   const allServices = getAllStorefrontServices();
 
-  const [selectedBrandId, setSelectedBrandId] = useState("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
-  const [selectedSeriesId, setSelectedSeriesId] = useState("");
+  const [selectedBrandId, setSelectedBrandId] = useState(preSelectedBrandId || "");
+  const [selectedCategoryId, setSelectedCategoryId] = useState(preSelectedCategoryId || "");
+  const [selectedSeriesId, setSelectedSeriesId] = useState(preSelectedSeriesId || "");
   const [selectedProductId, setSelectedProductId] = useState(preSelectedProductId || "");
   const [selectedServiceId, setSelectedServiceId] = useState(preSelectedServiceId || "");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -74,6 +77,14 @@ const BookingForm = ({ preSelectedProductId, preSelectedServiceId, onSuccess }: 
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (preSelectedBrandId) setSelectedBrandId(preSelectedBrandId);
+    if (preSelectedCategoryId) setSelectedCategoryId(preSelectedCategoryId);
+    if (preSelectedSeriesId) setSelectedSeriesId(preSelectedSeriesId);
+    if (preSelectedProductId) setSelectedProductId(preSelectedProductId);
+    if (preSelectedServiceId) setSelectedServiceId(preSelectedServiceId);
+  }, [preSelectedBrandId, preSelectedCategoryId, preSelectedSeriesId, preSelectedProductId, preSelectedServiceId]);
 
   const filteredCategories = useMemo(() => {
     if (!selectedBrandId) return [];
