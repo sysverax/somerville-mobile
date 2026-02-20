@@ -68,9 +68,6 @@ const ShopContent = () => {
           transition={{ delay: 0.4 }}
           className="mt-12 text-center"
         >
-          <p className="text-muted-foreground">
-            👆 Select a brand above to explore products
-          </p>
         </motion.div>
       </div>
     </section>

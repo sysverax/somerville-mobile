@@ -32,7 +32,9 @@ const ProductCard = ({ product, index = 0, showServices = true }: ProductCardPro
         href={`/product/${product.id}`}
         className="group block relative overflow-hidden rounded-2xl bg-gradient-card shadow-card glass-hover"
       >
-        {product.stockOptions && product.stockOptions.length > 0 && (
+        {/* TODO: If need shop now please uncomment the following section */}
+        {/*Product feature */}
+        {/* {product.stockOptions && product.stockOptions.length > 0 && (
           <div className="absolute top-3 left-3 z-10 flex flex-col gap-1">
             {hasNewStock && (
               <Badge className="bg-primary text-primary-foreground text-xs gap-1">
@@ -50,7 +52,7 @@ const ProductCard = ({ product, index = 0, showServices = true }: ProductCardPro
               </Badge>
             )}
           </div>
-        )}
+        )} */}
 
         <div className="relative h-56 p-6 flex items-center justify-center bg-secondary/20">
           <img
@@ -64,8 +66,9 @@ const ProductCard = ({ product, index = 0, showServices = true }: ProductCardPro
           <h3 className="text-lg font-bold group-hover:text-primary transition-colors line-clamp-1">
             {product.name}
           </h3>
-          
-          <p className="text-muted-foreground text-sm line-clamp-2">
+          {/* TODO: If need shop now please uncomment the following section */}
+          {/*Product feature */}
+          {/* <p className="text-muted-foreground text-sm line-clamp-2">
             {product.description}
           </p>
 
@@ -91,7 +94,7 @@ const ProductCard = ({ product, index = 0, showServices = true }: ProductCardPro
                 <span className="text-sm text-destructive">Out of Stock</span>
               </>
             )}
-          </div>
+          </div> */}
 
           {showServices && serviceCount > 0 && (
             <div className="flex items-center gap-2 pt-1">

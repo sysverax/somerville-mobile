@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";         
+import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { useRef, useState, useEffect } from "react";
 import type { StorefrontBrand } from "@/src/services";
 
 interface BrandCardProps {
@@ -11,6 +12,16 @@ interface BrandCardProps {
 }
 
 const BrandCard = ({ brand, index = 0 }: BrandCardProps) => {
+  const textRef = useRef<HTMLParagraphElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+    setIsTruncated(el.scrollHeight > el.clientHeight);
+  }, [brand.description]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -23,7 +34,7 @@ const BrandCard = ({ brand, index = 0 }: BrandCardProps) => {
       >
         <div className="w-20 h-20 mx-auto mb-4 rounded-2xl overflow-hidden bg-secondary/50 flex items-center justify-center">
           <Image
-            src={brand.logo}      
+            src={brand.logo}
             alt={brand.name}
             width={80}
             height={80}
@@ -33,9 +44,25 @@ const BrandCard = ({ brand, index = 0 }: BrandCardProps) => {
         <h3 className="font-bold text-lg group-hover:text-primary transition-colors">
           {brand.name}
         </h3>
-        <p className="text-muted-foreground text-sm mt-1">
-          {brand.description}
-        </p>
+
+        <div
+          className="relative"
+          onMouseEnter={() => isTruncated && setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+        >
+          <p
+            ref={textRef}
+            className="text-muted-foreground text-sm mt-1 line-clamp-2"
+          >
+            {brand.description}
+          </p>
+
+          {showTooltip && (
+            <div className="absolute top-full left-1/6 mt-2 w-72 bg-popover text-popover-foreground text-xs rounded-lg px-3 py-2 shadow-lg border border-border z-50 whitespace-normal">
+              {brand.description}
+            </div>
+          )}
+        </div>
       </Link>
     </motion.div>
   );

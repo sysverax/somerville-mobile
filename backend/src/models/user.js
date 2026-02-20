@@ -23,7 +23,6 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: Object.values(USER_ROLES),
-      default: USER_ROLES.ADMIN,
       required: true,
     },
     isActive: {
