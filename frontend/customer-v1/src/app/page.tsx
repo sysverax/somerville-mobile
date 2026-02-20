@@ -1,8 +1,8 @@
-"use client";  
+"use client";
 
 import { motion } from "framer-motion";
 import { ArrowRight, Zap } from "lucide-react";
-import Link from "next/link"; 
+import Link from "next/link";
 import { Button } from "@/src/components/ui/button";
 import {
   getStorefrontBrands,
@@ -42,24 +42,26 @@ const Index = () => {
                 <Zap className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium text-primary">New Arrivals Available</span>
               </div>
-              
+
               <h1 className="text-5xl md:text-7xl font-bold leading-tight">
                 Premium Mobile
                 <span className="block text-gradient">Experience</span>
               </h1>
-              
+
               <p className="text-xl text-muted-foreground max-w-lg">
-                Discover the latest smartphones from top brands. Expert repairs, 
+                Discover the latest smartphones from top brands. Expert repairs,
                 genuine accessories, and professional service all in one place.
               </p>
 
               <div className="flex flex-wrap gap-4">
-                <Link href="/brand?mode=shop">
+                {/* TODO: If need shop now please uncomment the following section */}
+                {/*Shop feature */}
+                {/* <Link href="/brand?mode=shop">
                   <Button size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 animate-pulse-glow">
                     Shop Now
                     <ArrowRight className="h-5 w-5" />
                   </Button>
-                </Link>
+                </Link> */}
                 <Link href="/brand?mode=service">
                   <Button size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 animate-pulse-glow">
                     Repair Service
@@ -113,10 +115,14 @@ const Index = () => {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Shop by Brand</h2>
+            {/* TODO: If need shop now please uncomment the following section and remove service related h2 and p*/}
+            {/* Shop feature */}
+            {/* <h2 className="text-3xl md:text-4xl font-bold mb-4">Shop by Brand</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Explore our curated selection of premium mobile devices from the world's leading brands
-            </p>
+            </p> */}
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Select Your Device Brand</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">Choose your device brand to explore our repair services</p>
           </motion.div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
@@ -161,8 +167,9 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Featured Products Section */}
-      <section className="py-20 bg-gradient-dark">
+      {/* TODO: If need shop now please uncomment the following section */}
+      {/* TODO: Featured Products Section */}
+      {/* <section className="py-20 bg-gradient-dark">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -186,20 +193,21 @@ const Index = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
+      {/* TODO: If need shop now please change classname as py-20 */}
       {/* Services Section */}
-      <section className="py-20">
+      <section className="py-20 bg-gradient-dark">
         <div className="container mx-auto px-4">
           <ServiceInfoCards />
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-dark relative overflow-hidden">
+      <section className="py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-primary/5" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
