@@ -1,24 +1,20 @@
 const mongoose = require("mongoose");
 
-const productSchema = new mongoose.Schema(
+const specificationSchema = new mongoose.Schema(
   {
-    seriesId: {
+    productId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Series",
-      required: true,
+      ref: "Product",
     },
-    name: {
+    key: {
       type: String,
       required: true,
       trim: true,
     },
-    description: {
+    value: {
       type: String,
+      required: true,
       trim: true,
-    },
-    imageUrl: {
-      type: String,
-      default: null,
     },
     isActive: {
       type: Boolean,
@@ -27,8 +23,8 @@ const productSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    collection: "products",
+    collection: "specifications",
   },
 );
 
-module.exports = mongoose.model("Product", productSchema);
+module.exports = mongoose.model("Specification", specificationSchema);
