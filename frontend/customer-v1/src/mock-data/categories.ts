@@ -2,7 +2,7 @@ import { Category } from '@/src/types';
 
 export const categories: Category[] = [
   // Apple
-  { id: 'c1', brandId: 'b1', name: 'iPhone', image: '/mock-images/categories/iphone.png', description: 'Apple iPhones', isActive: true, createdAt: '2024-01-16' },
+  { id: 'c1', brandId: 'b1', name: 'iPhone', image: '/mock-images/categories/iphone.jpg', description: 'Apple iPhones', isActive: true, createdAt: '2024-01-16' },
   { id: 'c2', brandId: 'b1', name: 'iPad', image: '/mock-images/categories/ipad.png', description: 'Apple iPads', isActive: true, createdAt: '2024-01-16' },
   { id: 'c3', brandId: 'b1', name: 'MacBook', image: '/mock-images/categories/macbook.png', description: 'Apple MacBooks', isActive: true, createdAt: '2024-01-16' },
   { id: 'c4', brandId: 'b1', name: 'Apple Watch', image: '/mock-images/categories/apple-watch.png', description: 'Apple Watch wearables', isActive: true, createdAt: '2024-01-16' },

@@ -3,8 +3,8 @@ const P = '/mock-images/default/placeholder.png';
 
 export const seriesList: Series[] = [
   // Apple > iPhone
-  { id: 's1', categoryId: 'c1', brandId: 'b1', name: 'iPhone 15 Series', image: '/mock-images/categories/iphone.png', description: 'Latest iPhone 15 lineup', isActive: true, createdAt: '2024-01-17' },
-  { id: 's2', categoryId: 'c1', brandId: 'b1', name: 'iPhone 14 Series', image: '/mock-images/categories/iphone.png', description: 'iPhone 14 lineup', isActive: true, createdAt: '2024-01-17' },
+  { id: 's1', categoryId: 'c1', brandId: 'b1', name: 'iPhone 15 Series', image: '/mock-images/series/iphone15.jpg', description: 'Latest iPhone 15 lineup', isActive: true, createdAt: '2024-01-17' },
+  { id: 's2', categoryId: 'c1', brandId: 'b1', name: 'iPhone 14 Series', image: '/mock-images/series/iphone14.jpeg', description: 'iPhone 14 lineup', isActive: true, createdAt: '2024-01-17' },
   // Apple > iPad
   { id: 's3', categoryId: 'c2', brandId: 'b1', name: 'iPad Pro', image: '/mock-images/categories/ipad.png', description: 'iPad Pro with M2 chip', isActive: true, createdAt: '2024-01-17' },
   { id: 's4', categoryId: 'c2', brandId: 'b1', name: 'iPad Air', image: '/mock-images/categories/ipad.png', description: 'iPad Air series', isActive: true, createdAt: '2024-01-17' },

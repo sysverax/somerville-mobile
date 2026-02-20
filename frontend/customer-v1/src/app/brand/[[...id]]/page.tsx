@@ -26,7 +26,7 @@ const BrandContent = ({ params }: Props) => {
   // Get the first ID from the array (e.g., /brand/b3 -> id is ["b3"])
   const brandId = resolvedParams.id?.[0]; 
   const searchParams = useSearchParams();
-  const mode = searchParams?.get("mode") || "shop";
+  const mode = searchParams?.get("mode") || "service"; // Default to "service" mode if not specified
   
   const brands = getStorefrontBrands();
   const brand = getStorefrontBrandById(brandId || "");
