@@ -8,12 +8,8 @@ const bookingSchema = new mongoose.Schema(
       ref: "ProductService",
       required: true,
     },
-    scheduleDate: {
+    scheduleDateTime: {
       type: Date,
-      required: true,
-    },
-    startTime: {
-      type: String,
       required: true,
     },
     name: {
@@ -34,7 +30,6 @@ const bookingSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: Object.values(bookingConstants.BOOKING_STATUS),
-      default: bookingConstants.BOOKING_STATUS.PENDING,
       required: true,
     },
   },

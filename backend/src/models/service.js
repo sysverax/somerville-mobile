@@ -27,7 +27,6 @@ const serviceSchema = new mongoose.Schema(
     level: {
       type: String,
       enum: Object.values(serviceConstants.SERVICE_LEVELS),
-      default: serviceConstants.SERVICE_LEVELS.BRAND,
       required: true,
     },
     levelId: {

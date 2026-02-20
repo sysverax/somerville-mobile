@@ -12,13 +12,17 @@ const productServiceSchema = new mongoose.Schema(
       ref: "Product",
       required: true,
     },
-    basePrice: {
+    price: {
       type: Number,
       required: true,
     },
     estimatedTime: {
       type: Number,
       required: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   {

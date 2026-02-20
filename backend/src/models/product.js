@@ -20,6 +20,20 @@ const productSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    specifications: [
+      {
+        key: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        value: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+      },
+    ],
     isActive: {
       type: Boolean,
       default: true,
