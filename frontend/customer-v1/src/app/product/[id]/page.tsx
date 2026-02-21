@@ -528,7 +528,10 @@ const ProductDetailPage = ({ params }: Props) => {
             </DialogTitle>
           </DialogHeader>
           <BookingForm
+            preSelectedBrandId={brand?.id}
             preSelectedProductId={product.id}
+            preSelectedCategoryId={category?.id} 
+            preSelectedSeriesId={series?.id}     
             preSelectedServiceId={selectedServiceId || undefined}
             onSuccess={() => setBookingDialogOpen(false)}
           />

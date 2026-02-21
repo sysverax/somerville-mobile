@@ -81,10 +81,6 @@ const BrandContent = ({ params }: Props) => {
           <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
             <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
             <ChevronRight className="h-4 w-4" />
-            <Link href={`/brand?mode=${mode}`} className="hover:text-foreground transition-colors">
-              {mode === "service" ? "Device Selection" : "Shop"}
-            </Link>
-            <ChevronRight className="h-4 w-4" />
             <span className="text-foreground">{brand.name}</span>
           </nav>
 
@@ -141,7 +137,7 @@ const BrandContent = ({ params }: Props) => {
       </section>
 
       {!selectedCategory && categories.length > 0 && (
-        <section className="py-12">
+        <section className="pt-2 pb-12">
           <div className="container mx-auto px-4">
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
@@ -182,7 +178,7 @@ const BrandContent = ({ params }: Props) => {
         </div>
       </section>
 
-      <ServiceContent />
+      <ServiceContent brandId={brandId}/>
     </Layout>
   );
 };

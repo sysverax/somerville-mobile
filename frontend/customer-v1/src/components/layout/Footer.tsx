@@ -121,7 +121,7 @@ const Footer = () => {
                   rel="noopener noreferrer"
                   className="hover:text-foreground transition-colors"
                 >
-                  Shop 14, 49 Eramosa Road West<br />Somerville, VIC 3912
+                  Shop 14,<br /> 49 Eramosa Road West,<br />Somerville, VIC 3912
                 </a>
               </li>
             </ul>

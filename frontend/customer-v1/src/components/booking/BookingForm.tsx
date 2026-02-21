@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Calendar as CalendarIcon, Clock, User, Phone, Mail, Check, Wrench, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
@@ -35,6 +35,9 @@ import {
 } from "@/src/services";
 
 interface BookingFormProps {
+  preSelectedBrandId?: string; 
+  preSelectedCategoryId?: string; 
+  preSelectedSeriesId?: string;  
   preSelectedProductId?: string;
   preSelectedServiceId?: string;
   onSuccess?: () => void;
@@ -59,13 +62,13 @@ const generateTimeSlots = () => {
 
 const TIME_SLOTS = generateTimeSlots();
 
-const BookingForm = ({ preSelectedProductId, preSelectedServiceId, onSuccess }: BookingFormProps) => {
+const BookingForm = ({preSelectedBrandId,   preSelectedCategoryId, preSelectedSeriesId, preSelectedProductId, preSelectedServiceId, onSuccess }: BookingFormProps) => {
   const brands = getStorefrontBrands();
   const allServices = getAllStorefrontServices();
 
-  const [selectedBrandId, setSelectedBrandId] = useState("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
-  const [selectedSeriesId, setSelectedSeriesId] = useState("");
+  const [selectedBrandId, setSelectedBrandId] = useState(preSelectedBrandId || "");
+  const [selectedCategoryId, setSelectedCategoryId] = useState(preSelectedCategoryId || "");
+  const [selectedSeriesId, setSelectedSeriesId] = useState(preSelectedSeriesId || "");
   const [selectedProductId, setSelectedProductId] = useState(preSelectedProductId || "");
   const [selectedServiceId, setSelectedServiceId] = useState(preSelectedServiceId || "");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -74,6 +77,32 @@ const BookingForm = ({ preSelectedProductId, preSelectedServiceId, onSuccess }: 
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [touched, setTouched] = useState<{ phone?: boolean; email?: boolean }>({});
+
+  const phoneError = touched.phone && customerPhone && !/^\+?[\d\s\-()]{7,15}$/.test(customerPhone)
+  ? "Enter a valid phone number"
+  : touched.phone && !customerPhone
+  ? "Phone is required"
+  : "";
+
+  const emailError = touched.email && customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)
+    ? "Enter a valid email address"
+    : touched.email && !customerEmail
+    ? "Email is required"
+    : "";
+
+  const isFormValid = !!selectedProductId && !!selectedServiceId && !!selectedDate && !!selectedTime
+    && !!customerName && !!customerPhone && !!customerEmail
+    && !phoneError && !emailError;
+
+  useEffect(() => {
+    if (preSelectedBrandId) setSelectedBrandId(preSelectedBrandId);
+    if (preSelectedCategoryId) setSelectedCategoryId(preSelectedCategoryId);
+    if (preSelectedSeriesId) setSelectedSeriesId(preSelectedSeriesId);
+    if (preSelectedProductId) setSelectedProductId(preSelectedProductId);
+    if (preSelectedServiceId) setSelectedServiceId(preSelectedServiceId);
+  }, [preSelectedBrandId, preSelectedCategoryId, preSelectedSeriesId, preSelectedProductId, preSelectedServiceId]);
 
   const filteredCategories = useMemo(() => {
     if (!selectedBrandId) return [];
@@ -142,7 +171,7 @@ const BookingForm = ({ preSelectedProductId, preSelectedServiceId, onSuccess }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedProductId || !selectedServiceId || !selectedDate || !selectedTime) {
+    if (!selectedProductId || !selectedServiceId || !selectedDate || !selectedTime || !customerName || !customerPhone || !customerEmail) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -160,9 +189,9 @@ const BookingForm = ({ preSelectedProductId, preSelectedServiceId, onSuccess }: 
       serviceId: selectedServiceId,
       date: dateStr,
       time: selectedTime,
-      customerName: customerName || undefined,
-      customerPhone: customerPhone || undefined,
-      customerEmail: customerEmail || undefined,
+      customerName: customerName,
+      customerPhone: customerPhone,
+      customerEmail: customerEmail,
       status: "confirmed",
     });
 
@@ -182,6 +211,7 @@ const BookingForm = ({ preSelectedProductId, preSelectedServiceId, onSuccess }: 
     setCustomerPhone("");
     setCustomerEmail("");
     setIsSubmitting(false);
+    setTouched({});
 
     onSuccess?.();
   };
@@ -294,7 +324,7 @@ const BookingForm = ({ preSelectedProductId, preSelectedServiceId, onSuccess }: 
           </Select>
           {selectedService && (
             <p className="text-sm text-muted-foreground">
-              Duration: {selectedService.duration} • Price: ${selectedService.price}
+              Duration: {selectedService.duration}
             </p>
           )}
         </motion.div>
@@ -313,7 +343,7 @@ const BookingForm = ({ preSelectedProductId, preSelectedServiceId, onSuccess }: 
             <CalendarIcon className="h-4 w-4 text-primary" />
             Select Date
           </Label>
-          <Popover>
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -330,9 +360,11 @@ const BookingForm = ({ preSelectedProductId, preSelectedServiceId, onSuccess }: 
               <Calendar
                 mode="single"
                 selected={selectedDate}
+                 defaultMonth={selectedDate}
                 onSelect={(date) => {
                   setSelectedDate(date);
                   setSelectedTime("");
+                   if (date) setCalendarOpen(false);
                 }}
                 disabled={(date) => date < new Date() || date > new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
                 initialFocus
@@ -378,7 +410,7 @@ const BookingForm = ({ preSelectedProductId, preSelectedServiceId, onSuccess }: 
       {/* Customer Info */}
       {selectedTime && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pt-4 border-t border-border">
-          <h4 className="text-sm font-medium text-muted-foreground">Customer Information (Optional)</h4>
+          <h4 className="text-sm font-medium text-muted-foreground">Customer Information</h4>
           <div className="space-y-2">
             <Label htmlFor="name" className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
@@ -391,14 +423,32 @@ const BookingForm = ({ preSelectedProductId, preSelectedServiceId, onSuccess }: 
               <Phone className="h-4 w-4 text-muted-foreground" />
               Phone
             </Label>
-            <Input id="phone" type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="Your phone number" className="bg-secondary/50 border-border" />
+            <Input
+              id="phone"
+              type="tel"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              onBlur={() => setTouched(prev => ({ ...prev, phone: true }))}
+              placeholder="Your phone number"
+              className={cn("bg-secondary/50 border-border", phoneError && "border-destructive focus-visible:ring-destructive")}
+            />
+            {phoneError && <p className="text-xs text-destructive mt-1">{phoneError}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="email" className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-muted-foreground" />
               Email
             </Label>
-            <Input id="email" type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="Your email address" className="bg-secondary/50 border-border" />
+            <Input
+              id="email"
+              type="email"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              onBlur={() => setTouched(prev => ({ ...prev, email: true }))}
+              placeholder="Your email address"
+              className={cn("bg-secondary/50 border-border", emailError && "border-destructive focus-visible:ring-destructive")}
+            />
+            {emailError && <p className="text-xs text-destructive mt-1">{emailError}</p>}
           </div>
         </motion.div>
       )}
@@ -444,7 +494,7 @@ const BookingForm = ({ preSelectedProductId, preSelectedServiceId, onSuccess }: 
       <Button 
         type="submit" 
         className="w-full bg-gradient-primary hover:opacity-90"
-        disabled={!selectedServiceId || !selectedDate || !selectedTime || isSubmitting}
+        disabled={isSubmitting || !isFormValid}
       >
         {isSubmitting ? "Booking..." : "Confirm Booking"}
       </Button>
