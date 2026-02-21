@@ -5,9 +5,20 @@ import { DayPicker } from "react-day-picker";
 import { cn } from "@/src/lib/utils";
 import { buttonVariants } from "@/src/components/ui/button";
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  onClose?: () => void;
+};
 
-function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
+function Calendar({ className, classNames, showOutsideDays = true, onClose, ...props }: CalendarProps) {
+  const handleSelect = (date: Date | undefined, ...args: unknown[]) => {
+    if ("onSelect" in props && typeof props.onSelect === "function") {
+      (props.onSelect as Function)(date, ...args);
+    }
+    if (date) onClose?.();
+  };
+
+  const overrideProps = "onSelect" in props ? { onSelect: handleSelect } : {};
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -46,6 +57,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
       }}
       {...props}
+      {...(overrideProps as any)}
     />
   );
 }

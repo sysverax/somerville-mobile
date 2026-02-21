@@ -103,7 +103,7 @@ const router = useRouter();
                           <Link
                             href={`/brand/${brand.id}`}
                             onClick={() => setActiveBrand(null)}
-                            className="block w-full text-center text-sm text-primary font-medium px-4 py-2 mt-2 rounded-lg hover:bg-primary/10 transition-colors border-t border-border"
+                            className="block w-full text-center text-sm text-primary font-medium px-4 py-2 mt-2 rounded-lg hover:bg-primary/10 transition-colors border-t border-border whitespace-nowrap"
                           >
                             View All {brand.name} →
                           </Link>
