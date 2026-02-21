@@ -157,7 +157,7 @@ const FAQPage = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative py-20 overflow-hidden">
+      <section className="relative pb-2 pt-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background" />
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
@@ -235,7 +235,7 @@ const FAQPage = () => {
                 href="tel:0359776911"
                 className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-medium hover:bg-primary/90 transition-colors"
               >
-                Call (03) 5977 6911
+                Call Now
               </a>
               <a
                 href="/contact"

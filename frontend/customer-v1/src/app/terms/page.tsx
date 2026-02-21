@@ -8,7 +8,7 @@ const TermsPage = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative py-16 overflow-hidden">
+      <section className="relative pb-2 pt-16 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background" />
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
@@ -191,7 +191,7 @@ const TermsPage = () => {
                   </div>
                   <div className="flex items-start gap-3 text-muted-foreground">
                     <MapPin className="h-5 w-5 text-primary mt-0.5" />
-                    <span className="text-sm">Shop 14, 49 Eramosa Road West<br />Somerville, VIC 3912</span>
+                    <span className="text-sm">Shop 14,<br /> 49 Eramosa Road West,<br />Somerville, VIC 3912</span>
                   </div>
                 </div>
               </section>
