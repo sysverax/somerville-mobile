@@ -101,7 +101,7 @@ const ServicesPage = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative py-24 overflow-hidden">
+      <section className="relative pt-24 pb-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background" />
         <div className="absolute top-1/4 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
         <div className="container mx-auto px-4 relative z-10">
@@ -130,7 +130,7 @@ const ServicesPage = () => {
       </section>
 
       {/* Main Services */}
-      <section className="py-20">
+      <section className="py-16">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

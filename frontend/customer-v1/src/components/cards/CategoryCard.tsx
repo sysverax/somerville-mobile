@@ -12,11 +12,7 @@ interface CategoryCardProps {
 
 const CategoryCard = ({ category, index = 0 }: CategoryCardProps) => {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.1, duration: 0.4 }}
-    >
+    <motion.div>
       <Link
         href={`/category/${category.id}`}
         className="group block relative overflow-hidden rounded-xl bg-gradient-card shadow-card h-40"

@@ -76,7 +76,7 @@ const BrandContent = ({ params }: Props) => {
 
   return (
     <Layout>
-      <section className="py-12 bg-gradient-dark">
+      <section className="pt-12 pb-4 sm:pb-12 bg-gradient-dark">
         <div className="container mx-auto px-4">
           <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
             <Link href="/" className="hover:text-foreground transition-colors">Home</Link>

@@ -375,7 +375,7 @@ const AboutPage = () => {
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
-              <div className="flex items-center gap-4 px-4 py-6 rounded-xl bg-card border border-border/50">
+              <div className="flex items-start gap-4 px-4 py-6 rounded-xl bg-card border border-border/50">
                 <div className="w-12 h-12 flex-shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
                   <MapPin className="h-6 w-6 text-primary" />
                 </div>
@@ -384,7 +384,7 @@ const AboutPage = () => {
                   <p className="text-sm text-muted-foreground">Shop 14,<br /> 49 Eramosa Road West,<br />Somerville, VIC 3912</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 px-4 py-6 rounded-xl bg-card border border-border/50">
+              <div className="flex items-start gap-4 px-4 py-6 rounded-xl bg-card border border-border/50">
                 <div className="w-12 h-12 flex-shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Phone className="h-6 w-6 text-primary" />
                 </div>
@@ -393,7 +393,7 @@ const AboutPage = () => {
                   <p className="text-sm text-muted-foreground">(03) 5977 6911</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 px-4 py-6 rounded-xl bg-card border border-border/50">
+              <div className="flex items-start gap-4 px-4 py-6 rounded-xl bg-card border border-border/50">
                 <div className="w-12 h-12 flex-shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Mail className="h-6 w-6 text-primary" />
                 </div>

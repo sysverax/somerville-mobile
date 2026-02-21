@@ -82,7 +82,7 @@ const ContactPage = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative py-20 overflow-hidden">
+      <section className="relative pt-20 pb-12 md:pb-10 lg:pb-20  overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background" />
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
@@ -102,7 +102,7 @@ const ContactPage = () => {
       </section>
 
       {/* Contact Info Cards */}
-      <section className="py-12">
+      <section className="py-0 sm:py-12">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {contactInfo.map((info, index) => (
