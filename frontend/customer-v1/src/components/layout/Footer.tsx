@@ -7,7 +7,7 @@ import logo from "@/public/logo.jpeg";
 
 const Footer = () => {
   const handleLinkClick = () => {
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
   return (
     <footer className="bg-card border-t border-border">
