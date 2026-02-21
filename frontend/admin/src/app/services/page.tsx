@@ -15,10 +15,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Power, RotateCcw, Wrench, Package } from 'lucide-react';
+import { Plus, Pencil, Search, ChevronUp, ChevronDown, Power, RotateCcw, Wrench, Package } from 'lucide-react';
+import TablePagination from '@/components/TablePagination';
 
 const LEVELS: AssignmentLevel[] = ['brand', 'category', 'series', 'product'];
-const PAGE_SIZE = 8;
 
 type SortField = 'name' | 'level' | 'createdAt';
 type SortDir = 'asc' | 'desc';
@@ -45,6 +45,7 @@ const ServicesPage = () => {
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Dialog state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -155,8 +156,7 @@ const ServicesPage = () => {
     return result;
   }, [services, search, filterLevel, filterStatus, filterBrand, filterCategory, filterSeries, sortField, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -365,6 +365,11 @@ const ServicesPage = () => {
               </Select>
             </div>
           )}
+          {(search || filterLevel !== 'all' || filterStatus !== 'all' || filterBrand !== 'all' || filterCategory !== 'all' || filterSeries !== 'all') && (
+            <div className="px-4">
+              <Button variant="outline" onClick={() => { setSearch(''); setFilterLevel('all'); setFilterStatus('all'); setFilterBrand('all'); setFilterCategory('all'); setFilterSeries('all'); setPage(1); }}>Clear Filters</Button>
+            </div>
+          )}
           {/* Table */}
           <div className="rounded-lg border border-border bg-card overflow-hidden">
             <div className="overflow-x-auto">
@@ -422,26 +427,7 @@ const ServicesPage = () => {
               </table>
             </div>
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-                <span className="text-sm text-muted-foreground">
-                  Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
-                </span>
-                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" className="h-8 w-8" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  {Array.from({ length: totalPages }, (_, i) => (
-                    <Button key={i} variant={page === i + 1 ? 'default' : 'outline'} size="icon" className="h-8 w-8" onClick={() => setPage(i + 1)}>
-                      {i + 1}
-                    </Button>
-                  ))}
-                  <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+            <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
           </div>
         </TabsContent>
 

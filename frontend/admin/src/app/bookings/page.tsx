@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
+import TablePagination from '@/components/TablePagination';
 
 const BookingsPage = () => {
   const { bookings } = useBookings();
@@ -23,6 +24,10 @@ const BookingsPage = () => {
   const [applied, setApplied] = useState({ brandName: '', categoryName: '', productId: '', date: '' });
   const [selected, setSelected] = useState<Booking | null>(null);
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const hasChanges = JSON.stringify(filters) !== JSON.stringify(applied);
 
   const filtered = bookings.filter(b =>
@@ -31,6 +36,7 @@ const BookingsPage = () => {
     (!applied.productId || b.productId === applied.productId) &&
     (!applied.date || b.date === applied.date)
   );
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="space-y-6">
@@ -43,7 +49,10 @@ const BookingsPage = () => {
           <Select value={filters.productId} onValueChange={v => setFilters(f => ({ ...f, productId: v }))}><SelectTrigger className="w-[150px]"><SelectValue placeholder="All" /></SelectTrigger><SelectContent>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-1"><Label className="text-xs">Date</Label>
           <Input type="date" className="w-[160px]" value={filters.date} onChange={e => setFilters(f => ({ ...f, date: e.target.value }))} /></div>
-        {hasChanges && <Button onClick={() => setApplied({ ...filters })}>Apply</Button>}
+        {hasChanges && <Button onClick={() => { setApplied({ ...filters }); setPage(1); }}>Apply</Button>}
+        {(applied.brandName || applied.categoryName || applied.productId || applied.date) && (
+          <Button variant="outline" onClick={() => { const empty = { brandName: '', categoryName: '', productId: '', date: '' }; setFilters(empty); setApplied(empty); setPage(1); }}>Clear</Button>
+        )}
         <div className="ml-auto"><Button variant="outline" className="gap-2" onClick={() => navigate('/bookings/calendar')}><Calendar className="h-4 w-4" /> Calendar View</Button></div>
       </div>
 
@@ -60,7 +69,7 @@ const BookingsPage = () => {
             <th className="text-left py-3 px-4 font-medium text-muted-foreground">Created</th>
           </tr></thead>
           <tbody>
-            {filtered.map(b => (
+            {paginated.map(b => (
               <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer" onClick={() => setSelected(b)}>
                 <td className="py-3 px-4">{b.date}</td>
                 <td className="py-3 px-4">{b.timeSlot}</td>
@@ -76,6 +85,8 @@ const BookingsPage = () => {
           </tbody>
         </table>
       </div>
+
+      <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent>

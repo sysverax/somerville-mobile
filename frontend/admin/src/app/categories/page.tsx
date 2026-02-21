@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import ImageUpload from '@/components/ImageUpload';
+import TablePagination from '@/components/TablePagination';
 
 const CategoriesPage = () => {
   const { brands } = useBrands();
@@ -26,7 +27,12 @@ const CategoriesPage = () => {
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [form, setForm] = useState({ brandId: '', name: '', image: null as string | null, description: '' });
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const filtered = selectedBrand ? categories.filter(c => c.brandId === selectedBrand) : categories;
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const openAdd = () => { setEditing(null); setForm({ brandId: selectedBrand, name: '', image: null, description: '' }); setIsFormOpen(true); };
   const openEdit = (c: Category) => { setEditing(c); setForm({ brandId: c.brandId, name: c.name, image: c.image, description: c.description }); setIsFormOpen(true); };
@@ -38,10 +44,11 @@ const CategoriesPage = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+          <Select value={selectedBrand} onValueChange={v => { setSelectedBrand(v); setPage(1); }}>
             <SelectTrigger className="w-[200px]"><SelectValue placeholder="Filter by Brand" /></SelectTrigger>
             <SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
           </Select>
+          {selectedBrand && <Button variant="outline" onClick={() => { setSelectedBrand(''); setPage(1); }}>Clear</Button>}
           <ViewToggle view={view} onChange={setView} />
         </div>
         <Button onClick={openAdd} className="gap-2"><Plus className="h-4 w-4" /> Add Category</Button>
@@ -49,7 +56,7 @@ const CategoriesPage = () => {
 
       {view === 'card' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(cat => (
+          {paginated.map(cat => (
             <div key={cat.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <img src={cat.image} alt={cat.name} className="h-12 w-12 rounded-lg object-cover bg-muted" />
@@ -84,7 +91,7 @@ const CategoriesPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(cat => (
+              {paginated.map(cat => (
                 <TableRow key={cat.id}>
                   <TableCell><img src={cat.image} alt={cat.name} className="h-8 w-8 rounded-md object-cover bg-muted" /></TableCell>
                   <TableCell className="font-medium">{cat.name}</TableCell>
@@ -104,6 +111,8 @@ const CategoriesPage = () => {
           </Table>
         </div>
       )}
+
+      <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>

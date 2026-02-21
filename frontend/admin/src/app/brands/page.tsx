@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import ImageUpload from '@/components/ImageUpload';
+import TablePagination from '@/components/TablePagination';
 
 const BrandsPage = () => {
   const { brands, create, update, remove, toggleActive, count } = useBrands();
@@ -21,6 +22,11 @@ const BrandsPage = () => {
   const [editing, setEditing] = useState<Brand | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Brand | null>(null);
   const [form, setForm] = useState({ name: '', iconImage: '' as string | null, mainImage: '' as string | null, description: '' });
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const paginated = brands.slice((page - 1) * pageSize, page * pageSize);
 
   const openAdd = () => { setEditing(null); setForm({ name: '', iconImage: null, mainImage: null, description: '' }); setIsFormOpen(true); };
   const openEdit = (b: Brand) => { setEditing(b); setForm({ name: b.name, iconImage: b.iconImage, mainImage: b.mainImage, description: b.description }); setIsFormOpen(true); };
@@ -43,7 +49,7 @@ const BrandsPage = () => {
 
       {view === 'card' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {brands.map(brand => (
+          {paginated.map(brand => (
             <div key={brand.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <img src={brand.iconImage} alt={brand.name} className="h-12 w-12 rounded-lg object-cover bg-muted" />
@@ -80,7 +86,7 @@ const BrandsPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {brands.map(brand => (
+              {paginated.map(brand => (
                 <TableRow key={brand.id}>
                   <TableCell><img src={brand.iconImage} alt={brand.name} className="h-8 w-8 rounded-md object-cover bg-muted" /></TableCell>
                   <TableCell className="font-medium">{brand.name}</TableCell>
@@ -99,6 +105,8 @@ const BrandsPage = () => {
           </Table>
         </div>
       )}
+
+      <TablePagination totalItems={brands.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>

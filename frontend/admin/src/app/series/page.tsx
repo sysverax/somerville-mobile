@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import ImageUpload from '@/components/ImageUpload';
+import TablePagination from '@/components/TablePagination';
 
 const SeriesPage = () => {
   const { brands } = useBrands();
@@ -30,9 +31,14 @@ const SeriesPage = () => {
   const [deleteTarget, setDeleteTarget] = useState<Series | null>(null);
   const [form, setForm] = useState({ categoryId: '', brandId: '', name: '', image: null as string | null, description: '' });
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const filteredCats = filters.brandId ? categories.filter(c => c.brandId === filters.brandId) : categories;
   const hasChanges = JSON.stringify(filters) !== JSON.stringify(applied);
   const filtered = seriesList.filter(s => (!applied.brandId || s.brandId === applied.brandId) && (!applied.categoryId || s.categoryId === applied.categoryId));
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const openAdd = () => { setEditing(null); setForm({ categoryId: applied.categoryId, brandId: applied.brandId, name: '', image: null, description: '' }); setIsFormOpen(true); };
   const openEdit = (s: Series) => { setEditing(s); setForm({ categoryId: s.categoryId, brandId: s.brandId, name: s.name, image: s.image, description: s.description }); setIsFormOpen(true); };
@@ -46,26 +52,29 @@ const SeriesPage = () => {
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Brand</Label>
-          <Select value={filters.brandId} onValueChange={v => setFilters(f => ({ ...f, brandId: v, categoryId: '' }))}>
+          <Select value={filters.brandId} onValueChange={v => { setFilters(f => ({ ...f, brandId: v, categoryId: '' })); setPage(1); }}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Brands" /></SelectTrigger>
             <SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Category</Label>
-          <Select value={filters.categoryId} onValueChange={v => setFilters(f => ({ ...f, categoryId: v }))}>
+          <Select value={filters.categoryId} onValueChange={v => { setFilters(f => ({ ...f, categoryId: v })); setPage(1); }}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Categories" /></SelectTrigger>
             <SelectContent>{filteredCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        {hasChanges && <Button onClick={() => setApplied({ ...filters })}>Apply</Button>}
+        {hasChanges && <Button onClick={() => { setApplied({ ...filters }); setPage(1); }}>Apply</Button>}
+        {(applied.brandId || applied.categoryId) && (
+          <Button variant="outline" onClick={() => { const empty = { brandId: '', categoryId: '' }; setFilters(empty); setApplied(empty); setPage(1); }}>Clear</Button>
+        )}
         <ViewToggle view={view} onChange={setView} />
         <div className="ml-auto"><Button onClick={openAdd} className="gap-2"><Plus className="h-4 w-4" /> Add Series</Button></div>
       </div>
 
       {view === 'card' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(s => (
+          {paginated.map(s => (
             <div key={s.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <img src={s.image} alt={s.name} className="h-12 w-12 rounded-lg object-cover bg-muted" />
@@ -101,7 +110,7 @@ const SeriesPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(s => (
+              {paginated.map(s => (
                 <TableRow key={s.id}>
                   <TableCell><img src={s.image} alt={s.name} className="h-8 w-8 rounded-md object-cover bg-muted" /></TableCell>
                   <TableCell className="font-medium">{s.name}</TableCell>
@@ -122,6 +131,8 @@ const SeriesPage = () => {
           </Table>
         </div>
       )}
+
+      <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>

@@ -19,6 +19,7 @@ import { Plus, Pencil, Trash2, RotateCcw, Wrench } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import ImageUpload from '@/components/ImageUpload';
+import TablePagination from '@/components/TablePagination';
 
 const ProductsPage = () => {
   const { brands } = useBrands();
@@ -45,6 +46,11 @@ const ProductsPage = () => {
   const filteredSeries = filters.categoryId ? seriesList.filter(s => s.categoryId === filters.categoryId) : seriesList;
   const hasChanges = JSON.stringify(filters) !== JSON.stringify(applied);
   const filtered = products.filter(p => (!applied.brandId || p.brandId === applied.brandId) && (!applied.categoryId || p.categoryId === applied.categoryId) && (!applied.seriesId || p.seriesId === applied.seriesId));
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const openAdd = () => { setEditing(null); setForm({ seriesId: '', categoryId: '', brandId: '', name: '', description: '', specifications: {}, iconImage: null, galleryImages: [] }); setIsFormOpen(true); };
   const openEdit = (p: Product) => { setEditing(p); setForm({ seriesId: p.seriesId, categoryId: p.categoryId, brandId: p.brandId, name: p.name, description: p.description, specifications: { ...p.specifications }, iconImage: p.iconImage, galleryImages: [...p.galleryImages] }); setIsFormOpen(true); };
@@ -106,14 +112,17 @@ const ProductsPage = () => {
           <Select value={filters.categoryId} onValueChange={v => setFilters(f => ({ ...f, categoryId: v, seriesId: '' }))}><SelectTrigger className="w-[160px]"><SelectValue placeholder="All" /></SelectTrigger><SelectContent>{filteredCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-1"><Label className="text-xs">Series</Label>
           <Select value={filters.seriesId} onValueChange={v => setFilters(f => ({ ...f, seriesId: v }))}><SelectTrigger className="w-[160px]"><SelectValue placeholder="All" /></SelectTrigger><SelectContent>{filteredSeries.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
-        {hasChanges && <Button onClick={() => setApplied({ ...filters })}>Apply</Button>}
+        {hasChanges && <Button onClick={() => { setApplied({ ...filters }); setPage(1); }}>Apply</Button>}
+        {(applied.brandId || applied.categoryId || applied.seriesId) && (
+          <Button variant="outline" onClick={() => { const empty = { brandId: '', categoryId: '', seriesId: '' }; setFilters(empty); setApplied(empty); setPage(1); }}>Clear</Button>
+        )}
         <ViewToggle view={view} onChange={setView} />
         <div className="ml-auto"><Button onClick={openAdd} className="gap-2"><Plus className="h-4 w-4" /> Add Product</Button></div>
       </div>
 
       {view === 'card' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(p => {
+          {paginated.map(p => {
             const productServices = getServicesForProduct(p);
             return (
               <div key={p.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
@@ -159,7 +168,7 @@ const ProductsPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(p => {
+              {paginated.map(p => {
                 const productServices = getServicesForProduct(p);
                 return (
                   <TableRow key={p.id}>
@@ -184,6 +193,8 @@ const ProductsPage = () => {
           </Table>
         </div>
       )}
+
+      <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
       {/* Add/Edit Product Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
