@@ -6,6 +6,9 @@ import { Phone, Mail, MapPin, Facebook, Instagram, Clock } from "lucide-react";
 import logo from "@/public/logo.jpeg";
 
 const Footer = () => {
+  const handleLinkClick = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
   return (
     <footer className="bg-card border-t border-border">
       <div className="container mx-auto px-4 py-12">
@@ -43,27 +46,27 @@ const Footer = () => {
             <h4 className="font-semibold">Quick Links</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link href="/about" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/services" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link href="/services" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
                   Our Services
                 </Link>
               </li>
               <li>
-                <Link href="/booking" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link href="/booking" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
                   Book a Repair
                 </Link>
               </li>
               <li>
-                <Link href="/faq" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link href="/faq" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
                   FAQ
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link href="/contact" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
                   Contact Us
                 </Link>
               </li>
@@ -75,12 +78,12 @@ const Footer = () => {
             <h4 className="font-semibold">Legal</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link href="/privacy" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link href="/terms" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
                   Terms & Conditions
                 </Link>
               </li>

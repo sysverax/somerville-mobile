@@ -147,11 +147,11 @@ const PrivacyPolicyPage = () => {
 
               <section className="border-t border-border pt-8">
                 <h2 className="text-2xl font-bold mb-4 text-foreground">Contact Us</h2>
-                <p className="text-muted-foreground leading-relaxed mb-6">
+                <p className="text-muted-foreground leading-relaxed mb-8">
                   If you have any questions about this Privacy Policy or wish to exercise your privacy rights, 
                   please contact us:
                 </p>
-                <div className="grid sm:grid-cols-3 gap-4">
+                <div className="grid sm:grid-cols-3 gap-4 items-start">
                   <div className="flex items-center gap-3 text-muted-foreground">
                     <Mail className="h-5 w-5 text-primary" />
                     <span className="text-sm">info@somervillemobile.com.au</span>
