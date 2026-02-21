@@ -59,7 +59,12 @@ const ContactPage = () => {
     {
       icon: MapPin,
       title: "Address",
-      content: "Shop 14, 49 Eramosa Road West, Somerville, VIC 3912",
+      content: (
+      <>
+        Shop 14, <br /> 49 Eramosa Road West,<br />
+        Somerville, VIC 3912
+      </>
+      ),      
       link: "https://maps.google.com/?q=Shop+14,+49+Eramosa+Road+West,+Somerville+VIC+3912"
     }
   ];
@@ -89,7 +94,7 @@ const ContactPage = () => {
               Get in <span className="text-primary">Touch</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Have a question, need a repair quote, or want to book an appointment?
+              Have a question, need a repair quote, or want to book an appointment? <br />
               We're here to help. Reach out to us using any of the methods below.
             </p>
           </motion.div>
@@ -240,7 +245,7 @@ const ContactPage = () => {
                   <div className="space-y-3">
                     {businessHours.map((item) => (
                       <div key={item.day} className="flex justify-between items-center">
-                        <span className={item.day === "Sunday" ? "text-muted-foreground" : "text-foreground"}>
+                        <span className="text-foreground">
                           {item.day}
                         </span>
                         <span className={item.hours === "Closed" ? "text-muted-foreground" : "text-primary font-medium"}>
@@ -253,7 +258,7 @@ const ContactPage = () => {
               </div>
 
               {/* Location */}
-              <div>
+              <div id="find-us" className="scroll-mt-24">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                     <MapPin className="h-5 w-5 text-primary" />
@@ -274,7 +279,7 @@ const ContactPage = () => {
                   />
                   <div className="p-4">
                     <p className="text-sm text-muted-foreground">
-                      Shop 14, 49 Eramosa Road West<br />
+                      Shop 14, <br />49 Eramosa Road West,<br />
                       Somerville, VIC 3912
                     </p>
                     <a

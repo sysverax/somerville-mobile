@@ -126,7 +126,7 @@ const AboutPage = () => {
                 <Link href="/booking">Book a Repair</Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link href="/#services">View Services</Link>
+                <Link href="/services">View Services</Link>
               </Button>
             </div>
           </motion.div>
@@ -375,17 +375,17 @@ const AboutPage = () => {
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
-              <div className="flex items-center gap-4 p-6 rounded-xl bg-card border border-border/50">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="flex items-center gap-4 px-4 py-6 rounded-xl bg-card border border-border/50">
+                <div className="w-12 h-12 flex-shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
                   <MapPin className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                   <h4 className="font-semibold">Location</h4>
-                  <p className="text-sm text-muted-foreground">Shop 14, 49 Eramosa Road West<br />Somerville, VIC 3912</p>
+                  <p className="text-sm text-muted-foreground">Shop 14,<br /> 49 Eramosa Road West,<br />Somerville, VIC 3912</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 p-6 rounded-xl bg-card border border-border/50">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="flex items-center gap-4 px-4 py-6 rounded-xl bg-card border border-border/50">
+                <div className="w-12 h-12 flex-shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Phone className="h-6 w-6 text-primary" />
                 </div>
                 <div>
@@ -393,8 +393,8 @@ const AboutPage = () => {
                   <p className="text-sm text-muted-foreground">(03) 5977 6911</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 p-6 rounded-xl bg-card border border-border/50">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="flex items-center gap-4 px-4 py-6 rounded-xl bg-card border border-border/50">
+                <div className="w-12 h-12 flex-shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Mail className="h-6 w-6 text-primary" />
                 </div>
                 <div>

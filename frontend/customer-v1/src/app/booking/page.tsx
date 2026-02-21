@@ -1,11 +1,16 @@
 "use client";
 
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Calendar, Wrench } from "lucide-react";
 import Layout from "@/src/components/layout/Layout";
 import BookingForm from "@/src/components/booking/BookingForm";
 
-const BookingPage = () => {
+const BookingContent  = () => {
+  const searchParams = useSearchParams();
+  const brandId = searchParams.get("brandId") || undefined;
+
   return (
     <Layout>
       <section className="py-12 min-h-screen">
@@ -47,7 +52,7 @@ const BookingPage = () => {
                 </div>
               </div>
 
-              <BookingForm />
+            <BookingForm preSelectedBrandId={brandId ?? undefined} />
             </motion.div>
 
             {/* Info Section */}
@@ -84,6 +89,14 @@ const BookingPage = () => {
         </div>
       </section>
     </Layout>
+  );
+};
+
+const BookingPage = () => {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-dark" />}>
+      <BookingContent />
+    </Suspense>
   );
 };
 
