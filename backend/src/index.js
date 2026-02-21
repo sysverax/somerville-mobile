@@ -10,6 +10,7 @@ const { PORT, ALLOWED_ORIGINS } = require("./config/envConfig");
 const connectDB = require("./config/db");
 
 const authRoutes = require("./routes/auth.route");
+const brandRoutes = require("./routes/brand.route");
 
 const invalidJsonHandler = (err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
@@ -58,6 +59,7 @@ const server = async () => {
   });
 
   app.use("/api/auth", authRoutes);
+  app.use("/api/brands", brandRoutes);
 
   app.use(invalidJsonHandler);
   app.use(errorHandler);

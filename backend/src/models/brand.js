@@ -11,7 +11,11 @@ const brandSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    imageUrl: {
+    iconImageUrl: {
+      type: String,
+      default: null,
+    },
+    bannerImageUrl: {
       type: String,
       default: null,
     },
