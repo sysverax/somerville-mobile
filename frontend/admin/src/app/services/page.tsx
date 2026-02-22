@@ -30,6 +30,41 @@ interface VariantFormItem {
   estimatedTime: number;
 }
 
+const validateName = (value: string): string | undefined => {
+  if (!value.trim()) return 'Service name is required';
+  if (value.trim().length < 2) return 'Service name must be at least 2 characters';
+  return undefined;
+};
+const validateBrand = (value: string): string | undefined => {
+  if (!value) return 'Brand is required';
+  return undefined;
+};
+const validateCategory = (value: string): string | undefined => {
+  if (!value) return 'Category is required';
+  return undefined;
+};
+const validateSeries = (value: string): string | undefined => {
+  if (!value) return 'Series is required';
+  return undefined;
+};
+const validateProduct = (value: string): string | undefined => {
+  if (!value) return 'Product is required';
+  return undefined;
+};
+
+const validateBasePrice = (value: number): string | undefined => {
+  if (value === undefined || value === null || String(value).trim() === '') return 'Base price is required';
+  if (value < 0) return 'Base price cannot be negative';
+  return undefined;
+};
+
+const validateEstimatedTime = (value: number): string | undefined => {
+  if (!value || value < 1) return 'Estimated time is required (min 1)';
+  return undefined;
+};
+
+type FormErrors = { name?: string; brandId?: string; categoryId?: string; seriesId?: string; productId?: string; basePrice?: string; estimatedTime?: string };
+
 const ServicesPage = () => {
   const { services, createService, updateService, deleteService, getVariants, hasVariants, getOverridesByService, getOverridesByProduct, upsertOverride, deleteOverride, overrides, toggleServiceForProduct } = useServices();
   const { brands } = useBrands();
@@ -62,6 +97,9 @@ const ServicesPage = () => {
   const [editing, setEditing] = useState<ServiceRecord | null>(null);
   const [detailView, setDetailView] = useState<ServiceRecord | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<ServiceRecord | null>(null);
+
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<{ name?: boolean; brandId?: boolean; categoryId?: boolean; seriesId?: boolean; productId?: boolean; basePrice?: boolean; estimatedTime?: boolean }>({});
 
   // Form state
   const [form, setForm] = useState({
@@ -238,10 +276,12 @@ const ServicesPage = () => {
 
   // Open form
   const openAdd = () => {
-    setEditing(null);
-    setForm({ name: '', description: '', level: 'brand', brandId: '', categoryId: '', seriesId: '', productId: '', basePrice: 0, estimatedTime: 30, isActive: true, hasVariants: false });
-    setVariantItems([]);
-    setIsFormOpen(true);
+  setEditing(null);
+  setForm({ name: '', description: '', level: 'brand', brandId: '', categoryId: '', seriesId: '', productId: '', basePrice: 0, estimatedTime: 30, isActive: true, hasVariants: false });
+  setVariantItems([]);
+  setFormErrors({});
+  setTouched({});
+  setIsFormOpen(true);
   };
 
   const openEdit = (s: ServiceRecord) => {
@@ -254,8 +294,13 @@ const ServicesPage = () => {
       hasVariants: variants.length > 0,
     });
     setVariantItems(variants.map(v => ({ name: v.name, description: v.description, basePrice: v.basePrice, estimatedTime: v.estimatedTime })));
+    setFormErrors({});
+    setTouched({});
     setIsFormOpen(true);
   };
+
+  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
+
 
   const addVariantItem = () => {
     setVariantItems(prev => [...prev, { name: '', description: '', basePrice: 0, estimatedTime: 30 }]);
@@ -270,15 +315,22 @@ const ServicesPage = () => {
   };
 
   const save = () => {
-    if (!form.name.trim() || !form.brandId) return;
-    if (form.level === 'category' && !form.categoryId) return;
-    if (form.level === 'series' && (!form.categoryId || !form.seriesId)) return;
-    if (form.level === 'product' && (!form.categoryId || !form.seriesId || !form.productId)) return;
+     const nameErr = validateName(form.name);
+      const brandErr = validateBrand(form.brandId);
+      const categoryErr = ['category', 'series', 'product'].includes(form.level) ? validateCategory(form.categoryId) : undefined;
+      const seriesErr = ['series', 'product'].includes(form.level) ? validateSeries(form.seriesId) : undefined;
+      const productErr = form.level === 'product' ? validateProduct(form.productId) : undefined;
+      const basePriceErr = !form.hasVariants ? validateBasePrice(form.basePrice) : undefined;
+      const estimatedTimeErr = !form.hasVariants ? validateEstimatedTime(form.estimatedTime) : undefined;
+
+      if (nameErr || brandErr || categoryErr || seriesErr || productErr || basePriceErr || estimatedTimeErr) {
+        setFormErrors({ name: nameErr, brandId: brandErr, categoryId: categoryErr, seriesId: seriesErr, productId: productErr, basePrice: basePriceErr, estimatedTime: estimatedTimeErr });
+        setTouched({ name: true, brandId: true, categoryId: true, seriesId: true, productId: true, basePrice: true, estimatedTime: true });
+        return;
+      }
 
     const basePayload = {
-      name: form.name.trim(),
-      description: form.description.trim(),
-      level: form.level,
+      name: form.name.trim(), description: form.description.trim(), level: form.level,
       brandId: form.brandId,
       categoryId: ['category', 'series', 'product'].includes(form.level) ? form.categoryId : undefined,
       seriesId: ['series', 'product'].includes(form.level) ? form.seriesId : undefined,
@@ -287,60 +339,16 @@ const ServicesPage = () => {
     };
 
     if (editing) {
-      // Update parent
-      updateService(editing.id, {
-        ...basePayload,
-        basePrice: form.hasVariants ? 0 : form.basePrice,
-        estimatedTime: form.hasVariants ? 0 : form.estimatedTime,
-        isVariant: false,
-        parentServiceId: null,
-      });
-
-      // Delete old variants
+      updateService(editing.id, { ...basePayload, basePrice: form.hasVariants ? 0 : form.basePrice, estimatedTime: form.hasVariants ? 0 : form.estimatedTime, isVariant: false, parentServiceId: null });
       const oldVariants = getVariants(editing.id);
       oldVariants.forEach(v => deleteService(v.id));
-
-      // Create new variants
       if (form.hasVariants) {
-        variantItems.forEach(vi => {
-          if (vi.name.trim()) {
-            createService({
-              ...basePayload,
-              name: vi.name.trim(),
-              description: vi.description.trim(),
-              basePrice: vi.basePrice,
-              estimatedTime: vi.estimatedTime,
-              isVariant: true,
-              parentServiceId: editing.id,
-            });
-          }
-        });
+        variantItems.forEach(vi => { if (vi.name.trim()) createService({ ...basePayload, name: vi.name.trim(), description: vi.description.trim(), basePrice: vi.basePrice, estimatedTime: vi.estimatedTime, isVariant: true, parentServiceId: editing.id }); });
       }
     } else {
-      // Create parent
-      const parent = createService({
-        ...basePayload,
-        basePrice: form.hasVariants ? 0 : form.basePrice,
-        estimatedTime: form.hasVariants ? 0 : form.estimatedTime,
-        isVariant: false,
-        parentServiceId: null,
-      });
-
-      // Create variants
+      const parent = createService({ ...basePayload, basePrice: form.hasVariants ? 0 : form.basePrice, estimatedTime: form.hasVariants ? 0 : form.estimatedTime, isVariant: false, parentServiceId: null });
       if (form.hasVariants && parent) {
-        variantItems.forEach(vi => {
-          if (vi.name.trim()) {
-            createService({
-              ...basePayload,
-              name: vi.name.trim(),
-              description: vi.description.trim(),
-              basePrice: vi.basePrice,
-              estimatedTime: vi.estimatedTime,
-              isVariant: true,
-              parentServiceId: parent.id,
-            });
-          }
-        });
+        variantItems.forEach(vi => { if (vi.name.trim()) createService({ ...basePayload, name: vi.name.trim(), description: vi.description.trim(), basePrice: vi.basePrice, estimatedTime: vi.estimatedTime, isVariant: true, parentServiceId: parent.id }); });
       }
     }
     setIsFormOpen(false);
@@ -1046,7 +1054,7 @@ const ServicesPage = () => {
       </Dialog>
 
       {/* Add/Edit Form Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog open={isFormOpen} onOpenChange={handleClose}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto scrollbar-hide">
           <DialogHeader><DialogTitle>{editing ? 'Edit Service' : 'Add Service'}</DialogTitle></DialogHeader>
           <div className="space-y-5">
@@ -1054,7 +1062,20 @@ const ServicesPage = () => {
               <h3 className="text-sm font-semibold text-foreground">Basic Information</h3>
               <div className="space-y-2">
                 <Label>Service Name *</Label>
-                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Screen Replacement" />
+                <Input
+                  value={form.name}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setForm(f => ({ ...f, name: val }));
+                    if (touched.name) setFormErrors(prev => ({ ...prev, name: validateName(val) }));
+                  }}
+                  onBlur={() => {
+                    setTouched(prev => ({ ...prev, name: true }));
+                    setFormErrors(prev => ({ ...prev, name: validateName(form.name) }));
+                  }}
+                  placeholder="e.g. Screen Replacement"
+                />
+                {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Description</Label>
@@ -1076,12 +1097,41 @@ const ServicesPage = () => {
               {!form.hasVariants && (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Base Price ($) {form.level === 'product' && '*'}</Label>
-                    <Input type="number" min={0} step={0.01} value={form.basePrice} onChange={e => setForm(f => ({ ...f, basePrice: Number(e.target.value) }))} />
+                    <Label>Base Price ($) *</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={form.basePrice}
+                      onChange={e => {
+                        const val = Number(e.target.value);
+                        setForm(f => ({ ...f, basePrice: val }));
+                        if (touched.basePrice) setFormErrors(prev => ({ ...prev, basePrice: validateBasePrice(val) }));
+                      }}
+                      onBlur={() => {
+                        setTouched(prev => ({ ...prev, basePrice: true }));
+                        setFormErrors(prev => ({ ...prev, basePrice: validateBasePrice(form.basePrice) }));
+                      }}
+                    />
+                    {formErrors.basePrice && <p className="text-xs text-destructive">{formErrors.basePrice}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label>Est. Time (min) *</Label>
-                    <Input type="number" min={1} value={form.estimatedTime} onChange={e => setForm(f => ({ ...f, estimatedTime: Math.max(1, Number(e.target.value)) }))} />
+                    <Input
+                      type="number"
+                      min={1}
+                      value={form.estimatedTime}
+                      onChange={e => {
+                        const val = Math.max(1, Number(e.target.value));
+                        setForm(f => ({ ...f, estimatedTime: val }));
+                        if (touched.estimatedTime) setFormErrors(prev => ({ ...prev, estimatedTime: validateEstimatedTime(val) }));
+                      }}
+                      onBlur={() => {
+                        setTouched(prev => ({ ...prev, estimatedTime: true }));
+                        setFormErrors(prev => ({ ...prev, estimatedTime: validateEstimatedTime(form.estimatedTime) }));
+                      }}
+                    />
+                    {formErrors.estimatedTime && <p className="text-xs text-destructive">{formErrors.estimatedTime}</p>}
                   </div>
                 </div>
               )}
@@ -1138,7 +1188,10 @@ const ServicesPage = () => {
               <h3 className="text-sm font-semibold text-foreground">Service Assignment</h3>
               <div className="space-y-2">
                 <Label>Level *</Label>
-                <Select value={form.level} onValueChange={v => setForm(f => ({ ...f, level: v as AssignmentLevel, categoryId: '', seriesId: '', productId: '' }))}>
+                <Select value={form.level} onValueChange={v => {
+                  setForm(f => ({ ...f, level: v as AssignmentLevel, categoryId: '', seriesId: '', productId: '' }));
+                  setFormErrors(prev => ({ ...prev, categoryId: undefined, seriesId: undefined, productId: undefined }));
+                }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {LEVELS.map(l => <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>)}
@@ -1147,7 +1200,11 @@ const ServicesPage = () => {
               </div>
               <div className="space-y-2">
                 <Label>Brand *</Label>
-                <Select value={form.brandId} onValueChange={v => setForm(f => ({ ...f, brandId: v, categoryId: '', seriesId: '', productId: '' }))}>
+                <Select value={form.brandId} onValueChange={v => {
+                  setForm(f => ({ ...f, brandId: v, categoryId: '', seriesId: '', productId: '' }));
+                  setTouched(prev => ({ ...prev, brandId: true }));
+                  setFormErrors(prev => ({ ...prev, brandId: validateBrand(v), categoryId: undefined, seriesId: undefined, productId: undefined }));
+                }}>
                   <SelectTrigger><SelectValue placeholder="Select brand" /></SelectTrigger>
                   <SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
                 </Select>
@@ -1155,7 +1212,11 @@ const ServicesPage = () => {
               {['category', 'series', 'product'].includes(form.level) && (
                 <div className="space-y-2">
                   <Label>Category *</Label>
-                  <Select value={form.categoryId} onValueChange={v => setForm(f => ({ ...f, categoryId: v, seriesId: '', productId: '' }))} disabled={!form.brandId}>
+                   <Select value={form.categoryId} onValueChange={v => {
+                      setForm(f => ({ ...f, categoryId: v, seriesId: '', productId: '' }));
+                      setTouched(prev => ({ ...prev, categoryId: true }));
+                      setFormErrors(prev => ({ ...prev, categoryId: validateCategory(v), seriesId: undefined, productId: undefined }));
+                    }} disabled={!form.brandId}>
                     <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>{formCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                   </Select>
@@ -1164,7 +1225,11 @@ const ServicesPage = () => {
               {['series', 'product'].includes(form.level) && (
                 <div className="space-y-2">
                   <Label>Series *</Label>
-                  <Select value={form.seriesId} onValueChange={v => setForm(f => ({ ...f, seriesId: v, productId: '' }))} disabled={!form.categoryId}>
+                   <Select value={form.seriesId} onValueChange={v => {
+                      setForm(f => ({ ...f, seriesId: v, productId: '' }));
+                      setTouched(prev => ({ ...prev, seriesId: true }));
+                      setFormErrors(prev => ({ ...prev, seriesId: validateSeries(v), productId: undefined }));
+                    }} disabled={!form.categoryId}>
                     <SelectTrigger><SelectValue placeholder="Select series" /></SelectTrigger>
                     <SelectContent>{formSeries.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                   </Select>
@@ -1173,7 +1238,11 @@ const ServicesPage = () => {
               {form.level === 'product' && (
                 <div className="space-y-2">
                   <Label>Product *</Label>
-                  <Select value={form.productId} onValueChange={v => setForm(f => ({ ...f, productId: v }))} disabled={!form.seriesId}>
+                   <Select value={form.productId} onValueChange={v => {
+                      setForm(f => ({ ...f, productId: v }));
+                      setTouched(prev => ({ ...prev, productId: true }));
+                      setFormErrors(prev => ({ ...prev, productId: validateProduct(v) }));
+                    }} disabled={!form.seriesId}>
                     <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                     <SelectContent>{formProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                   </Select>
@@ -1195,7 +1264,7 @@ const ServicesPage = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsFormOpen(false)}>Cancel</Button>
+            <Button variant="secondary" onClick={handleClose}>Cancel</Button>
             <Button onClick={save}>{editing ? 'Update' : 'Create'}</Button>
           </DialogFooter>
         </DialogContent>

@@ -18,6 +18,28 @@ import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import ImageUpload from '@/components/ImageUpload';
 import TablePagination from '@/components/TablePagination';
 
+const validateBrand = (value: string): string | undefined => {
+  if (!value) return 'Brand is required';
+  return undefined;
+};
+
+const validateCategory = (value: string): string | undefined => {
+  if (!value) return 'Category is required';
+  return undefined;
+};
+
+const validateName = (value: string): string | undefined => {
+  if (!value.trim()) return 'Series name is required';
+  return undefined;
+};
+
+const validateImage = (value: string | null): string | undefined => {
+  if (!value) return 'Image is required';
+  return undefined;
+};
+
+type FormErrors = { brandId?: string; categoryId?: string; name?: string; image?: string };
+
 const SeriesPage = () => {
   const { brands } = useBrands();
   const { categories } = useCategories();
@@ -30,6 +52,8 @@ const SeriesPage = () => {
   const [editing, setEditing] = useState<Series | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Series | null>(null);
   const [form, setForm] = useState({ categoryId: '', brandId: '', name: '', image: null as string | null, description: '' });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<{ brandId?: boolean; categoryId?: boolean; name?: boolean; image?: boolean }>({});
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -40,9 +64,24 @@ const SeriesPage = () => {
   const filtered = seriesList.filter(s => (!applied.brandId || s.brandId === applied.brandId) && (!applied.categoryId || s.categoryId === applied.categoryId));
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const openAdd = () => { setEditing(null); setForm({ categoryId: applied.categoryId, brandId: applied.brandId, name: '', image: null, description: '' }); setIsFormOpen(true); };
-  const openEdit = (s: Series) => { setEditing(s); setForm({ categoryId: s.categoryId, brandId: s.brandId, name: s.name, image: s.image, description: s.description }); setIsFormOpen(true); };
-  const handleSave = () => { if (!form.name.trim() || !form.categoryId || !form.brandId) return; if (editing) update(editing.id, form); else create(form); setIsFormOpen(false); };
+  const openAdd = () => { setEditing(null); setForm({ categoryId: applied.categoryId, brandId: applied.brandId, name: '', image: null, description: '' }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
+  const openEdit = (s: Series) => { setEditing(s); setForm({ categoryId: s.categoryId, brandId: s.brandId, name: s.name, image: s.image, description: s.description }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
+
+  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
+
+  const handleSave = () => {
+    const brandErr = validateBrand(form.brandId);
+    const categoryErr = validateCategory(form.categoryId);
+    const nameErr = validateName(form.name);
+    const imageErr = validateImage(form.image);
+    if (brandErr || categoryErr || nameErr || imageErr) {
+      setFormErrors({ brandId: brandErr, categoryId: categoryErr, name: nameErr, image: imageErr });
+      setTouched({ brandId: true, categoryId: true, name: true, image: true });
+      return;
+    }
+    if (editing) update(editing.id, form); else create(form);
+    setIsFormOpen(false);
+  };
 
   const brandName = (id: string) => brands.find(b => b.id === id)?.name || id;
   const categoryName = (id: string) => categories.find(c => c.id === id)?.name || id;
@@ -134,32 +173,67 @@ const SeriesPage = () => {
 
       <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent>
+      <Dialog open={isFormOpen} onOpenChange={handleClose}>
+        <DialogContent className="flex flex-col max-h-[90vh]">
           <DialogHeader><DialogTitle>{editing ? 'Edit Series' : 'Add Series'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
+            <div className="space-y-2 mx-1">
               <Label>Brand *</Label>
-              <Select value={form.brandId} onValueChange={v => setForm(f => ({ ...f, brandId: v, categoryId: '' }))}>
+              <Select value={form.brandId} onValueChange={v => {
+                setForm(f => ({ ...f, brandId: v, categoryId: '' }));
+                setTouched(prev => ({ ...prev, brandId: true }));
+                setFormErrors(prev => ({ ...prev, brandId: validateBrand(v), categoryId: undefined }));
+              }}>
                 <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
               </Select>
+              {formErrors.brandId && <p className="text-xs text-destructive">{formErrors.brandId}</p>}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 mx-1">
               <Label>Category *</Label>
-              <Select value={form.categoryId} onValueChange={v => setForm(f => ({ ...f, categoryId: v }))}>
+              <Select value={form.categoryId} 
+                onValueChange={v => {
+                  setForm(f => ({ ...f, categoryId: v }));
+                  setTouched(prev => ({ ...prev, categoryId: true }));
+                  setFormErrors(prev => ({ ...prev, categoryId: validateCategory(v) }));
+                }}>
                 <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>{categories.filter(c => c.brandId === form.brandId).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
+              {formErrors.categoryId && <p className="text-xs text-destructive">{formErrors.categoryId}</p>}
             </div>
-            <div className="space-y-2"><Label>Name *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
+            <div className="space-y-2 mx-1">
+              <Label>Name *</Label>
+              <Input
+                value={form.name}
+                onChange={e => {
+                  const val = e.target.value;
+                  setForm(f => ({ ...f, name: val }));
+                  if (touched.name) setFormErrors(prev => ({ ...prev, name: validateName(val) }));
+                }}
+                onBlur={() => {
+                  setTouched(prev => ({ ...prev, name: true }));
+                  setFormErrors(prev => ({ ...prev, name: validateName(form.name) }));
+                }}
+              />
+              {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
+            </div>            
+            <div className="space-y-2 mx-1"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div className="space-y-2">
-              <Label>Image</Label>
-              <ImageUpload value={form.image} onChange={v => setForm(f => ({ ...f, image: v }))} size={120} />
+              <Label>Image *</Label>
+              <ImageUpload
+                value={form.image}
+                onChange={v => {
+                  setForm(f => ({ ...f, image: v }));
+                  setTouched(prev => ({ ...prev, image: true }));
+                  setFormErrors(prev => ({ ...prev, image: validateImage(v) }));
+                }}
+                size={120}
+              />
+              {formErrors.image && <p className="text-xs text-destructive">{formErrors.image}</p>}
             </div>
           </div>
-          <DialogFooter><Button variant="secondary" onClick={() => setIsFormOpen(false)}>Cancel</Button><Button onClick={handleSave}>Save</Button></DialogFooter>
+          <DialogFooter><Button variant="secondary" onClick={handleClose}>Cancel</Button><Button onClick={handleSave}>Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

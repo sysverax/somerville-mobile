@@ -21,6 +21,33 @@ import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import ImageUpload from '@/components/ImageUpload';
 import TablePagination from '@/components/TablePagination';
 
+const validateBrand = (value: string): string | undefined => {
+  if (!value) return 'Brand is required';
+  return undefined;
+};
+
+const validateCategory = (value: string): string | undefined => {
+  if (!value) return 'Category is required';
+  return undefined;
+};
+
+const validateSeries = (value: string): string | undefined => {
+  if (!value) return 'Series is required';
+  return undefined;
+};
+
+const validateName = (value: string): string | undefined => {
+  if (!value.trim()) return 'Product name is required';
+  return undefined;
+};
+
+const validateImage = (value: string | null): string | undefined => {
+  if (!value) return 'Product image is required';
+  return undefined;
+};
+
+type FormErrors = { brandId?: string; categoryId?: string; seriesId?: string; name?: string; iconImage?: string };
+
 const ProductsPage = () => {
   const { brands } = useBrands();
   const { categories } = useCategories();
@@ -37,6 +64,8 @@ const ProductsPage = () => {
   const [form, setForm] = useState({ seriesId: '', categoryId: '', brandId: '', name: '', description: '', specifications: {} as Record<string, string>, iconImage: null as string | null, galleryImages: [] as string[] });
   const [specKey, setSpecKey] = useState('');
   const [specVal, setSpecVal] = useState('');
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<{ brandId?: boolean; categoryId?: boolean; seriesId?: boolean; name?: boolean; iconImage?: boolean }>({});
 
   // Service overrides dialog
   const [serviceProduct, setServiceProduct] = useState<Product | null>(null);
@@ -52,9 +81,25 @@ const ProductsPage = () => {
   const [pageSize, setPageSize] = useState(10);
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const openAdd = () => { setEditing(null); setForm({ seriesId: '', categoryId: '', brandId: '', name: '', description: '', specifications: {}, iconImage: null, galleryImages: [] }); setIsFormOpen(true); };
-  const openEdit = (p: Product) => { setEditing(p); setForm({ seriesId: p.seriesId, categoryId: p.categoryId, brandId: p.brandId, name: p.name, description: p.description, specifications: { ...p.specifications }, iconImage: p.iconImage, galleryImages: [...p.galleryImages] }); setIsFormOpen(true); };
-  const handleSave = () => { if (!form.name.trim() || !form.seriesId) return; if (editing) update(editing.id, form); else create(form); setIsFormOpen(false); };
+  const openAdd = () => { setEditing(null); setForm({ seriesId: '', categoryId: '', brandId: '', name: '', description: '', specifications: {}, iconImage: null, galleryImages: [] }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
+  const openEdit = (p: Product) => { setEditing(p); setForm({ seriesId: p.seriesId, categoryId: p.categoryId, brandId: p.brandId, name: p.name, description: p.description, specifications: { ...p.specifications }, iconImage: p.iconImage, galleryImages: [...p.galleryImages] }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
+
+  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
+
+  const handleSave = () => {
+    const brandErr = validateBrand(form.brandId);
+    const categoryErr = validateCategory(form.categoryId);
+    const seriesErr = validateSeries(form.seriesId);
+    const nameErr = validateName(form.name);
+    const imageErr = validateImage(form.iconImage);
+    if (brandErr || categoryErr || seriesErr || nameErr || imageErr) {
+      setFormErrors({ brandId: brandErr, categoryId: categoryErr, seriesId: seriesErr, name: nameErr, iconImage: imageErr });
+      setTouched({ brandId: true, categoryId: true, seriesId: true, name: true, iconImage: true });
+      return;
+    }
+    if (editing) update(editing.id, form); else create(form);
+    setIsFormOpen(false);
+  };
   const addSpec = () => { if (specKey.trim() && specVal.trim()) { setForm(f => ({ ...f, specifications: { ...f.specifications, [specKey]: specVal } })); setSpecKey(''); setSpecVal(''); } };
 
   // Get all services that apply to a product (inherited from brand/category/series/product levels)
@@ -197,30 +242,122 @@ const ProductsPage = () => {
       <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
       {/* Add/Edit Product Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto scrollbar-hide">
-          <DialogHeader><DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-1"><Label className="text-xs">Brand *</Label><Select value={form.brandId} onValueChange={v => setForm(f => ({ ...f, brandId: v, categoryId: '', seriesId: '' }))}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></div>
-              <div className="space-y-1"><Label className="text-xs">Category *</Label><Select value={form.categoryId} onValueChange={v => setForm(f => ({ ...f, categoryId: v, seriesId: '' }))}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{categories.filter(c => c.brandId === form.brandId).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
-              <div className="space-y-1"><Label className="text-xs">Series *</Label><Select value={form.seriesId} onValueChange={v => setForm(f => ({ ...f, seriesId: v }))}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{seriesList.filter(s => s.categoryId === form.categoryId).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
+      <Dialog open={isFormOpen} onOpenChange={handleClose}>
+      <DialogContent className="flex flex-col max-h-[90vh]">
+        <DialogHeader><DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
+        <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
+          {/* Brand / Category / Series */}
+          <div className="grid grid-cols-3 gap-2 mx-1">
+            <div className="space-y-1">
+              <Label className="text-xs">Brand *</Label>
+              <Select
+                value={form.brandId}
+                onValueChange={v => {
+                  setForm(f => ({ ...f, brandId: v, categoryId: '', seriesId: '' }));
+                  setTouched(prev => ({ ...prev, brandId: true }));
+                  setFormErrors(prev => ({ ...prev, brandId: validateBrand(v), categoryId: undefined, seriesId: undefined }));
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+              </Select>
+              {formErrors.brandId && <p className="text-xs text-destructive">{formErrors.brandId}</p>}
             </div>
-            <div className="space-y-2"><Label>Name *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
-            <div className="space-y-2">
-              <Label>Product Image</Label>
-              <ImageUpload value={form.iconImage} onChange={v => setForm(f => ({ ...f, iconImage: v }))} size={150} />
+            <div className="space-y-1">
+              <Label className="text-xs">Category *</Label>
+              <Select
+                value={form.categoryId}
+                onValueChange={v => {
+                  setForm(f => ({ ...f, categoryId: v, seriesId: '' }));
+                  setTouched(prev => ({ ...prev, categoryId: true }));
+                  setFormErrors(prev => ({ ...prev, categoryId: validateCategory(v), seriesId: undefined }));
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>{categories.filter(c => c.brandId === form.brandId).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+              {formErrors.categoryId && <p className="text-xs text-destructive">{formErrors.categoryId}</p>}
             </div>
-            <div className="space-y-2">
-              <Label>Specifications</Label>
-              <div className="flex gap-2"><Input placeholder="Key" value={specKey} onChange={e => setSpecKey(e.target.value)} /><Input placeholder="Value" value={specVal} onChange={e => setSpecVal(e.target.value)} /><Button type="button" variant="secondary" onClick={addSpec}>Add</Button></div>
-              <div className="flex flex-wrap gap-1">{Object.entries(form.specifications).map(([k, v]) => <Badge key={k} variant="outline" className="gap-1">{k}: {v}<button onClick={() => setForm(f => { const s = { ...f.specifications }; delete s[k]; return { ...f, specifications: s }; })} className="ml-1 text-destructive">&times;</button></Badge>)}</div>
+            <div className="space-y-1">
+              <Label className="text-xs">Series *</Label>
+              <Select
+                value={form.seriesId}
+                onValueChange={v => {
+                  setForm(f => ({ ...f, seriesId: v }));
+                  setTouched(prev => ({ ...prev, seriesId: true }));
+                  setFormErrors(prev => ({ ...prev, seriesId: validateSeries(v) }));
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>{seriesList.filter(s => s.categoryId === form.categoryId).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+              </Select>
+              {formErrors.seriesId && <p className="text-xs text-destructive">{formErrors.seriesId}</p>}
             </div>
           </div>
-          <DialogFooter><Button variant="secondary" onClick={() => setIsFormOpen(false)}>Cancel</Button><Button onClick={handleSave}>Save</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+          {/* Name */}
+          <div className="space-y-2 mx-1">
+            <Label>Name *</Label>
+            <Input
+              value={form.name}
+              onChange={e => {
+                const val = e.target.value;
+                setForm(f => ({ ...f, name: val }));
+                if (touched.name) setFormErrors(prev => ({ ...prev, name: validateName(val) }));
+              }}
+              onBlur={() => {
+                setTouched(prev => ({ ...prev, name: true }));
+                setFormErrors(prev => ({ ...prev, name: validateName(form.name) }));
+              }}
+            />
+            {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2 mx-1">
+            <Label>Description</Label>
+            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+          </div>
+
+          {/* Product Image */}
+          <div className="space-y-2">
+            <Label>Product Image *</Label>
+            <ImageUpload
+              value={form.iconImage}
+              onChange={v => {
+                setForm(f => ({ ...f, iconImage: v }));
+                setTouched(prev => ({ ...prev, iconImage: true }));
+                setFormErrors(prev => ({ ...prev, iconImage: validateImage(v) }));
+              }}
+              size={150}
+            />
+            {formErrors.iconImage && <p className="text-xs text-destructive">{formErrors.iconImage}</p>}
+          </div>
+
+          {/* Specifications */}
+          <div className="space-y-2 mx-1">
+            <Label>Specifications</Label>
+            <div className="flex gap-2">
+              <Input placeholder="Key" value={specKey} onChange={e => setSpecKey(e.target.value)} />
+              <Input placeholder="Value" value={specVal} onChange={e => setSpecVal(e.target.value)} />
+              <Button type="button" variant="secondary" onClick={addSpec}>Add</Button>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {Object.entries(form.specifications).map(([k, v]) => (
+                <Badge key={k} variant="outline" className="gap-1">{k}: {v}
+                  <button onClick={() => setForm(f => { const s = { ...f.specifications }; delete s[k]; return { ...f, specifications: s }; })} className="ml-1 text-destructive">&times;</button>
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleSave}>{editing ? 'Save' : 'Add Product'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
       {/* Service Overrides Dialog */}
       <Dialog open={!!serviceProduct} onOpenChange={() => setServiceProduct(null)}>
