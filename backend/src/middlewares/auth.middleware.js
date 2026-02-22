@@ -72,8 +72,8 @@ const validateRoleBasedHeader = (req, res, next) => {
       ),
     );
   }
-  req.userRole = roleHeader;
   if (roleHeader === USER_ROLES.ADMIN) {
+    req.userRole = USER_ROLES.ADMIN;
     return validateAdmin(req, res, next);
   } else {
     req.userRole = USER_ROLES.PUBLIC;

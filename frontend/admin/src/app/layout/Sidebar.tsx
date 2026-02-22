@@ -10,9 +10,9 @@ const navItems = [
   { path: '/series', label: 'Series', icon: Layers },
   { path: '/products', label: 'Products', icon: Package },
   { path: '/services', label: 'Services', icon: Wrench },
-  { path: '/stock-pricing', label: 'Stock & Pricing', icon: DollarSign },
+  // { path: '/stock-pricing', label: 'Stock & Pricing', icon: DollarSign },
   { path: '/bookings', label: 'Bookings', icon: Calendar },
-  { path: '/settings', label: 'Settings', icon: Settings },
+  // { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
 interface SidebarProps {
@@ -47,11 +47,10 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 key={item.path}
                 to={item.path}
                 onClick={onClose}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                }`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
+                  ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                  }`}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {item.label}

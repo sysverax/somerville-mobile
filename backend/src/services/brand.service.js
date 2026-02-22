@@ -115,7 +115,6 @@ const updateBrandService = async (updatePayload, logger) => {
       folder: `brands/${existingBrand.name}/icon`,
     });
     updatePayload.iconImageUrl = uploadedIcon.url;
-    await deleteImageFromS3(existingBrand.iconImageUrl);
   }
 
   if (updatePayload.bannerImageFile) {
@@ -124,7 +123,6 @@ const updateBrandService = async (updatePayload, logger) => {
       folder: `brands/${existingBrand.name}/banner`,
     });
     updatePayload.bannerImageUrl = uploadedBanner.url;
-    await deleteImageFromS3(existingBrand.bannerImageUrl);
   }
 
   const updatedBrand = await brandRepo.updateBrandRepo(
@@ -135,6 +133,21 @@ const updateBrandService = async (updatePayload, logger) => {
   logger.info("Brand updated successfully", {
     brandId: updatedBrand._id.toString(),
   });
+
+  try {
+    if (updatePayload.iconImageFile) {
+      await deleteImageFromS3(existingBrand.iconImageUrl);
+    }
+  } catch (error) {
+    logger.error("Error deleting old brand images", { error });
+  }
+  try {
+    if (updatePayload.bannerImageFile) {
+      await deleteImageFromS3(existingBrand.bannerImageUrl);
+    }
+  } catch (error) {
+    logger.error("Error deleting old brand images", { error });
+  }
 
   return new brandResponseDto.UpdateBrandResponseDTO(updatedBrand);
 };
