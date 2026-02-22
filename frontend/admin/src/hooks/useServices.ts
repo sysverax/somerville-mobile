@@ -16,8 +16,9 @@ export const useServices = () => {
 
   // ServiceRecord ops
   const createService = useCallback((data: Omit<ServiceRecord, 'id' | 'createdAt'>) => {
-    serviceService.create(data);
+    const created = serviceService.create(data);
     refreshServices();
+    return created;
   }, [refreshServices]);
 
   const updateService = useCallback((id: string, data: Partial<ServiceRecord>) => {
@@ -28,7 +29,21 @@ export const useServices = () => {
   const deleteService = useCallback((id: string) => {
     serviceService.delete(id);
     refreshServices();
-  }, [refreshServices]);
+    refreshOverrides();
+  }, [refreshServices, refreshOverrides]);
+
+  // Variant helpers
+  const getVariants = useCallback((parentId: string) => {
+    return services.filter(s => s.parentServiceId === parentId && s.isVariant);
+  }, [services]);
+
+  const hasVariants = useCallback((parentId: string) => {
+    return services.some(s => s.parentServiceId === parentId && s.isVariant);
+  }, [services]);
+
+  const getParentServices = useCallback(() => {
+    return services.filter(s => !s.isVariant);
+  }, [services]);
 
   // Override ops
   const upsertOverride = useCallback((data: Omit<ServiceProductOverride, 'id'>) => {
@@ -99,6 +114,7 @@ export const useServices = () => {
 
   return {
     services, createService, updateService, deleteService,
+    getVariants, hasVariants, getParentServices,
     overrides, upsertOverride, deleteOverride, getOverridesByService, getOverridesByProduct, toggleServiceForProduct,
     templates, assignments, createTemplate, updateTemplate, deleteTemplate,
     createAssignment, updateAssignment, deleteAssignment, refresh,

@@ -13,6 +13,8 @@ export interface ServiceRecord {
   estimatedTime: number;
   isActive: boolean;
   createdAt: string;
+  parentServiceId?: string | null;
+  isVariant: boolean;
 }
 
 export interface ServiceProductOverride {

@@ -10,6 +10,9 @@ export const serviceService = {
   // New ServiceRecord CRUD
   getAll: (): ServiceRecord[] => [...services],
   getById: (id: string): ServiceRecord | undefined => services.find(s => s.id === id),
+  getParentServices: (): ServiceRecord[] => services.filter(s => !s.isVariant),
+  getVariants: (parentId: string): ServiceRecord[] => services.filter(s => s.parentServiceId === parentId && s.isVariant),
+  hasVariants: (parentId: string): boolean => services.some(s => s.parentServiceId === parentId && s.isVariant),
   create: (data: Omit<ServiceRecord, 'id' | 'createdAt'>): ServiceRecord => {
     const record: ServiceRecord = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString().split('T')[0] };
     services = [...services, record];
@@ -19,7 +22,15 @@ export const serviceService = {
     services = services.map(s => s.id === id ? { ...s, ...data } : s);
     return services.find(s => s.id === id)!;
   },
-  delete: (id: string): void => { services = services.filter(s => s.id !== id); },
+  delete: (id: string): void => {
+    // Also delete child variants and their overrides
+    const children = services.filter(s => s.parentServiceId === id);
+    children.forEach(c => {
+      overrides = overrides.filter(o => o.serviceId !== c.id);
+    });
+    overrides = overrides.filter(o => o.serviceId !== id);
+    services = services.filter(s => s.id !== id && s.parentServiceId !== id);
+  },
   getCount: (): number => services.length,
 
   // Product overrides

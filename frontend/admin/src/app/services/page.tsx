@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Search, ChevronUp, ChevronDown, Power, RotateCcw, Wrench, Package } from 'lucide-react';
+import { Plus, Pencil, Search, ChevronUp, ChevronDown, Power, RotateCcw, Wrench, Package, Trash2, ChevronRight } from 'lucide-react';
 import TablePagination from '@/components/TablePagination';
 
 const LEVELS: AssignmentLevel[] = ['brand', 'category', 'series', 'product'];
@@ -23,8 +23,15 @@ const LEVELS: AssignmentLevel[] = ['brand', 'category', 'series', 'product'];
 type SortField = 'name' | 'level' | 'createdAt';
 type SortDir = 'asc' | 'desc';
 
+interface VariantFormItem {
+  name: string;
+  description: string;
+  basePrice: number;
+  estimatedTime: number;
+}
+
 const ServicesPage = () => {
-  const { services, createService, updateService, getOverridesByService, getOverridesByProduct, upsertOverride, deleteOverride, overrides, toggleServiceForProduct } = useServices();
+  const { services, createService, updateService, deleteService, getVariants, hasVariants, getOverridesByService, getOverridesByProduct, upsertOverride, deleteOverride, overrides, toggleServiceForProduct } = useServices();
   const { brands } = useBrands();
   const { categories } = useCategories();
   const { seriesList } = useSeriesData();
@@ -36,21 +43,11 @@ const ServicesPage = () => {
   // Filters
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-   const [stagedFilters, setStagedFilters] = useState({
-    level: "all",
-    status: "all",
-    brand: "all",
-    category: "all",
-    series: "all",
-    product: "all",
+  const [stagedFilters, setStagedFilters] = useState({
+    level: "all", status: "all", brand: "all", category: "all", series: "all", product: "all",
   });
   const [appliedFilters, setAppliedFilters] = useState({
-    level: "all",
-    status: "all",
-    brand: "all",
-    category: "all",
-    series: "all",
-    product: "all",
+    level: "all", status: "all", brand: "all", category: "all", series: "all", product: "all",
   });
 
   // Table state
@@ -58,6 +55,7 @@ const ServicesPage = () => {
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
 
   // Dialog state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -70,9 +68,11 @@ const ServicesPage = () => {
     name: '', description: '', level: 'brand' as AssignmentLevel,
     brandId: '', categoryId: '', seriesId: '', productId: '',
     basePrice: 0, estimatedTime: 30, isActive: true,
+    hasVariants: false,
   });
+  const [variantItems, setVariantItems] = useState<VariantFormItem[]>([]);
 
-  // Override editing state (shared across tabs)
+  // Override editing state
   const [overrideEdits, setOverrideEdits] = useState<Record<string, { price: number; time: number }>>({});
 
   // By Product tab state
@@ -115,8 +115,11 @@ const ServicesPage = () => {
   const getServicesForProduct = (productId: string, includeDisabled = false) => {
     const p = products.find(pr => pr.id === productId);
     if (!p) return [];
+    // Only return variants and non-parent services (parents with variants shouldn't show directly)
     return services.filter(s => {
       if (!s.isActive) return false;
+      // Skip parent services that have variants – only variants should appear
+      if (!s.isVariant && hasVariants(s.id)) return false;
       let matches = false;
       switch (s.level) {
         case 'brand': matches = s.brandId === p.brandId; break;
@@ -139,70 +142,68 @@ const ServicesPage = () => {
     return override?.isDisabled === true;
   };
 
-  // Dynamic filter options
-  const stagedCategories =
-    stagedFilters.brand !== "all"
-      ? categories.filter((c) => c.brandId === stagedFilters.brand)
-      : categories;
-  const stagedSeries =
-    stagedFilters.category !== "all"
-      ? seriesList.filter((s) => s.categoryId === stagedFilters.category)
-      : [];
-  const stagedProducts =
-    stagedFilters.series !== "all"
-      ? products.filter((p) => p.seriesId === stagedFilters.series)
-      : [];
+  // Group services for "By Product" display: group variants under parent
+  const groupServicesForProduct = (productId: string) => {
+    const allSvcs = getServicesForProduct(productId, true);
+    const groups: { parent: ServiceRecord | null; items: ServiceRecord[] }[] = [];
+    const variantsByParent = new Map<string, ServiceRecord[]>();
+    const standalone: ServiceRecord[] = [];
 
-  const hasChanges =
-    JSON.stringify(stagedFilters) !== JSON.stringify(appliedFilters) ||
-    searchInput !== search;
-  const hasApplied = Object.values(appliedFilters).some((v) => v !== "all") || search !== "";
+    allSvcs.forEach(s => {
+      if (s.isVariant && s.parentServiceId) {
+        const existing = variantsByParent.get(s.parentServiceId) || [];
+        existing.push(s);
+        variantsByParent.set(s.parentServiceId, existing);
+      } else {
+        standalone.push(s);
+      }
+    });
+
+    // Add grouped variants
+    variantsByParent.forEach((variants, parentId) => {
+      const parent = services.find(s => s.id === parentId) || null;
+      groups.push({ parent, items: variants });
+    });
+
+    // Add standalone services
+    standalone.forEach(s => {
+      groups.push({ parent: null, items: [s] });
+    });
+
+    return groups;
+  };
+
+  // Dynamic filter options
+  const stagedCategories = stagedFilters.brand !== "all" ? categories.filter(c => c.brandId === stagedFilters.brand) : categories;
+  const stagedSeries = stagedFilters.category !== "all" ? seriesList.filter(s => s.categoryId === stagedFilters.category) : [];
+  const stagedProducts = stagedFilters.series !== "all" ? products.filter(p => p.seriesId === stagedFilters.series) : [];
+
+  const hasChanges = JSON.stringify(stagedFilters) !== JSON.stringify(appliedFilters) || searchInput !== search;
+  const hasApplied = Object.values(appliedFilters).some(v => v !== "all") || search !== "";
 
   // Form hierarchy options
   const formCategories = form.brandId ? categories.filter(c => c.brandId === form.brandId) : [];
   const formSeries = form.categoryId ? seriesList.filter(s => s.categoryId === form.categoryId) : [];
   const formProducts = form.seriesId ? products.filter(p => p.seriesId === form.seriesId) : [];
 
-  // Filter & sort for services list
+  // Filter & sort for services list – only show parent/standalone services (not variants)
   const filtered = useMemo(() => {
-    let result = services;
-    if (search)
-      result = result.filter((s) =>
-        s.name.toLowerCase().includes(search.toLowerCase()),
-      );
-    if (appliedFilters.level !== "all")
-      result = result.filter((s) => s.level === appliedFilters.level);
-    if (appliedFilters.status !== "all")
-      result = result.filter((s) =>
-        appliedFilters.status === "active" ? s.isActive : !s.isActive,
-      );
+    let result = services.filter(s => !s.isVariant);
+    if (search) result = result.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
+    if (appliedFilters.level !== "all") result = result.filter(s => s.level === appliedFilters.level);
+    if (appliedFilters.status !== "all") result = result.filter(s => appliedFilters.status === "active" ? s.isActive : !s.isActive);
     if (appliedFilters.product !== "all") {
-      const prod = products.find((p) => p.id === appliedFilters.product);
-      result = result.filter(
-        (s) =>
-          s.productId === prod?.id ||
-          s.seriesId === prod?.seriesId ||
-          s.categoryId === prod?.categoryId ||
-          (s.level === "brand" && s.brandId === prod?.brandId),
-      );
+      const prod = products.find(p => p.id === appliedFilters.product);
+      result = result.filter(s => s.productId === prod?.id || s.seriesId === prod?.seriesId || s.categoryId === prod?.categoryId || (s.level === "brand" && s.brandId === prod?.brandId));
     } else if (appliedFilters.series !== "all") {
-      const ser = seriesList.find((s) => s.id === appliedFilters.series);
-      const cat = ser ? categories.find((c) => c.id === ser.categoryId) : null;
-      result = result.filter(
-        (s) =>
-          s.seriesId === ser?.id ||
-          s.categoryId === ser?.categoryId ||
-          (s.level === "brand" && s.brandId === cat?.brandId),
-      );
+      const ser = seriesList.find(s => s.id === appliedFilters.series);
+      const cat = ser ? categories.find(c => c.id === ser.categoryId) : null;
+      result = result.filter(s => s.seriesId === ser?.id || s.categoryId === ser?.categoryId || (s.level === "brand" && s.brandId === cat?.brandId));
     } else if (appliedFilters.category !== "all") {
-      const cat = categories.find((c) => c.id === appliedFilters.category);
-      result = result.filter(
-        (s) =>
-          s.categoryId === appliedFilters.category ||
-          (s.level === "brand" && s.brandId === cat?.brandId),
-      );
+      const cat = categories.find(c => c.id === appliedFilters.category);
+      result = result.filter(s => s.categoryId === appliedFilters.category || (s.level === "brand" && s.brandId === cat?.brandId));
     } else if (appliedFilters.brand !== "all") {
-      result = result.filter((s) => s.brandId === appliedFilters.brand);
+      result = result.filter(s => s.brandId === appliedFilters.brand);
     }
     result.sort((a, b) => {
       let cmp = 0;
@@ -212,7 +213,7 @@ const ServicesPage = () => {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return result;
-  }, [services, search, appliedFilters, sortField, sortDir]);
+  }, [services, search, appliedFilters, sortField, sortDir, products, seriesList, categories]);
 
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
@@ -226,21 +227,46 @@ const ServicesPage = () => {
     return sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />;
   };
 
+  const toggleExpanded = (parentId: string) => {
+    setExpandedParents(prev => {
+      const next = new Set(prev);
+      if (next.has(parentId)) next.delete(parentId);
+      else next.add(parentId);
+      return next;
+    });
+  };
+
   // Open form
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: '', description: '', level: 'brand', brandId: '', categoryId: '', seriesId: '', productId: '', basePrice: 0, estimatedTime: 30, isActive: true });
+    setForm({ name: '', description: '', level: 'brand', brandId: '', categoryId: '', seriesId: '', productId: '', basePrice: 0, estimatedTime: 30, isActive: true, hasVariants: false });
+    setVariantItems([]);
     setIsFormOpen(true);
   };
 
   const openEdit = (s: ServiceRecord) => {
     setEditing(s);
+    const variants = getVariants(s.id);
     setForm({
       name: s.name, description: s.description, level: s.level,
       brandId: s.brandId, categoryId: s.categoryId || '', seriesId: s.seriesId || '', productId: s.productId || '',
       basePrice: s.basePrice, estimatedTime: s.estimatedTime, isActive: s.isActive,
+      hasVariants: variants.length > 0,
     });
+    setVariantItems(variants.map(v => ({ name: v.name, description: v.description, basePrice: v.basePrice, estimatedTime: v.estimatedTime })));
     setIsFormOpen(true);
+  };
+
+  const addVariantItem = () => {
+    setVariantItems(prev => [...prev, { name: '', description: '', basePrice: 0, estimatedTime: 30 }]);
+  };
+
+  const removeVariantItem = (index: number) => {
+    setVariantItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateVariantItem = (index: number, field: keyof VariantFormItem, value: string | number) => {
+    setVariantItems(prev => prev.map((v, i) => i === index ? { ...v, [field]: value } : v));
   };
 
   const save = () => {
@@ -249,7 +275,7 @@ const ServicesPage = () => {
     if (form.level === 'series' && (!form.categoryId || !form.seriesId)) return;
     if (form.level === 'product' && (!form.categoryId || !form.seriesId || !form.productId)) return;
 
-    const payload: Omit<ServiceRecord, 'id' | 'createdAt'> = {
+    const basePayload = {
       name: form.name.trim(),
       description: form.description.trim(),
       level: form.level,
@@ -257,19 +283,75 @@ const ServicesPage = () => {
       categoryId: ['category', 'series', 'product'].includes(form.level) ? form.categoryId : undefined,
       seriesId: ['series', 'product'].includes(form.level) ? form.seriesId : undefined,
       productId: form.level === 'product' ? form.productId : undefined,
-      basePrice: form.basePrice,
-      estimatedTime: form.estimatedTime,
       isActive: form.isActive,
     };
 
-    if (editing) updateService(editing.id, payload);
-    else createService(payload);
+    if (editing) {
+      // Update parent
+      updateService(editing.id, {
+        ...basePayload,
+        basePrice: form.hasVariants ? 0 : form.basePrice,
+        estimatedTime: form.hasVariants ? 0 : form.estimatedTime,
+        isVariant: false,
+        parentServiceId: null,
+      });
+
+      // Delete old variants
+      const oldVariants = getVariants(editing.id);
+      oldVariants.forEach(v => deleteService(v.id));
+
+      // Create new variants
+      if (form.hasVariants) {
+        variantItems.forEach(vi => {
+          if (vi.name.trim()) {
+            createService({
+              ...basePayload,
+              name: vi.name.trim(),
+              description: vi.description.trim(),
+              basePrice: vi.basePrice,
+              estimatedTime: vi.estimatedTime,
+              isVariant: true,
+              parentServiceId: editing.id,
+            });
+          }
+        });
+      }
+    } else {
+      // Create parent
+      const parent = createService({
+        ...basePayload,
+        basePrice: form.hasVariants ? 0 : form.basePrice,
+        estimatedTime: form.hasVariants ? 0 : form.estimatedTime,
+        isVariant: false,
+        parentServiceId: null,
+      });
+
+      // Create variants
+      if (form.hasVariants && parent) {
+        variantItems.forEach(vi => {
+          if (vi.name.trim()) {
+            createService({
+              ...basePayload,
+              name: vi.name.trim(),
+              description: vi.description.trim(),
+              basePrice: vi.basePrice,
+              estimatedTime: vi.estimatedTime,
+              isVariant: true,
+              parentServiceId: parent.id,
+            });
+          }
+        });
+      }
+    }
     setIsFormOpen(false);
   };
 
   const handleDeactivate = () => {
     if (deactivateTarget) {
       updateService(deactivateTarget.id, { isActive: !deactivateTarget.isActive });
+      // Also toggle variants
+      const variants = getVariants(deactivateTarget.id);
+      variants.forEach(v => updateService(v.id, { isActive: !deactivateTarget.isActive }));
       setDeactivateTarget(null);
     }
   };
@@ -320,9 +402,9 @@ const ServicesPage = () => {
     return result;
   }, [products, byProductSearch, byProductBrand, byProductCategory, byProductSeries]);
 
-  // By Service: filtered services list
+  // By Service: filtered services list (only non-variant)
   const byServiceFilteredServices = useMemo(() => {
-    let result = services.filter(s => s.level !== 'product');
+    let result = services.filter(s => s.level !== 'product' && !s.isVariant);
     if (byServiceSearch) result = result.filter(s => s.name.toLowerCase().includes(byServiceSearch.toLowerCase()));
     return result;
   }, [services, byServiceSearch]);
@@ -348,6 +430,55 @@ const ServicesPage = () => {
     setOverrideEdits(edits);
   };
 
+  // Override row renderer (shared)
+  const OverrideRow = ({ svc, productId, defaultPrice, defaultTime, keyField = 'productId', label, sublabel, disabled: isDisabledProp }: {
+    svc: ServiceRecord; productId: string; defaultPrice: number; defaultTime: number;
+    keyField?: 'serviceId' | 'productId'; label: string; sublabel: string; disabled: boolean;
+  }) => {
+    const key = keyField === 'productId' ? productId : svc.id;
+    const allOverrides = keyField === 'productId' ? getOverridesByService(svc.id) : getOverridesByProduct(productId);
+    const hasOverride = allOverrides.some(o => keyField === 'productId' ? o.productId === productId : o.serviceId === svc.id);
+    const edit = overrideEdits[key];
+    return (
+      <div className={`rounded-lg border border-border p-3 space-y-2 ${isDisabledProp ? 'opacity-50' : ''}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-sm">{label}</p>
+              {hasOverride && !isDisabledProp && <Badge variant="outline" className="text-xs">Customized</Badge>}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">{sublabel}</p>
+          </div>
+          <Switch checked={!isDisabledProp} onCheckedChange={(checked) => toggleServiceForProduct(svc.id, productId, !checked)} />
+        </div>
+        {!isDisabledProp && (
+          <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+            <div className="space-y-1">
+              <Label className="text-xs">Price ($)</Label>
+              <Input type="number" min={0} step={0.01} placeholder={String(defaultPrice)}
+                value={edit?.price ?? ''}
+                onChange={e => setOverrideEdits(prev => ({ ...prev, [key]: { price: Number(e.target.value), time: prev[key]?.time ?? defaultTime } }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Time (min)</Label>
+              <Input type="number" min={1} placeholder={String(defaultTime)}
+                value={edit?.time ?? ''}
+                onChange={e => setOverrideEdits(prev => ({ ...prev, [key]: { price: prev[key]?.price ?? defaultPrice, time: Number(e.target.value) } }))} />
+            </div>
+            <div className="flex gap-1">
+              <Button size="sm" variant="secondary" disabled={!edit} onClick={() => saveOverride(svc.id, productId, keyField)}>Save</Button>
+              {hasOverride && (
+                <Button size="sm" variant="ghost" title="Reset to default" onClick={() => removeOverride(svc.id, productId, keyField)}>
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -362,59 +493,29 @@ const ServicesPage = () => {
       {/* Main 3-tab Navigation */}
       <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
         <TabsList className="w-full grid grid-cols-3">
-          <TabsTrigger value="services" className="gap-2">
-            <Wrench className="h-4 w-4" /> Services List
-          </TabsTrigger>
-          <TabsTrigger value="by-product" className="gap-2">
-            <Package className="h-4 w-4" /> By Product
-          </TabsTrigger>
-          <TabsTrigger value="by-service" className="gap-2">
-            <Wrench className="h-4 w-4" /> By Service
-          </TabsTrigger>
+          <TabsTrigger value="services" className="gap-2"><Wrench className="h-4 w-4" /> Services List</TabsTrigger>
+          <TabsTrigger value="by-product" className="gap-2"><Package className="h-4 w-4" /> By Product</TabsTrigger>
+          <TabsTrigger value="by-service" className="gap-2"><Wrench className="h-4 w-4" /> By Service</TabsTrigger>
         </TabsList>
 
         {/* ===== TAB 1: Services List ===== */}
         <TabsContent value="services" className="space-y-6 mt-6">
           {/* Filters */}
           <div className="space-y-3 p-4 rounded-lg bg-card border border-border">
-            {/* Row 1: Search, Level, Status */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search services..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  className="pl-9"
-                />
+                <Input placeholder="Search services..." value={searchInput} onChange={e => setSearchInput(e.target.value)} className="pl-9" />
               </div>
-              <Select
-                value={stagedFilters.level}
-                onValueChange={(v) =>
-                  setStagedFilters((f) => ({ ...f, level: v }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Levels" />
-                </SelectTrigger>
+              <Select value={stagedFilters.level} onValueChange={v => setStagedFilters(f => ({ ...f, level: v }))}>
+                <SelectTrigger><SelectValue placeholder="All Levels" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Levels</SelectItem>
-                  {LEVELS.map((l) => (
-                    <SelectItem key={l} value={l} className="capitalize">
-                      {l}
-                    </SelectItem>
-                  ))}
+                  {LEVELS.map(l => <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select
-                value={stagedFilters.status}
-                onValueChange={(v) =>
-                  setStagedFilters((f) => ({ ...f, status: v }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
+              <Select value={stagedFilters.status} onValueChange={v => setStagedFilters(f => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue placeholder="All Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
@@ -422,138 +523,51 @@ const ServicesPage = () => {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Row 2: Cascading Brand > Category > Series > Product + Apply/Clear */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Select
-                value={stagedFilters.brand}
-                onValueChange={(v) =>
-                  setStagedFilters((f) => ({
-                    ...f,
-                    brand: v,
-                    category: "all",
-                    series: "all",
-                    product: "all",
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Brand" />
-                </SelectTrigger>
+              <Select value={stagedFilters.brand} onValueChange={v => setStagedFilters(f => ({ ...f, brand: v, category: "all", series: "all", product: "all" }))}>
+                <SelectTrigger><SelectValue placeholder="Brand" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Brands</SelectItem>
-                  {brands.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.name}
-                    </SelectItem>
-                  ))}
+                  {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select
-                value={stagedFilters.category}
-                onValueChange={(v) =>
-                  setStagedFilters((f) => ({
-                    ...f,
-                    category: v,
-                    series: "all",
-                    product: "all",
-                  }))
-                }
-                disabled={stagedFilters.brand === "all"}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
+              <Select value={stagedFilters.category} onValueChange={v => setStagedFilters(f => ({ ...f, category: v, series: "all", product: "all" }))} disabled={stagedFilters.brand === "all"}>
+                <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  {stagedCategories.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
+                  {stagedCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select
-                value={stagedFilters.series}
-                onValueChange={(v) =>
-                  setStagedFilters((f) => ({ ...f, series: v, product: "all" }))
-                }
-                disabled={stagedFilters.category === "all"}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Series" />
-                </SelectTrigger>
+              <Select value={stagedFilters.series} onValueChange={v => setStagedFilters(f => ({ ...f, series: v, product: "all" }))} disabled={stagedFilters.category === "all"}>
+                <SelectTrigger><SelectValue placeholder="Series" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Series</SelectItem>
-                  {stagedSeries.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
+                  {stagedSeries.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select
-                value={stagedFilters.product}
-                onValueChange={(v) =>
-                  setStagedFilters((f) => ({ ...f, product: v }))
-                }
-                disabled={stagedFilters.series === "all"}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Product" />
-                </SelectTrigger>
+              <Select value={stagedFilters.product} onValueChange={v => setStagedFilters(f => ({ ...f, product: v }))} disabled={stagedFilters.series === "all"}>
+                <SelectTrigger><SelectValue placeholder="Product" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Products</SelectItem>
-                  {stagedProducts.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
+                  {stagedProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Apply / Clear */}
             {(hasChanges || hasApplied) && (
               <div className="flex justify-end gap-2">
                 {hasChanges && (
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setAppliedFilters({ ...stagedFilters });
-                      setSearch(searchInput);
-                      setPage(1);
-                    }}
-                  >
-                    Apply
-                  </Button>
+                  <Button size="sm" onClick={() => { setAppliedFilters({ ...stagedFilters }); setSearch(searchInput); setPage(1); }}>Apply</Button>
                 )}
                 {hasApplied && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      const cleared = {
-                        level: "all",
-                        status: "all",
-                        brand: "all",
-                        category: "all",
-                        series: "all",
-                        product: "all",
-                      };
-                      setStagedFilters(cleared);
-                      setAppliedFilters(cleared);
-                      setSearchInput("");
-                      setSearch("");
-                      setPage(1);
-                    }}
-                  >
-                    Clear
-                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const cleared = { level: "all", status: "all", brand: "all", category: "all", series: "all", product: "all" };
+                    setStagedFilters(cleared); setAppliedFilters(cleared); setSearchInput(""); setSearch(""); setPage(1);
+                  }}>Clear</Button>
                 )}
               </div>
             )}
           </div>
+
           {/* Table */}
           <div className="rounded-lg border border-border bg-card overflow-hidden">
             <div className="overflow-x-auto">
@@ -571,10 +585,8 @@ const ServicesPage = () => {
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Base Price</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Est. Time</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden xl:table-cell">Variants</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden xl:table-cell">Linked Products</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground cursor-pointer select-none hidden lg:table-cell" onClick={() => toggleSort('createdAt')}>
-                      <span className="inline-flex items-center gap-1">Created <SortIcon field="createdAt" /></span>
-                    </th>
                     <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
@@ -582,35 +594,78 @@ const ServicesPage = () => {
                   {paginated.length === 0 && (
                     <tr><td colSpan={10} className="py-12 text-center text-muted-foreground">No services found.</td></tr>
                   )}
-                  {paginated.map(s => (
-                    <tr key={s.id} className="border-b border-border/50 hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => openDetail(s)}>
-                      <td className="py-3 px-4 font-medium text-foreground">{s.name}</td>
-                      <td className="py-3 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate">{s.description}</td>
-                      <td className="py-3 px-4"><Badge variant="outline" className="capitalize">{s.level}</Badge></td>
-                      <td className="py-3 px-4">{getAssignedTo(s)}</td>
-                      <td className="py-3 px-4">${s.basePrice}</td>
-                      <td className="py-3 px-4 hidden md:table-cell">{s.estimatedTime} min</td>
-                      <td className="py-3 px-4">
-                        <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
-                      </td>
-                      <td className="py-3 px-4 hidden xl:table-cell">{getLinkedProductCount(s)}</td>
-                      <td className="py-3 px-4 hidden lg:table-cell text-muted-foreground">{s.createdAt}</td>
-                      <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeactivateTarget(s)}>
-                            <Power className="h-3.5 w-3.5 text-muted-foreground" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {paginated.map(s => {
+                    const variants = getVariants(s.id);
+                    const isExpanded = expandedParents.has(s.id);
+                    const variantCount = variants.length;
+                    return (
+                      <>
+                        <tr key={s.id} className="border-b border-border/50 hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => variantCount > 0 ? toggleExpanded(s.id) : openDetail(s)}>
+                          <td className="py-3 px-4 font-medium text-foreground">
+                            <div className="flex items-center gap-2">
+                              {variantCount > 0 && (
+                                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                              )}
+                              {s.name}
+                              {variantCount > 0 && <Badge variant="secondary" className="text-xs">{variantCount} variants</Badge>}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate">{s.description}</td>
+                          <td className="py-3 px-4"><Badge variant="outline" className="capitalize">{s.level}</Badge></td>
+                          <td className="py-3 px-4">{getAssignedTo(s)}</td>
+                          <td className="py-3 px-4">{variantCount > 0 ? '—' : `$${s.basePrice}`}</td>
+                          <td className="py-3 px-4 hidden md:table-cell">{variantCount > 0 ? '—' : `${s.estimatedTime} min`}</td>
+                          <td className="py-3 px-4">
+                            <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
+                          </td>
+                          <td className="py-3 px-4 hidden xl:table-cell">{variantCount || '—'}</td>
+                          <td className="py-3 px-4 hidden xl:table-cell">{getLinkedProductCount(s)}</td>
+                          <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeactivateTarget(s)}>
+                                <Power className="h-3.5 w-3.5 text-muted-foreground" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                        {/* Variant rows */}
+                        {isExpanded && variants.map(v => (
+                          <tr key={v.id} className="border-b border-border/50 bg-muted/10 hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => openDetail(v)}>
+                            <td className="py-2 px-4 pl-12 font-medium text-foreground text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">└</span>
+                                {v.name}
+                                <Badge variant="outline" className="text-xs">Variant</Badge>
+                              </div>
+                            </td>
+                            <td className="py-2 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate text-sm">{v.description}</td>
+                            <td className="py-2 px-4"><Badge variant="outline" className="capitalize text-xs">{v.level}</Badge></td>
+                            <td className="py-2 px-4 text-sm">{getAssignedTo(v)}</td>
+                            <td className="py-2 px-4 text-sm">${v.basePrice}</td>
+                            <td className="py-2 px-4 hidden md:table-cell text-sm">{v.estimatedTime} min</td>
+                            <td className="py-2 px-4">
+                              <Badge variant={v.isActive ? 'default' : 'secondary'} className="text-xs">{v.isActive ? 'Active' : 'Inactive'}</Badge>
+                            </td>
+                            <td className="py-2 px-4 hidden xl:table-cell text-sm">—</td>
+                            <td className="py-2 px-4 hidden xl:table-cell text-sm">{getLinkedProductCount(v)}</td>
+                            <td className="py-2 px-4 text-right" onClick={e => e.stopPropagation()}>
+                              <div className="flex justify-end gap-1">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetail(v)}>
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-
             <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
           </div>
         </TabsContent>
@@ -618,8 +673,7 @@ const ServicesPage = () => {
         {/* ===== TAB 2: By Product ===== */}
         <TabsContent value="by-product" className="space-y-6 mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
-            {/* Product selector panel */}
-              <div className={`space-y-4 ${byProductSelected ? 'hidden lg:block' : 'block'}`}>
+            <div className={`space-y-4 ${byProductSelected ? 'hidden lg:block' : 'block'}`}>
               <div className="p-4 rounded-lg bg-card border border-border space-y-3">
                 <h3 className="text-sm font-semibold text-foreground">Select a Product</h3>
                 <div className="relative">
@@ -650,22 +704,15 @@ const ServicesPage = () => {
                   </Select>
                 )}
               </div>
-
               <div className="rounded-lg border border-border bg-card overflow-hidden max-h-[500px] overflow-y-auto">
-                {byProductFilteredProducts.length === 0 && (
-                  <p className="text-sm text-muted-foreground p-4 text-center">No products found.</p>
-                )}
+                {byProductFilteredProducts.length === 0 && <p className="text-sm text-muted-foreground p-4 text-center">No products found.</p>}
                 {byProductFilteredProducts.map(p => {
                   const svcCount = getServicesForProduct(p.id).length;
                   const totalSvcCount = getServicesForProduct(p.id, true).length;
                   const disabledCount = totalSvcCount - svcCount;
                   const overrideCount = getOverridesByProduct(p.id).length;
                   return (
-                    <div
-                      key={p.id}
-                      className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-border/50 last:border-b-0 ${byProductSelected === p.id ? 'bg-primary/10' : 'hover:bg-muted/30'}`}
-                      onClick={() => selectByProduct(p.id)}
-                    >
+                    <div key={p.id} className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-border/50 last:border-b-0 ${byProductSelected === p.id ? 'bg-primary/10' : 'hover:bg-muted/30'}`} onClick={() => selectByProduct(p.id)}>
                       <img src={p.iconImage} alt={p.name} className="h-8 w-8 rounded object-cover bg-muted" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{p.name}</p>
@@ -679,25 +726,19 @@ const ServicesPage = () => {
             </div>
 
             {/* Override editor for selected product */}
-           <div className={`rounded-lg border border-border bg-card p-5 ${!byProductSelected ? 'hidden lg:flex lg:flex-col lg:items-center lg:justify-center' : ''}`}>
-            {!byProductSelected ? (
-              <>
-                <Package className="h-10 w-10 text-muted-foreground/40 mb-3" />
-                <p className="text-center text-muted-foreground">Select a product to view and customize its service overrides.</p>
-              </>
-            ) : (() => {
-              const p = products.find(pr => pr.id === byProductSelected);
-              if (!p) return null;
-              const productServices = getServicesForProduct(p.id, true);
-              const productOverrides = getOverridesByProduct(p.id);
-              return (
-                <div className="space-y-4">
-                  <button
-                    className="lg:hidden flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                    onClick={() => setByProductSelected('')}
-                  >
-                    ← Back to products
-                  </button>
+            <div className={`rounded-lg border border-border bg-card p-5 ${!byProductSelected ? 'hidden lg:flex lg:flex-col lg:items-center lg:justify-center' : ''}`}>
+              {!byProductSelected ? (
+                <>
+                  <Package className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                  <p className="text-center text-muted-foreground">Select a product to view and customize its service overrides.</p>
+                </>
+              ) : (() => {
+                const p = products.find(pr => pr.id === byProductSelected);
+                if (!p) return null;
+                const groups = groupServicesForProduct(p.id);
+                return (
+                  <div className="space-y-4">
+                    <button className="lg:hidden flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground" onClick={() => setByProductSelected('')}>← Back to products</button>
                     <div className="flex items-center gap-3">
                       <img src={p.iconImage} alt={p.name} className="h-10 w-10 rounded-lg object-cover bg-muted" />
                       <div>
@@ -705,86 +746,40 @@ const ServicesPage = () => {
                         <p className="text-xs text-muted-foreground">{brandName(p.brandId)} · {categoryName(p.categoryId)} · {seriesName(p.seriesId)}</p>
                       </div>
                     </div>
-
-                    {productServices.length === 0 ? (
+                    {groups.length === 0 ? (
                       <p className="text-sm text-muted-foreground py-4">No services are assigned to this product.</p>
                     ) : (
                       <>
-                        <p className="text-sm text-muted-foreground">
-                          Override price and estimated time for services inherited by this product.
-                        </p>
-                        <div className="space-y-2">
-                          {productServices.map(svc => {
-                            const hasOverride = productOverrides.some(o => o.serviceId === svc.id);
-                            const edit = overrideEdits[svc.id];
-                            const isProductLevel = svc.level === 'product';
-                            const disabled = isServiceDisabledForProduct(svc.id, p.id);
-                            return (
-                              <div key={svc.id} className={`rounded-lg border border-border p-3 space-y-2 ${disabled ? 'opacity-50' : ''}`}>
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <div>
-                                      <div className="flex items-center gap-2">
-                                        <p className="font-medium text-sm">{svc.name}</p>
-                                        {hasOverride && !disabled && <Badge variant="outline" className="text-xs">Customized</Badge>}
-                                        {isProductLevel && <Badge variant="secondary" className="text-xs">Direct</Badge>}
-                                      </div>
-                                      <p className="text-xs text-muted-foreground mt-1">
-                                        <Badge variant="outline" className="capitalize text-xs mr-1">{svc.level}</Badge>
-                                        Default: ${svc.basePrice} · {svc.estimatedTime} min
-                                      </p>  
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-1">
-                                    <Switch
-                                      checked={!disabled}
-                                      onCheckedChange={(checked) => toggleServiceForProduct(svc.id, p.id, !checked)}
-                                    />
-                                  </div>
+                        <p className="text-sm text-muted-foreground">Override price and estimated time for services inherited by this product.</p>
+                        <div className="space-y-4">
+                          {groups.map((group, gi) => (
+                            <div key={gi}>
+                              {group.parent && (
+                                <div className="mb-2">
+                                  <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                    {group.parent.name}
+                                    <Badge variant="secondary" className="text-xs">{group.items.length} variants</Badge>
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground">{group.parent.description}</p>
                                 </div>
-                                {!disabled && (
-                                  <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
-                                    <div className="space-y-1">
-                                      <Label className="text-xs">Price ($)</Label>
-                                      <Input
-                                        type="number" min={0} step={0.01}
-                                        placeholder={String(svc.basePrice)}
-                                        value={edit?.price ?? ''}
-                                        onChange={e => setOverrideEdits(prev => ({
-                                          ...prev,
-                                          [svc.id]: { price: Number(e.target.value), time: prev[svc.id]?.time ?? svc.estimatedTime }
-                                        }))}
-                                      />
-                                    </div>
-                                    <div className="space-y-1">
-                                      <Label className="text-xs">Time (min)</Label>
-                                      <Input
-                                        type="number" min={1}
-                                        placeholder={String(svc.estimatedTime)}
-                                        value={edit?.time ?? ''}
-                                        onChange={e => setOverrideEdits(prev => ({
-                                          ...prev,
-                                          [svc.id]: { price: prev[svc.id]?.price ?? svc.basePrice, time: Number(e.target.value) }
-                                        }))}
-                                      />
-                                    </div>
-                                    <div className="flex gap-1">
-                                      <Button size="sm" variant="secondary" disabled={!edit}
-                                        onClick={() => { upsertOverride({ serviceId: svc.id, productId: p.id, priceOverride: edit!.price, estimatedTimeOverride: edit!.time }); }}>
-                                        Save
-                                      </Button>
-                                      {hasOverride && (
-                                        <Button size="sm" variant="ghost" title="Reset to default"
-                                          onClick={() => removeOverride(svc.id, p.id, 'serviceId')}>
-                                          <RotateCcw className="h-3.5 w-3.5" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                                  </div>
-                            );
-                          })}
+                              )}
+                              <div className={`space-y-2 ${group.parent ? 'ml-4 border-l-2 border-border pl-3' : ''}`}>
+                                {group.items.map(svc => (
+                                  <OverrideRow
+                                    key={svc.id}
+                                    svc={svc}
+                                    productId={p.id}
+                                    defaultPrice={svc.basePrice}
+                                    defaultTime={svc.estimatedTime}
+                                    keyField="serviceId"
+                                    label={svc.name}
+                                    sublabel={`${svc.isVariant ? 'Variant' : ''} ${svc.level} · Default: $${svc.basePrice} · ${svc.estimatedTime} min`}
+                                    disabled={isServiceDisabledForProduct(svc.id, p.id)}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </>
                     )}
@@ -798,8 +793,7 @@ const ServicesPage = () => {
         {/* ===== TAB 3: By Service ===== */}
         <TabsContent value="by-service" className="space-y-6 mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
-            {/* Service selector panel */}
-              <div className={`space-y-4 ${byServiceSelected ? 'hidden lg:block' : 'block'}`}>
+            <div className={`space-y-4 ${byServiceSelected ? 'hidden lg:block' : 'block'}`}>
               <div className="p-4 rounded-lg bg-card border border-border space-y-3">
                 <h3 className="text-sm font-semibold text-foreground">Select a Service</h3>
                 <p className="text-xs text-muted-foreground">Only Brand, Category, and Series level services are shown (product-level services don't need overrides).</p>
@@ -808,23 +802,22 @@ const ServicesPage = () => {
                   <Input placeholder="Search services..." value={byServiceSearch} onChange={e => setByServiceSearch(e.target.value)} className="pl-9" />
                 </div>
               </div>
-
               <div className="rounded-lg border border-border bg-card overflow-hidden max-h-[500px] overflow-y-auto">
-                {byServiceFilteredServices.length === 0 && (
-                  <p className="text-sm text-muted-foreground p-4 text-center">No services found.</p>
-                )}
+                {byServiceFilteredServices.length === 0 && <p className="text-sm text-muted-foreground p-4 text-center">No services found.</p>}
                 {byServiceFilteredServices.map(s => {
                   const linkedCount = getLinkedProductCount(s);
-                  const overrideCount = getOverridesByService(s.id).length;
+                  const variants = getVariants(s.id);
+                  const overrideCount = variants.length > 0
+                    ? variants.reduce((sum, v) => sum + getOverridesByService(v.id).length, 0)
+                    : getOverridesByService(s.id).length;
                   return (
-                    <div
-                      key={s.id}
-                      className={`p-3 cursor-pointer transition-colors border-b border-border/50 last:border-b-0 ${byServiceSelected === s.id ? 'bg-primary/10' : 'hover:bg-muted/30'}`}
-                      onClick={() => selectByService(s.id)}
-                    >
+                    <div key={s.id} className={`p-3 cursor-pointer transition-colors border-b border-border/50 last:border-b-0 ${byServiceSelected === s.id ? 'bg-primary/10' : 'hover:bg-muted/30'}`} onClick={() => selectByService(s.id)}>
                       <div className="flex items-center justify-between">
                         <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{s.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium truncate">{s.name}</p>
+                            {variants.length > 0 && <Badge variant="secondary" className="text-xs">{variants.length} variants</Badge>}
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             <Badge variant="outline" className="capitalize text-xs mr-1">{s.level}</Badge>
                             {getAssignedTo(s)} · {linkedCount} product(s)
@@ -838,7 +831,6 @@ const ServicesPage = () => {
               </div>
             </div>
 
-            {/* Override editor for selected service */}
             <div className={`rounded-lg border border-border bg-card p-5 ${!byServiceSelected ? 'hidden lg:flex lg:flex-col lg:items-center lg:justify-center' : ''}`}>
               {!byServiceSelected ? (
                 <>
@@ -848,101 +840,69 @@ const ServicesPage = () => {
               ) : (() => {
                 const svc = services.find(s => s.id === byServiceSelected);
                 if (!svc) return null;
+                const variants = getVariants(svc.id);
                 const linkedProducts = getLinkedProducts(svc);
-                const svcOverrides = getOverridesByService(svc.id);
+                const hasVars = variants.length > 0;
                 return (
                   <div className="space-y-4">
-                    <button
-                      className="lg:hidden flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                      onClick={() => setByServiceSelected('')}
-                    >
-                      ← Back to services
-                    </button>
+                    <button className="lg:hidden flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground" onClick={() => setByServiceSelected('')}>← Back to services</button>
                     <div>
-                      <h3 className="font-semibold text-foreground">{svc.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-foreground">{svc.name}</h3>
+                        {hasVars && <Badge variant="secondary" className="text-xs">{variants.length} variants</Badge>}
+                      </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         <Badge variant="outline" className="capitalize text-xs mr-1">{svc.level}</Badge>
-                        {getAssignedTo(svc)} · Default: ${svc.basePrice} · {svc.estimatedTime} min
+                        {getAssignedTo(svc)} {!hasVars && `· Default: $${svc.basePrice} · ${svc.estimatedTime} min`}
                       </p>
                       {svc.description && <p className="text-sm text-muted-foreground mt-2">{svc.description}</p>}
                     </div>
 
-                    <p className="text-sm text-muted-foreground">
-                      Customize price and time for individual products. Products without overrides use defaults (${svc.basePrice}, {svc.estimatedTime} min).
-                    </p>
-
-                    {linkedProducts.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4">No products linked to this service.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {linkedProducts.map(p => {
-                          const hasOverride = svcOverrides.some(o => o.productId === p.id);
-                          const edit = overrideEdits[p.id];
-                          const disabled = isServiceDisabledForProduct(svc.id, p.id);
-                          return (
-                            <div key={p.id} className={`rounded-lg border border-border p-3 space-y-2 ${disabled ? 'opacity-50' : ''}`}>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <p className="font-medium text-sm">{p.name}</p>
-                                      {disabled && <Badge variant="destructive" className="text-xs">Disabled</Badge>}
-                                      {hasOverride && !disabled && <Badge variant="outline" className="text-xs">Customized</Badge>}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">{seriesName(p.seriesId)} · {categoryName(p.categoryId)}</p>
-                                  </div>
-                                </div>
-                                <div className="flex gap-1">
-                                   <Switch
-                                    checked={!disabled}
-                                    onCheckedChange={(checked) => toggleServiceForProduct(svc.id, p.id, !checked)}
-                                  />
-                                </div>
-                              </div>
-                              {!disabled && (
-                                <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">Price ($)</Label>
-                                    <Input
-                                      type="number" min={0} step={0.01}
-                                      placeholder={String(svc.basePrice)}
-                                      value={edit?.price ?? ''}
-                                      onChange={e => setOverrideEdits(prev => ({
-                                        ...prev,
-                                        [p.id]: { price: Number(e.target.value), time: prev[p.id]?.time ?? svc.estimatedTime }
-                                      }))}
-                                    />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">Time (min)</Label>
-                                    <Input
-                                      type="number" min={1}
-                                      placeholder={String(svc.estimatedTime)}
-                                      value={edit?.time ?? ''}
-                                      onChange={e => setOverrideEdits(prev => ({
-                                        ...prev,
-                                        [p.id]: { price: prev[p.id]?.price ?? svc.basePrice, time: Number(e.target.value) }
-                                      }))}
-                                    />
-                                  </div>
-                                  <div className="flex gap-1">
-                                    <Button size="sm" variant="secondary" disabled={!edit}
-                                      onClick={() => saveOverride(svc.id, p.id)}>
-                                      Save
-                                    </Button>
-                                    {hasOverride && (
-                                      <Button size="sm" variant="ghost" title="Reset to default"
-                                        onClick={() => removeOverride(svc.id, p.id)}>
-                                        <RotateCcw className="h-3.5 w-3.5" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
+                    {hasVars ? (
+                      <>
+                        <p className="text-sm text-muted-foreground">This service has {variants.length} variant(s). Overrides apply at the variant level for each product.</p>
+                        {variants.map(variant => (
+                          <div key={variant.id} className="space-y-3">
+                            <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">{variant.name} — ${variant.basePrice} · {variant.estimatedTime} min</h4>
+                            <div className="space-y-2 ml-2">
+                              {linkedProducts.map(p => (
+                                <OverrideRow
+                                  key={`${variant.id}-${p.id}`}
+                                  svc={variant}
+                                  productId={p.id}
+                                  defaultPrice={variant.basePrice}
+                                  defaultTime={variant.estimatedTime}
+                                  label={p.name}
+                                  sublabel={`${seriesName(p.seriesId)} · ${categoryName(p.categoryId)}`}
+                                  disabled={isServiceDisabledForProduct(variant.id, p.id)}
+                                />
+                              ))}
                             </div>
-                          );
-                        })}
-                      </div>
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-muted-foreground">Customize price and time for individual products. Products without overrides use defaults (${svc.basePrice}, {svc.estimatedTime} min).</p>
+                        {linkedProducts.length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-4">No products linked to this service.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {linkedProducts.map(p => (
+                              <OverrideRow
+                                key={p.id}
+                                svc={svc}
+                                productId={p.id}
+                                defaultPrice={svc.basePrice}
+                                defaultTime={svc.estimatedTime}
+                                label={p.name}
+                                sublabel={`${seriesName(p.seriesId)} · ${categoryName(p.categoryId)}`}
+                                disabled={isServiceDisabledForProduct(svc.id, p.id)}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 );
@@ -952,117 +912,135 @@ const ServicesPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Detail View Dialog with Overrides */}
+      {/* Detail View Dialog */}
       <Dialog open={!!detailView} onOpenChange={() => setDetailView(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Service Detail</DialogTitle></DialogHeader>
-          {detailView && (
-            <Tabs defaultValue="details" className="w-full">
-              <TabsList className="w-full">
-                <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
-                <TabsTrigger value="overrides" className="flex-1">
-                  Product Overrides ({getLinkedProducts(detailView).length})
-                </TabsTrigger>
-              </TabsList>
+          {detailView && (() => {
+            const variants = getVariants(detailView.id);
+            const hasVars = variants.length > 0;
+            return (
+              <Tabs defaultValue="details" className="w-full">
+                <TabsList className="w-full">
+                  <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+                  {hasVars && <TabsTrigger value="variants" className="flex-1">Variants ({variants.length})</TabsTrigger>}
+                  {!detailView.isVariant && (
+                    <TabsTrigger value="overrides" className="flex-1">
+                      Product Overrides ({getLinkedProducts(detailView).length})
+                    </TabsTrigger>
+                  )}
+                </TabsList>
 
-              <TabsContent value="details" className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div><Label className="text-muted-foreground text-xs">Name</Label><p className="font-medium">{detailView.name}</p></div>
-                  <div><Label className="text-muted-foreground text-xs">Status</Label><p><Badge variant={detailView.isActive ? 'default' : 'secondary'}>{detailView.isActive ? 'Active' : 'Inactive'}</Badge></p></div>
-                </div>
-                <div><Label className="text-muted-foreground text-xs">Description</Label><p className="text-sm">{detailView.description || '—'}</p></div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div><Label className="text-muted-foreground text-xs">Level</Label><p className="capitalize">{detailView.level}</p></div>
-                  <div><Label className="text-muted-foreground text-xs">Assigned To</Label><p>{getAssignedTo(detailView)}</p></div>
-                  <div><Label className="text-muted-foreground text-xs">Linked Products</Label><p>{getLinkedProductCount(detailView)}</p></div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div><Label className="text-muted-foreground text-xs">Base Price</Label><p>${detailView.basePrice}</p></div>
-                  <div><Label className="text-muted-foreground text-xs">Est. Time</Label><p>{detailView.estimatedTime} min</p></div>
-                  <div><Label className="text-muted-foreground text-xs">Created</Label><p>{detailView.createdAt}</p></div>
-                </div>
-                {detailView.level !== 'brand' && (
+                <TabsContent value="details" className="space-y-4 mt-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div><Label className="text-muted-foreground text-xs">Brand</Label><p>{brandName(detailView.brandId)}</p></div>
-                    {detailView.categoryId && <div><Label className="text-muted-foreground text-xs">Category</Label><p>{categoryName(detailView.categoryId)}</p></div>}
-                    {detailView.seriesId && <div><Label className="text-muted-foreground text-xs">Series</Label><p>{seriesName(detailView.seriesId)}</p></div>}
-                    {detailView.productId && <div><Label className="text-muted-foreground text-xs">Product</Label><p>{productName(detailView.productId)}</p></div>}
+                    <div><Label className="text-muted-foreground text-xs">Name</Label><p className="font-medium">{detailView.name}</p></div>
+                    <div><Label className="text-muted-foreground text-xs">Status</Label><p><Badge variant={detailView.isActive ? 'default' : 'secondary'}>{detailView.isActive ? 'Active' : 'Inactive'}</Badge></p></div>
                   </div>
-                )}
-              </TabsContent>
+                  <div><Label className="text-muted-foreground text-xs">Description</Label><p className="text-sm">{detailView.description || '—'}</p></div>
+                  {detailView.isVariant && detailView.parentServiceId && (
+                    <div><Label className="text-muted-foreground text-xs">Parent Service</Label><p className="text-sm">{services.find(s => s.id === detailView.parentServiceId)?.name || '—'}</p></div>
+                  )}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div><Label className="text-muted-foreground text-xs">Level</Label><p className="capitalize">{detailView.level}</p></div>
+                    <div><Label className="text-muted-foreground text-xs">Assigned To</Label><p>{getAssignedTo(detailView)}</p></div>
+                    <div><Label className="text-muted-foreground text-xs">Linked Products</Label><p>{getLinkedProductCount(detailView)}</p></div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div><Label className="text-muted-foreground text-xs">Base Price</Label><p>{hasVars ? '—' : `$${detailView.basePrice}`}</p></div>
+                    <div><Label className="text-muted-foreground text-xs">Est. Time</Label><p>{hasVars ? '—' : `${detailView.estimatedTime} min`}</p></div>
+                    <div><Label className="text-muted-foreground text-xs">Created</Label><p>{detailView.createdAt}</p></div>
+                  </div>
+                  {detailView.level !== 'brand' && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><Label className="text-muted-foreground text-xs">Brand</Label><p>{brandName(detailView.brandId)}</p></div>
+                      {detailView.categoryId && <div><Label className="text-muted-foreground text-xs">Category</Label><p>{categoryName(detailView.categoryId)}</p></div>}
+                      {detailView.seriesId && <div><Label className="text-muted-foreground text-xs">Series</Label><p>{seriesName(detailView.seriesId)}</p></div>}
+                      {detailView.productId && <div><Label className="text-muted-foreground text-xs">Product</Label><p>{productName(detailView.productId)}</p></div>}
+                    </div>
+                  )}
+                </TabsContent>
 
-              <TabsContent value="overrides" className="mt-4">
-                {detailView.level === 'product' ? (
-                  <p className="text-sm text-muted-foreground py-4">This service is already assigned at the product level. No overrides needed.</p>
-                ) : (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Customize price and estimated time for individual products. Products without overrides use the default values (${detailView.basePrice}, {detailView.estimatedTime} min).
-                    </p>
-                    <div className="space-y-2">
-                      {getLinkedProducts(detailView).map(p => {
-                        const existingOverrides = getOverridesByService(detailView.id);
-                        const hasOverride = existingOverrides.some(o => o.productId === p.id);
-                        const edit = overrideEdits[p.id];
-                        return (
-                          <div key={p.id} className="rounded-lg border border-border p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-medium text-sm">{p.name}</p>
-                                <p className="text-xs text-muted-foreground">{seriesName(p.seriesId)} · {categoryName(p.categoryId)}</p>
-                              </div>
-                              {hasOverride && <Badge variant="outline" className="text-xs">Customized</Badge>}
+                {hasVars && (
+                  <TabsContent value="variants" className="mt-4">
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">Variants of this service:</p>
+                      {variants.map(v => (
+                        <div key={v.id} className="rounded-lg border border-border p-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-sm">{v.name}</p>
+                              <p className="text-xs text-muted-foreground">{v.description}</p>
                             </div>
-                            <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
-                              <div className="space-y-1">
-                                <Label className="text-xs">Price ($)</Label>
-                                <Input
-                                  type="number" min={0} step={0.01}
-                                  placeholder={String(detailView.basePrice)}
-                                  value={edit?.price ?? ''}
-                                  onChange={e => setOverrideEdits(prev => ({
-                                    ...prev,
-                                    [p.id]: { price: Number(e.target.value), time: prev[p.id]?.time ?? detailView.estimatedTime }
-                                  }))}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">Time (min)</Label>
-                                <Input
-                                  type="number" min={1}
-                                  placeholder={String(detailView.estimatedTime)}
-                                  value={edit?.time ?? ''}
-                                  onChange={e => setOverrideEdits(prev => ({
-                                    ...prev,
-                                    [p.id]: { price: prev[p.id]?.price ?? detailView.basePrice, time: Number(e.target.value) }
-                                  }))}
-                                />
-                              </div>
-                              <div className="flex gap-1">
-                                <Button size="sm" variant="secondary" disabled={!edit}
-                                  onClick={() => saveOverride(detailView.id, p.id)}>
-                                  Save
-                                </Button>
-                                {hasOverride && (
-                                  <Button size="sm" variant="ghost" title="Reset to default"
-                                    onClick={() => removeOverride(detailView.id, p.id)}>
-                                    <RotateCcw className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                              </div>
+                            <div className="text-right">
+                              <p className="text-sm font-medium">${v.basePrice}</p>
+                              <p className="text-xs text-muted-foreground">{v.estimatedTime} min</p>
                             </div>
                           </div>
-                        );
-                      })}
+                        </div>
+                      ))}
                     </div>
-                  </div>
+                  </TabsContent>
                 )}
-              </TabsContent>
-            </Tabs>
-          )}
+
+                {!detailView.isVariant && (
+                  <TabsContent value="overrides" className="mt-4">
+                    {detailView.level === 'product' ? (
+                      <p className="text-sm text-muted-foreground py-4">This service is already assigned at the product level. No overrides needed.</p>
+                    ) : hasVars ? (
+                      <p className="text-sm text-muted-foreground py-4">This service has variants. Overrides are managed at the variant level. Use the "By Product" or "By Service" tabs.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-sm text-muted-foreground">Customize price and estimated time for individual products.</p>
+                        <div className="space-y-2">
+                          {getLinkedProducts(detailView).map(p => {
+                            const existingOverrides = getOverridesByService(detailView.id);
+                            const hasOverride = existingOverrides.some(o => o.productId === p.id);
+                            const edit = overrideEdits[p.id];
+                            return (
+                              <div key={p.id} className="rounded-lg border border-border p-3 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="font-medium text-sm">{p.name}</p>
+                                    <p className="text-xs text-muted-foreground">{seriesName(p.seriesId)} · {categoryName(p.categoryId)}</p>
+                                  </div>
+                                  {hasOverride && <Badge variant="outline" className="text-xs">Customized</Badge>}
+                                </div>
+                                <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Price ($)</Label>
+                                    <Input type="number" min={0} step={0.01} placeholder={String(detailView.basePrice)} value={edit?.price ?? ''}
+                                      onChange={e => setOverrideEdits(prev => ({ ...prev, [p.id]: { price: Number(e.target.value), time: prev[p.id]?.time ?? detailView.estimatedTime } }))} />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Time (min)</Label>
+                                    <Input type="number" min={1} placeholder={String(detailView.estimatedTime)} value={edit?.time ?? ''}
+                                      onChange={e => setOverrideEdits(prev => ({ ...prev, [p.id]: { price: prev[p.id]?.price ?? detailView.basePrice, time: Number(e.target.value) } }))} />
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <Button size="sm" variant="secondary" disabled={!edit} onClick={() => saveOverride(detailView.id, p.id)}>Save</Button>
+                                    {hasOverride && (
+                                      <Button size="sm" variant="ghost" title="Reset to default" onClick={() => removeOverride(detailView.id, p.id)}>
+                                        <RotateCcw className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+                )}
+              </Tabs>
+            );
+          })()}
           <DialogFooter>
             <Button variant="secondary" onClick={() => setDetailView(null)}>Close</Button>
-            <Button onClick={() => { if (detailView) { openEdit(detailView); setDetailView(null); } }}>Edit</Button>
+            {detailView && !detailView.isVariant && (
+              <Button onClick={() => { if (detailView) { openEdit(detailView); setDetailView(null); } }}>Edit</Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1076,22 +1054,77 @@ const ServicesPage = () => {
               <h3 className="text-sm font-semibold text-foreground">Basic Information</h3>
               <div className="space-y-2">
                 <Label>Service Name *</Label>
-                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Screen Repair" />
+                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Screen Replacement" />
               </div>
               <div className="space-y-2">
                 <Label>Description</Label>
                 <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional description" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Base Price ($) {form.level === 'product' && '*'}</Label>
-                  <Input type="number" min={0} step={0.01} value={form.basePrice} onChange={e => setForm(f => ({ ...f, basePrice: Number(e.target.value) }))} />
+
+              {/* Variant Toggle */}
+              <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div>
+                  <Label className="text-sm font-medium">This service has variants</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">e.g. Original, OEM, Copy, Refurbished</p>
                 </div>
-                <div className="space-y-2">
-                  <Label>Est. Time (min) *</Label>
-                  <Input type="number" min={1} value={form.estimatedTime} onChange={e => setForm(f => ({ ...f, estimatedTime: Math.max(1, Number(e.target.value)) }))} />
-                </div>
+                <Switch checked={form.hasVariants} onCheckedChange={v => {
+                  setForm(f => ({ ...f, hasVariants: v }));
+                  if (v && variantItems.length === 0) addVariantItem();
+                }} />
               </div>
+
+              {!form.hasVariants && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Base Price ($) {form.level === 'product' && '*'}</Label>
+                    <Input type="number" min={0} step={0.01} value={form.basePrice} onChange={e => setForm(f => ({ ...f, basePrice: Number(e.target.value) }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Est. Time (min) *</Label>
+                    <Input type="number" min={1} value={form.estimatedTime} onChange={e => setForm(f => ({ ...f, estimatedTime: Math.max(1, Number(e.target.value)) }))} />
+                  </div>
+                </div>
+              )}
+
+              {/* Variant Items */}
+              {form.hasVariants && (
+                <div className="space-y-3 border border-border rounded-lg p-4 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-foreground">Variants</h4>
+                    <Button type="button" size="sm" variant="outline" onClick={addVariantItem} className="gap-1">
+                      <Plus className="h-3 w-3" /> Add Variant
+                    </Button>
+                  </div>
+                  {variantItems.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-2">No variants added. Click "Add Variant" to begin.</p>
+                  )}
+                  {variantItems.map((vi, index) => (
+                    <div key={index} className="rounded-lg border border-border bg-card p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Variant {index + 1}</span>
+                        <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeVariantItem(index)}>
+                          <Trash2 className="h-3 w-3 text-destructive" />
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <Input placeholder="Variant name (e.g. Original Screen)" value={vi.name} onChange={e => updateVariantItem(index, 'name', e.target.value)} />
+                        <Input placeholder="Description (optional)" value={vi.description} onChange={e => updateVariantItem(index, 'description', e.target.value)} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Base Price ($)</Label>
+                          <Input type="number" min={0} step={0.01} value={vi.basePrice} onChange={e => updateVariantItem(index, 'basePrice', Number(e.target.value))} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Est. Time (min)</Label>
+                          <Input type="number" min={1} value={vi.estimatedTime} onChange={e => updateVariantItem(index, 'estimatedTime', Math.max(1, Number(e.target.value)))} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <Label>Status</Label>
                 <div className="flex items-center gap-2">
@@ -1112,7 +1145,6 @@ const ServicesPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label>Brand *</Label>
                 <Select value={form.brandId} onValueChange={v => setForm(f => ({ ...f, brandId: v, categoryId: '', seriesId: '', productId: '' }))}>
@@ -1120,7 +1152,6 @@ const ServicesPage = () => {
                   <SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-
               {['category', 'series', 'product'].includes(form.level) && (
                 <div className="space-y-2">
                   <Label>Category *</Label>
@@ -1130,7 +1161,6 @@ const ServicesPage = () => {
                   </Select>
                 </div>
               )}
-
               {['series', 'product'].includes(form.level) && (
                 <div className="space-y-2">
                   <Label>Series *</Label>
@@ -1140,7 +1170,6 @@ const ServicesPage = () => {
                   </Select>
                 </div>
               )}
-
               {form.level === 'product' && (
                 <div className="space-y-2">
                   <Label>Product *</Label>
@@ -1150,7 +1179,6 @@ const ServicesPage = () => {
                   </Select>
                 </div>
               )}
-
               {form.brandId && (
                 <div className="rounded-md bg-muted/50 p-3 text-sm text-muted-foreground">
                   This service will apply to <strong className="text-foreground">
@@ -1159,6 +1187,9 @@ const ServicesPage = () => {
                      form.level === 'category' && form.categoryId ? products.filter(p => p.categoryId === form.categoryId).length :
                      products.filter(p => p.brandId === form.brandId).length}
                   </strong> product(s).
+                  {form.hasVariants && variantItems.filter(v => v.name.trim()).length > 0 && (
+                    <> Each product will get <strong className="text-foreground">{variantItems.filter(v => v.name.trim()).length}</strong> variant(s).</>
+                  )}
                 </div>
               )}
             </div>
@@ -1177,8 +1208,8 @@ const ServicesPage = () => {
             <AlertDialogTitle>{deactivateTarget?.isActive ? 'Deactivate' : 'Activate'} Service</AlertDialogTitle>
             <AlertDialogDescription>
               {deactivateTarget?.isActive
-                ? `Deactivate "${deactivateTarget?.name}"? It will no longer appear as available.`
-                : `Activate "${deactivateTarget?.name}"?`}
+                ? `Deactivate "${deactivateTarget?.name}"? It will no longer appear as available.${hasVariants(deactivateTarget?.id || '') ? ' All variants will also be deactivated.' : ''}`
+                : `Activate "${deactivateTarget?.name}"?${hasVariants(deactivateTarget?.id || '') ? ' All variants will also be activated.' : ''}`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
