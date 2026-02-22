@@ -40,6 +40,9 @@ interface BookingFormProps {
   preSelectedSeriesId?: string;  
   preSelectedProductId?: string;
   preSelectedServiceId?: string;
+  preSelectedParentServiceId?: string | null;
+  preSelectedPrice?: number;
+  preSelectedEstimatedTime?: number;
   onSuccess?: () => void;
 }
 
@@ -62,7 +65,7 @@ const generateTimeSlots = () => {
 
 const TIME_SLOTS = generateTimeSlots();
 
-const BookingForm = ({preSelectedBrandId,   preSelectedCategoryId, preSelectedSeriesId, preSelectedProductId, preSelectedServiceId, onSuccess }: BookingFormProps) => {
+const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeriesId, preSelectedProductId, preSelectedServiceId, preSelectedParentServiceId, preSelectedPrice, preSelectedEstimatedTime, onSuccess }: BookingFormProps) => {
   const brands = getStorefrontBrands();
   const allServices = getAllStorefrontServices();
 
@@ -125,8 +128,8 @@ const BookingForm = ({preSelectedBrandId,   preSelectedCategoryId, preSelectedSe
   }, [selectedProductId, allServices]);
 
   const selectedService = useMemo(() => {
-    return allServices.find(s => s.id === selectedServiceId);
-  }, [selectedServiceId, allServices]);
+    return availableServices.find(s => s.id === selectedServiceId) || allServices.find(s => s.id === selectedServiceId);
+  }, [selectedServiceId, availableServices, allServices]);
 
   const handleBrandChange = (value: string) => {
     setSelectedBrandId(value);
@@ -186,7 +189,10 @@ const BookingForm = ({preSelectedBrandId,   preSelectedCategoryId, preSelectedSe
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
     addStorefrontBooking({
       productId: selectedProductId,
-      serviceId: selectedServiceId,
+      serviceId: selectedService?.serviceId || selectedServiceId,
+      parentServiceId: selectedService?.parentServiceId ?? preSelectedParentServiceId ?? null,
+      price: selectedService?.price ?? preSelectedPrice,
+      estimatedTime: selectedService?.estimatedTime ?? preSelectedEstimatedTime,
       date: dateStr,
       time: selectedTime,
       customerName: customerName,
