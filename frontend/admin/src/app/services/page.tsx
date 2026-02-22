@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useServices } from '@/hooks/useServices';
 import { useBrands } from '@/hooks/useBrands';
 import { useCategories } from '@/hooks/useCategories';
@@ -32,7 +32,6 @@ interface VariantFormItem {
 
 const validateName = (value: string): string | undefined => {
   if (!value.trim()) return 'Service name is required';
-  if (value.trim().length < 2) return 'Service name must be at least 2 characters';
   return undefined;
 };
 const validateBrand = (value: string): string | undefined => {
@@ -53,13 +52,12 @@ const validateProduct = (value: string): string | undefined => {
 };
 
 const validateBasePrice = (value: number): string | undefined => {
-  if (value === undefined || value === null || String(value).trim() === '') return 'Base price is required';
-  if (value < 0) return 'Base price cannot be negative';
+  if (value === undefined || value === null || value == 0 || String(value).trim() === '') return 'Base price is required';
   return undefined;
 };
 
 const validateEstimatedTime = (value: number): string | undefined => {
-  if (!value || value < 1) return 'Estimated time is required (min 1)';
+  if (value === undefined || value === null || value == 0 || String(value).trim() === '' ) return 'Estimated time is required';
   return undefined;
 };
 
@@ -100,6 +98,16 @@ const ServicesPage = () => {
 
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ name?: boolean; brandId?: boolean; categoryId?: boolean; seriesId?: boolean; productId?: boolean; basePrice?: boolean; estimatedTime?: boolean }>({});
+  const [basePriceInput, setBasePriceInput] = useState('');
+  const [estimatedTimeInput, setEstimatedTimeInput] = useState('');
+  
+  const formRef = useRef<HTMLDivElement>(null);
+  const scrollToFirstError = () => {
+    setTimeout(() => {
+      const firstError = formRef.current?.querySelector('[data-error="true"]');
+      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50); 
+  };
 
   // Form state
   const [form, setForm] = useState({
@@ -282,6 +290,8 @@ const ServicesPage = () => {
   setFormErrors({});
   setTouched({});
   setIsFormOpen(true);
+  setBasePriceInput('0');
+  setEstimatedTimeInput('30');
   };
 
   const openEdit = (s: ServiceRecord) => {
@@ -297,6 +307,8 @@ const ServicesPage = () => {
     setFormErrors({});
     setTouched({});
     setIsFormOpen(true);
+    setBasePriceInput(s.basePrice > 0 ? String(s.basePrice) : '');
+    setEstimatedTimeInput(String(s.estimatedTime));
   };
 
   const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
@@ -326,6 +338,7 @@ const ServicesPage = () => {
       if (nameErr || brandErr || categoryErr || seriesErr || productErr || basePriceErr || estimatedTimeErr) {
         setFormErrors({ name: nameErr, brandId: brandErr, categoryId: categoryErr, seriesId: seriesErr, productId: productErr, basePrice: basePriceErr, estimatedTime: estimatedTimeErr });
         setTouched({ name: true, brandId: true, categoryId: true, seriesId: true, productId: true, basePrice: true, estimatedTime: true });
+        scrollToFirstError();
         return;
       }
 
@@ -515,8 +528,14 @@ const ServicesPage = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search services..." value={searchInput} onChange={e => setSearchInput(e.target.value)} className="pl-9" />
               </div>
-              <Select value={stagedFilters.level} onValueChange={v => setStagedFilters(f => ({ ...f, level: v }))}>
-                <SelectTrigger><SelectValue placeholder="All Levels" /></SelectTrigger>
+<Select value={stagedFilters.level} onValueChange={v => {
+  const cleared = { category: "all", series: "all", product: "all" };
+  if (v === "brand") setStagedFilters(f => ({ ...f, level: v, ...cleared }));
+  else if (v === "category") setStagedFilters(f => ({ ...f, level: v, series: "all", product: "all" }));
+  else if (v === "series") setStagedFilters(f => ({ ...f, level: v, product: "all" }));
+  else setStagedFilters(f => ({ ...f, level: v }));
+}}>
+                  <SelectTrigger><SelectValue placeholder="All Levels" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Levels</SelectItem>
                   {LEVELS.map(l => <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>)}
@@ -539,21 +558,21 @@ const ServicesPage = () => {
                   {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={stagedFilters.category} onValueChange={v => setStagedFilters(f => ({ ...f, category: v, series: "all", product: "all" }))} disabled={stagedFilters.brand === "all"}>
+              <Select value={stagedFilters.category} onValueChange={v => setStagedFilters(f => ({ ...f, category: v, series: "all", product: "all" }))}     disabled={stagedFilters.brand === "all" || stagedFilters.level === "brand"}>
                 <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   {stagedCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={stagedFilters.series} onValueChange={v => setStagedFilters(f => ({ ...f, series: v, product: "all" }))} disabled={stagedFilters.category === "all"}>
+              <Select value={stagedFilters.series} onValueChange={v => setStagedFilters(f => ({ ...f, series: v, product: "all" }))}   disabled={stagedFilters.category === "all" || ['brand', 'category'].includes(stagedFilters.level)}>
                 <SelectTrigger><SelectValue placeholder="Series" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Series</SelectItem>
                   {stagedSeries.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={stagedFilters.product} onValueChange={v => setStagedFilters(f => ({ ...f, product: v }))} disabled={stagedFilters.series === "all"}>
+              <Select value={stagedFilters.product} onValueChange={v => setStagedFilters(f => ({ ...f, product: v }))}   disabled={stagedFilters.series === "all" || ['brand', 'category', 'series'].includes(stagedFilters.level)}>
                 <SelectTrigger><SelectValue placeholder="Product" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Products</SelectItem>
@@ -615,7 +634,7 @@ const ServicesPage = () => {
                                 <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                               )}
                               {s.name}
-                              {variantCount > 0 && <Badge variant="secondary" className="text-xs">{variantCount} variants</Badge>}
+                              {variantCount > 0 && <Badge variant="secondary" className="text-xs whitespace-nowrap">{variantCount} variants</Badge>}
                             </div>
                           </td>
                           <td className="py-3 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate">{s.description}</td>
@@ -712,7 +731,7 @@ const ServicesPage = () => {
                   </Select>
                 )}
               </div>
-              <div className="rounded-lg border border-border bg-card overflow-hidden max-h-[500px] overflow-y-auto">
+              <div className="rounded-lg border border-border bg-card overflow-hidden max-h-[500px] overflow-y-auto scrollbar-hide">
                 {byProductFilteredProducts.length === 0 && <p className="text-sm text-muted-foreground p-4 text-center">No products found.</p>}
                 {byProductFilteredProducts.map(p => {
                   const svcCount = getServicesForProduct(p.id).length;
@@ -720,7 +739,7 @@ const ServicesPage = () => {
                   const disabledCount = totalSvcCount - svcCount;
                   const overrideCount = getOverridesByProduct(p.id).length;
                   return (
-                    <div key={p.id} className={`flex items-center gap-3 p-3 cursor-pointer transition-colors border-b border-border/50 last:border-b-0 ${byProductSelected === p.id ? 'bg-primary/10' : 'hover:bg-muted/30'}`} onClick={() => selectByProduct(p.id)}>
+                    <div key={p.id} className={`flex items-start gap-3 p-3 cursor-pointer transition-colors border-b border-border/50 last:border-b-0 ${byProductSelected === p.id ? 'bg-primary/10' : 'hover:bg-muted/30'}`} onClick={() => selectByProduct(p.id)}>
                       <img src={p.iconImage} alt={p.name} className="h-8 w-8 rounded object-cover bg-muted" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{p.name}</p>
@@ -810,7 +829,7 @@ const ServicesPage = () => {
                   <Input placeholder="Search services..." value={byServiceSearch} onChange={e => setByServiceSearch(e.target.value)} className="pl-9" />
                 </div>
               </div>
-              <div className="rounded-lg border border-border bg-card overflow-hidden max-h-[500px] overflow-y-auto">
+              <div className="rounded-lg border border-border bg-card overflow-hidden max-h-[500px] overflow-y-auto scrollbar-hide">
                 {byServiceFilteredServices.length === 0 && <p className="text-sm text-muted-foreground p-4 text-center">No services found.</p>}
                 {byServiceFilteredServices.map(s => {
                   const linkedCount = getLinkedProductCount(s);
@@ -820,18 +839,18 @@ const ServicesPage = () => {
                     : getOverridesByService(s.id).length;
                   return (
                     <div key={s.id} className={`p-3 cursor-pointer transition-colors border-b border-border/50 last:border-b-0 ${byServiceSelected === s.id ? 'bg-primary/10' : 'hover:bg-muted/30'}`} onClick={() => selectByService(s.id)}>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-start justify-between">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium truncate">{s.name}</p>
-                            {variants.length > 0 && <Badge variant="secondary" className="text-xs">{variants.length} variants</Badge>}
+                            <p className="text-sm font-medium truncate">{s.name}</p>                          
                           </div>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground mt-[6px]">
                             <Badge variant="outline" className="capitalize text-xs mr-1">{s.level}</Badge>
-                            {getAssignedTo(s)} · {linkedCount} product(s)
+                            {getAssignedTo(s)}
                           </p>
                         </div>
-                        {overrideCount > 0 && <Badge variant="outline" className="text-xs shrink-0">{overrideCount} override(s)</Badge>}
+                        {variants.length > 0 && <Badge variant="secondary" className="text-xs">{variants.length} variants</Badge>}
+                        {/* {overrideCount > 0 && <Badge variant="outline" className="text-xs shrink-0">{overrideCount} override(s)</Badge>} */}
                       </div>
                     </div>
                   );
@@ -1055,12 +1074,12 @@ const ServicesPage = () => {
 
       {/* Add/Edit Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto scrollbar-hide">
+        <DialogContent className="flex flex-col max-w-xl max-h-[90vh]">
           <DialogHeader><DialogTitle>{editing ? 'Edit Service' : 'Add Service'}</DialogTitle></DialogHeader>
-          <div className="space-y-5">
-            <div className="space-y-4">
+           <div ref={formRef} className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
+            <div className="space-y-4 mx-1">
               <h3 className="text-sm font-semibold text-foreground">Basic Information</h3>
-              <div className="space-y-2">
+              <div className="space-y-2" data-error={!!formErrors.name}>
                 <Label>Service Name *</Label>
                 <Input
                   value={form.name}
@@ -1102,9 +1121,11 @@ const ServicesPage = () => {
                       type="number"
                       min={0}
                       step={0.01}
-                      value={form.basePrice}
+                      value={basePriceInput}
                       onChange={e => {
-                        const val = Number(e.target.value);
+                        const raw = e.target.value.replace(/^0+(?=\d)/, '');
+                        setBasePriceInput(raw);
+                        const val = Number(raw);
                         setForm(f => ({ ...f, basePrice: val }));
                         if (touched.basePrice) setFormErrors(prev => ({ ...prev, basePrice: validateBasePrice(val) }));
                       }}
@@ -1120,9 +1141,11 @@ const ServicesPage = () => {
                     <Input
                       type="number"
                       min={1}
-                      value={form.estimatedTime}
+                      value={estimatedTimeInput}
                       onChange={e => {
-                        const val = Math.max(1, Number(e.target.value));
+                        const raw = e.target.value.replace(/^0+(?=\d)/, '');
+                        setEstimatedTimeInput(raw);
+                        const val = Number(raw);
                         setForm(f => ({ ...f, estimatedTime: val }));
                         if (touched.estimatedTime) setFormErrors(prev => ({ ...prev, estimatedTime: validateEstimatedTime(val) }));
                       }}
@@ -1161,11 +1184,11 @@ const ServicesPage = () => {
                         <Input placeholder="Description (optional)" value={vi.description} onChange={e => updateVariantItem(index, 'description', e.target.value)} />
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1">
+                        <div className="space-y-1" data-error={!!formErrors.basePrice}>
                           <Label className="text-xs">Base Price ($)</Label>
                           <Input type="number" min={0} step={0.01} value={vi.basePrice} onChange={e => updateVariantItem(index, 'basePrice', Number(e.target.value))} />
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1" data-error={!!formErrors.estimatedTime}>
                           <Label className="text-xs">Est. Time (min)</Label>
                           <Input type="number" min={1} value={vi.estimatedTime} onChange={e => updateVariantItem(index, 'estimatedTime', Math.max(1, Number(e.target.value)))} />
                         </div>
@@ -1184,7 +1207,7 @@ const ServicesPage = () => {
               </div>
             </div>
 
-            <div className="space-y-4 border-t border-border pt-5">
+            <div className="space-y-4 border-t border-border pt-5 mx-1">
               <h3 className="text-sm font-semibold text-foreground">Service Assignment</h3>
               <div className="space-y-2">
                 <Label>Level *</Label>
@@ -1198,7 +1221,7 @@ const ServicesPage = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2" data-error={!!formErrors.brandId}>
                 <Label>Brand *</Label>
                 <Select value={form.brandId} onValueChange={v => {
                   setForm(f => ({ ...f, brandId: v, categoryId: '', seriesId: '', productId: '' }));
@@ -1208,9 +1231,10 @@ const ServicesPage = () => {
                   <SelectTrigger><SelectValue placeholder="Select brand" /></SelectTrigger>
                   <SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
                 </Select>
+                {formErrors.brandId && <p className="text-xs text-destructive">{formErrors.brandId}</p>}
               </div>
               {['category', 'series', 'product'].includes(form.level) && (
-                <div className="space-y-2">
+                <div className="space-y-2" data-error={!!formErrors.categoryId}>
                   <Label>Category *</Label>
                    <Select value={form.categoryId} onValueChange={v => {
                       setForm(f => ({ ...f, categoryId: v, seriesId: '', productId: '' }));
@@ -1220,10 +1244,11 @@ const ServicesPage = () => {
                     <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>{formCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                   </Select>
+                  {formErrors.categoryId && <p className="text-xs text-destructive">{formErrors.categoryId}</p>}
                 </div>
               )}
               {['series', 'product'].includes(form.level) && (
-                <div className="space-y-2">
+                <div className="space-y-2" data-error={!!formErrors.seriesId}>
                   <Label>Series *</Label>
                    <Select value={form.seriesId} onValueChange={v => {
                       setForm(f => ({ ...f, seriesId: v, productId: '' }));
@@ -1233,10 +1258,11 @@ const ServicesPage = () => {
                     <SelectTrigger><SelectValue placeholder="Select series" /></SelectTrigger>
                     <SelectContent>{formSeries.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                   </Select>
+                  {formErrors.seriesId && <p className="text-xs text-destructive">{formErrors.seriesId}</p>} 
                 </div>
               )}
               {form.level === 'product' && (
-                <div className="space-y-2">
+                <div className="space-y-2" data-error={!!formErrors.productId}>
                   <Label>Product *</Label>
                    <Select value={form.productId} onValueChange={v => {
                       setForm(f => ({ ...f, productId: v }));
@@ -1246,6 +1272,7 @@ const ServicesPage = () => {
                     <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                     <SelectContent>{formProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                   </Select>
+                  {formErrors.productId && <p className="text-xs text-destructive">{formErrors.productId}</p>} 
                 </div>
               )}
               {form.brandId && (

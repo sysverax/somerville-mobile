@@ -185,11 +185,11 @@ const TermsPage = () => {
                     <Mail className="h-5 w-5 text-primary" />
                     <span className="text-sm">info@somervillemobile.com.au</span>
                   </div>
-                  <div className="flex items-center gap-3 text-muted-foreground">
+                  <div className="flex items-center gap-3 text-muted-foreground justify-center ml-0 md:ml-[30px]">
                     <Phone className="h-5 w-5 text-primary" />
                     <span className="text-sm">(03) 5977 6911</span>
                   </div>
-                  <div className="flex items-start gap-3 text-muted-foreground">
+                  <div className="flex items-start gap-3 text-muted-foreground justify-self-end">
                     <MapPin className="h-5 w-5 text-primary mt-0.5" />
                     <span className="text-sm">Shop 14,<br /> 49 Eramosa Road West,<br />Somerville, VIC 3912</span>
                   </div>

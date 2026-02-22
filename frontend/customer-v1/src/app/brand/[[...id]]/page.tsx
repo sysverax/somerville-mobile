@@ -140,17 +140,16 @@ const BrandContent = ({ params }: Props) => {
         <section className="pt-2 pb-12">
           <div className="container mx-auto px-4">
             <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+               initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
               className="text-2xl font-bold mb-8"
             >
               Categories
             </motion.h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {categories.map((category, index) => (
-                <div key={category.id} onClick={() => setSelectedCategory(category.id)} className="cursor-pointer">
-                  <CategoryCard category={category} index={index} />
-                </div>
+                <CategoryCard key={category.id} category={category} index={index} />
               ))}
             </div>
           </div>
