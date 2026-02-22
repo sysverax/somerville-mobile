@@ -15,26 +15,57 @@ import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import ImageUpload from '@/components/ImageUpload';
 import TablePagination from '@/components/TablePagination';
 
+const validateName = (value: string): string | undefined => {
+  if (!value.trim()) return 'Brand name is required';
+  return undefined;
+};
+
+const validateIcon = (value: string | null): string | undefined => {
+  if (!value) return 'Icon image is required';
+  return undefined;
+};
+
+type FormErrors = { name?: string; iconImage?: string };
+
 const BrandsPage = () => {
   const { brands, create, update, remove, toggleActive, count } = useBrands();
   const [view, setView] = useState<ViewMode>('table');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editing, setEditing] = useState<Brand | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Brand | null>(null);
-  const [form, setForm] = useState({ name: '', iconImage: '' as string | null, mainImage: '' as string | null, description: '' });
+  const [form, setForm] = useState({ name: '', iconImage: '' as string | null, description: '' });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<{ name?: boolean; iconImage?: boolean }>({});
 
   // Pagination
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const paginated = brands.slice((page - 1) * pageSize, page * pageSize);
 
-  const openAdd = () => { setEditing(null); setForm({ name: '', iconImage: null, mainImage: null, description: '' }); setIsFormOpen(true); };
-  const openEdit = (b: Brand) => { setEditing(b); setForm({ name: b.name, iconImage: b.iconImage, mainImage: b.mainImage, description: b.description }); setIsFormOpen(true); };
-
+  const openAdd = () => { setEditing(null); setForm({ name: '', iconImage: null, description: '' }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
+  const openEdit = (b: Brand) => { setEditing(b); setForm({ name: b.name, iconImage: b.iconImage, description: b.description }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
+  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
+    
   const handleSave = () => {
-    if (!form.name.trim()) return;
+    const nameErr = validateName(form.name);
+    const iconErr = validateIcon(form.iconImage);
+    if (nameErr || iconErr) {
+      setFormErrors({ name: nameErr, iconImage: iconErr });
+      return;
+    }
     if (editing) { update(editing.id, form); } else { create(form); }
     setIsFormOpen(false);
+  };
+
+  const handleNameBlur = () => {
+    setTouched(prev => ({ ...prev, name: true }));
+    setFormErrors(prev => ({ ...prev, name: validateName(form.name) }));
+  };
+
+  const handleIconChange = (v: string | null) => {
+    setForm(f => ({ ...f, iconImage: v }));
+    setTouched(prev => ({ ...prev, iconImage: true }));
+    setFormErrors(prev => ({ ...prev, iconImage: validateIcon(v) }));
   };
 
   return (
@@ -108,25 +139,36 @@ const BrandsPage = () => {
 
       <TablePagination totalItems={brands.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog open={isFormOpen} onOpenChange={handleClose}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? 'Edit Brand' : 'Add Brand'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label>Brand Name *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
+            <div className="space-y-2"><Label>Brand Name *</Label><Input value={form.name} 
+              onChange={e => {
+                const val = e.target.value;
+                setForm(f => ({ ...f, name: val }));
+                if (touched.name) {
+                  setFormErrors(prev => ({ ...prev, name: validateName(val) }));
+                }
+              }}
+              onBlur={handleNameBlur} />
+              {formErrors.name && (                        
+                <p className="text-xs text-destructive">{formErrors.name}</p>
+              )}
+            </div>
             <div className="space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Icon Image</Label>
-                <ImageUpload value={form.iconImage} onChange={v => setForm(f => ({ ...f, iconImage: v }))} size={120} />
-              </div>
-              <div className="space-y-2">
-                <Label>Main Image</Label>
-                <ImageUpload value={form.mainImage} onChange={v => setForm(f => ({ ...f, mainImage: v }))} size={120} />
+                <ImageUpload value={form.iconImage} onChange={handleIconChange} size={120} />
+                {formErrors.iconImage && (                    
+                  <p className="text-xs text-destructive">{formErrors.iconImage}</p>
+                )}
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsFormOpen(false)}>Cancel</Button>
+            <Button variant="secondary" onClick={handleClose}>Cancel</Button>
             <Button onClick={handleSave}>{editing ? 'Save Changes' : 'Add Brand'}</Button>
           </DialogFooter>
         </DialogContent>
