@@ -57,7 +57,7 @@ const validateBasePrice = (value: number): string | undefined => {
 };
 
 const validateEstimatedTime = (value: number): string | undefined => {
-  if (value === undefined || value === null || value == 0 || String(value).trim() === '' ) return 'Estimated time is required';
+  if (value === undefined || value === null || value == 0 || String(value).trim() === '') return 'Estimated time is required';
   return undefined;
 };
 
@@ -100,13 +100,13 @@ const ServicesPage = () => {
   const [touched, setTouched] = useState<{ name?: boolean; brandId?: boolean; categoryId?: boolean; seriesId?: boolean; productId?: boolean; basePrice?: boolean; estimatedTime?: boolean }>({});
   const [basePriceInput, setBasePriceInput] = useState('');
   const [estimatedTimeInput, setEstimatedTimeInput] = useState('');
-  
+
   const formRef = useRef<HTMLDivElement>(null);
   const scrollToFirstError = () => {
     setTimeout(() => {
       const firstError = formRef.current?.querySelector('[data-error="true"]');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 50); 
+    }, 50);
   };
 
   // Form state
@@ -127,10 +127,12 @@ const ServicesPage = () => {
   const [byProductCategory, setByProductCategory] = useState<string>('all');
   const [byProductSeries, setByProductSeries] = useState<string>('all');
   const [byProductSearch, setByProductSearch] = useState('');
+  const [byProductCollapsedParents, setByProductCollapsedParents] = useState<Set<string>>(new Set());
 
   // By Service tab state
   const [byServiceSelected, setByServiceSelected] = useState<string>('');
   const [byServiceSearch, setByServiceSearch] = useState('');
+  const [byServiceCollapsedVariants, setByServiceCollapsedVariants] = useState<Set<string>>(new Set());
 
   // Helpers
   const brandName = (id: string) => brands.find(b => b.id === id)?.name || id;
@@ -282,16 +284,34 @@ const ServicesPage = () => {
     });
   };
 
+  const toggleByProductExpanded = (parentId: string) => {
+    setByProductCollapsedParents(prev => {
+      const next = new Set(prev);
+      if (next.has(parentId)) next.delete(parentId);
+      else next.add(parentId);
+      return next;
+    });
+  };
+
+  const toggleByServiceVariantExpanded = (variantId: string) => {
+    setByServiceCollapsedVariants(prev => {
+      const next = new Set(prev);
+      if (next.has(variantId)) next.delete(variantId);
+      else next.add(variantId);
+      return next;
+    });
+  };
+
   // Open form
   const openAdd = () => {
-  setEditing(null);
-  setForm({ name: '', description: '', level: 'brand', brandId: '', categoryId: '', seriesId: '', productId: '', basePrice: 0, estimatedTime: 30, isActive: true, hasVariants: false });
-  setVariantItems([]);
-  setFormErrors({});
-  setTouched({});
-  setIsFormOpen(true);
-  setBasePriceInput('0');
-  setEstimatedTimeInput('30');
+    setEditing(null);
+    setForm({ name: '', description: '', level: 'brand', brandId: '', categoryId: '', seriesId: '', productId: '', basePrice: 0, estimatedTime: 30, isActive: true, hasVariants: false });
+    setVariantItems([]);
+    setFormErrors({});
+    setTouched({});
+    setIsFormOpen(true);
+    setBasePriceInput('0');
+    setEstimatedTimeInput('30');
   };
 
   const openEdit = (s: ServiceRecord) => {
@@ -327,20 +347,20 @@ const ServicesPage = () => {
   };
 
   const save = () => {
-     const nameErr = validateName(form.name);
-      const brandErr = validateBrand(form.brandId);
-      const categoryErr = ['category', 'series', 'product'].includes(form.level) ? validateCategory(form.categoryId) : undefined;
-      const seriesErr = ['series', 'product'].includes(form.level) ? validateSeries(form.seriesId) : undefined;
-      const productErr = form.level === 'product' ? validateProduct(form.productId) : undefined;
-      const basePriceErr = !form.hasVariants ? validateBasePrice(form.basePrice) : undefined;
-      const estimatedTimeErr = !form.hasVariants ? validateEstimatedTime(form.estimatedTime) : undefined;
+    const nameErr = validateName(form.name);
+    const brandErr = validateBrand(form.brandId);
+    const categoryErr = ['category', 'series', 'product'].includes(form.level) ? validateCategory(form.categoryId) : undefined;
+    const seriesErr = ['series', 'product'].includes(form.level) ? validateSeries(form.seriesId) : undefined;
+    const productErr = form.level === 'product' ? validateProduct(form.productId) : undefined;
+    const basePriceErr = !form.hasVariants ? validateBasePrice(form.basePrice) : undefined;
+    const estimatedTimeErr = !form.hasVariants ? validateEstimatedTime(form.estimatedTime) : undefined;
 
-      if (nameErr || brandErr || categoryErr || seriesErr || productErr || basePriceErr || estimatedTimeErr) {
-        setFormErrors({ name: nameErr, brandId: brandErr, categoryId: categoryErr, seriesId: seriesErr, productId: productErr, basePrice: basePriceErr, estimatedTime: estimatedTimeErr });
-        setTouched({ name: true, brandId: true, categoryId: true, seriesId: true, productId: true, basePrice: true, estimatedTime: true });
-        scrollToFirstError();
-        return;
-      }
+    if (nameErr || brandErr || categoryErr || seriesErr || productErr || basePriceErr || estimatedTimeErr) {
+      setFormErrors({ name: nameErr, brandId: brandErr, categoryId: categoryErr, seriesId: seriesErr, productId: productErr, basePrice: basePriceErr, estimatedTime: estimatedTimeErr });
+      setTouched({ name: true, brandId: true, categoryId: true, seriesId: true, productId: true, basePrice: true, estimatedTime: true });
+      scrollToFirstError();
+      return;
+    }
 
     const basePayload = {
       name: form.name.trim(), description: form.description.trim(), level: form.level,
@@ -433,6 +453,7 @@ const ServicesPage = () => {
   // Load overrides when selecting in By Product / By Service tabs
   const selectByProduct = (productId: string) => {
     setByProductSelected(productId);
+    setByProductCollapsedParents(new Set()); // Reset to show all parents expanded
     const existing = getOverridesByProduct(productId);
     const edits: Record<string, { price: number; time: number }> = {};
     existing.forEach(o => {
@@ -443,6 +464,7 @@ const ServicesPage = () => {
 
   const selectByService = (serviceId: string) => {
     setByServiceSelected(serviceId);
+    setByServiceCollapsedVariants(new Set()); // Reset to show all variants expanded
     const existing = getOverridesByService(serviceId);
     const edits: Record<string, { price: number; time: number }> = {};
     existing.forEach(o => {
@@ -528,14 +550,14 @@ const ServicesPage = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search services..." value={searchInput} onChange={e => setSearchInput(e.target.value)} className="pl-9" />
               </div>
-<Select value={stagedFilters.level} onValueChange={v => {
-  const cleared = { category: "all", series: "all", product: "all" };
-  if (v === "brand") setStagedFilters(f => ({ ...f, level: v, ...cleared }));
-  else if (v === "category") setStagedFilters(f => ({ ...f, level: v, series: "all", product: "all" }));
-  else if (v === "series") setStagedFilters(f => ({ ...f, level: v, product: "all" }));
-  else setStagedFilters(f => ({ ...f, level: v }));
-}}>
-                  <SelectTrigger><SelectValue placeholder="All Levels" /></SelectTrigger>
+              <Select value={stagedFilters.level} onValueChange={v => {
+                const cleared = { category: "all", series: "all", product: "all" };
+                if (v === "brand") setStagedFilters(f => ({ ...f, level: v, ...cleared }));
+                else if (v === "category") setStagedFilters(f => ({ ...f, level: v, series: "all", product: "all" }));
+                else if (v === "series") setStagedFilters(f => ({ ...f, level: v, product: "all" }));
+                else setStagedFilters(f => ({ ...f, level: v }));
+              }}>
+                <SelectTrigger><SelectValue placeholder="All Levels" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Levels</SelectItem>
                   {LEVELS.map(l => <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>)}
@@ -558,21 +580,21 @@ const ServicesPage = () => {
                   {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={stagedFilters.category} onValueChange={v => setStagedFilters(f => ({ ...f, category: v, series: "all", product: "all" }))}     disabled={stagedFilters.brand === "all" || stagedFilters.level === "brand"}>
+              <Select value={stagedFilters.category} onValueChange={v => setStagedFilters(f => ({ ...f, category: v, series: "all", product: "all" }))} disabled={stagedFilters.brand === "all" || stagedFilters.level === "brand"}>
                 <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   {stagedCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={stagedFilters.series} onValueChange={v => setStagedFilters(f => ({ ...f, series: v, product: "all" }))}   disabled={stagedFilters.category === "all" || ['brand', 'category'].includes(stagedFilters.level)}>
+              <Select value={stagedFilters.series} onValueChange={v => setStagedFilters(f => ({ ...f, series: v, product: "all" }))} disabled={stagedFilters.category === "all" || ['brand', 'category'].includes(stagedFilters.level)}>
                 <SelectTrigger><SelectValue placeholder="Series" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Series</SelectItem>
                   {stagedSeries.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={stagedFilters.product} onValueChange={v => setStagedFilters(f => ({ ...f, product: v }))}   disabled={stagedFilters.series === "all" || ['brand', 'category', 'series'].includes(stagedFilters.level)}>
+              <Select value={stagedFilters.product} onValueChange={v => setStagedFilters(f => ({ ...f, product: v }))} disabled={stagedFilters.series === "all" || ['brand', 'category', 'series'].includes(stagedFilters.level)}>
                 <SelectTrigger><SelectValue placeholder="Product" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Products</SelectItem>
@@ -779,34 +801,42 @@ const ServicesPage = () => {
                       <>
                         <p className="text-sm text-muted-foreground">Override price and estimated time for services inherited by this product.</p>
                         <div className="space-y-4">
-                          {groups.map((group, gi) => (
-                            <div key={gi}>
-                              {group.parent && (
-                                <div className="mb-2">
-                                  <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                                    {group.parent.name}
-                                    <Badge variant="secondary" className="text-xs">{group.items.length} variants</Badge>
-                                  </h4>
-                                  <p className="text-xs text-muted-foreground">{group.parent.description}</p>
-                                </div>
-                              )}
-                              <div className={`space-y-2 ${group.parent ? 'ml-4 border-l-2 border-border pl-3' : ''}`}>
-                                {group.items.map(svc => (
-                                  <OverrideRow
-                                    key={svc.id}
-                                    svc={svc}
-                                    productId={p.id}
-                                    defaultPrice={svc.basePrice}
-                                    defaultTime={svc.estimatedTime}
-                                    keyField="serviceId"
-                                    label={svc.name}
-                                    sublabel={`${svc.isVariant ? 'Variant' : ''} ${svc.level} · Default: $${svc.basePrice} · ${svc.estimatedTime} min`}
-                                    disabled={isServiceDisabledForProduct(svc.id, p.id)}
-                                  />
-                                ))}
+                          {groups.map((group, gi) => {
+                            const isExpanded = group.parent ? !byProductCollapsedParents.has(group.parent.id) : true;
+                            return (
+                              <div key={gi}>
+                                {group.parent && (
+                                  <div className="mb-2 cursor-pointer" onClick={() => toggleByProductExpanded(group.parent!.id)}>
+                                    <div className="flex items-center gap-2">
+                                      <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                      <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                        {group.parent.name}
+                                        <Badge variant="secondary" className="text-xs">{group.items.length} variants</Badge>
+                                      </h4>
+                                    </div>
+                                    {isExpanded && <p className="text-xs text-muted-foreground ml-6 mt-1">{group.parent.description}</p>}
+                                  </div>
+                                )}
+                                {isExpanded && (
+                                  <div className={`space-y-2 ${group.parent ? 'ml-4 border-l-2 border-border pl-3' : ''}`}>
+                                    {group.items.map(svc => (
+                                      <OverrideRow
+                                        key={svc.id}
+                                        svc={svc}
+                                        productId={p.id}
+                                        defaultPrice={svc.basePrice}
+                                        defaultTime={svc.estimatedTime}
+                                        keyField="serviceId"
+                                        label={svc.name}
+                                        sublabel={`${svc.isVariant ? 'Variant' : ''} ${svc.level} · Default: $${svc.basePrice} · ${svc.estimatedTime} min`}
+                                        disabled={isServiceDisabledForProduct(svc.id, p.id)}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </>
                     )}
@@ -842,7 +872,7 @@ const ServicesPage = () => {
                       <div className="flex items-start justify-between">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium truncate">{s.name}</p>                          
+                            <p className="text-sm font-medium truncate">{s.name}</p>
                           </div>
                           <p className="text-xs text-muted-foreground mt-[6px]">
                             <Badge variant="outline" className="capitalize text-xs mr-1">{s.level}</Badge>
@@ -888,25 +918,36 @@ const ServicesPage = () => {
                     {hasVars ? (
                       <>
                         <p className="text-sm text-muted-foreground">This service has {variants.length} variant(s). Overrides apply at the variant level for each product.</p>
-                        {variants.map(variant => (
-                          <div key={variant.id} className="space-y-3">
-                            <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">{variant.name} — ${variant.basePrice} · {variant.estimatedTime} min</h4>
-                            <div className="space-y-2 ml-2">
-                              {linkedProducts.map(p => (
-                                <OverrideRow
-                                  key={`${variant.id}-${p.id}`}
-                                  svc={variant}
-                                  productId={p.id}
-                                  defaultPrice={variant.basePrice}
-                                  defaultTime={variant.estimatedTime}
-                                  label={p.name}
-                                  sublabel={`${seriesName(p.seriesId)} · ${categoryName(p.categoryId)}`}
-                                  disabled={isServiceDisabledForProduct(variant.id, p.id)}
-                                />
-                              ))}
+                        {variants.map(variant => {
+                          const isVariantExpanded = !byServiceCollapsedVariants.has(variant.id);
+                          return (
+                            <div key={variant.id} className="space-y-3">
+                              <div className="cursor-pointer" onClick={() => toggleByServiceVariantExpanded(variant.id)}>
+                                <div className="flex items-center gap-2 border-b border-border pb-2">
+                                  <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isVariantExpanded ? 'rotate-90' : ''}`} />
+                                  <h4 className="text-sm font-semibold text-foreground">{variant.name} — ${variant.basePrice} · {variant.estimatedTime} min</h4>
+                                  <Badge variant="outline" className="text-xs">{linkedProducts.length} products</Badge>
+                                </div>
+                              </div>
+                              {isVariantExpanded && (
+                                <div className="space-y-2 ml-6">
+                                  {linkedProducts.map(p => (
+                                    <OverrideRow
+                                      key={`${variant.id}-${p.id}`}
+                                      svc={variant}
+                                      productId={p.id}
+                                      defaultPrice={variant.basePrice}
+                                      defaultTime={variant.estimatedTime}
+                                      label={p.name}
+                                      sublabel={`${seriesName(p.seriesId)} · ${categoryName(p.categoryId)}`}
+                                      disabled={isServiceDisabledForProduct(variant.id, p.id)}
+                                    />
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </>
                     ) : (
                       <>
@@ -1076,7 +1117,7 @@ const ServicesPage = () => {
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
         <DialogContent className="flex flex-col max-w-xl max-h-[90vh]">
           <DialogHeader><DialogTitle>{editing ? 'Edit Service' : 'Add Service'}</DialogTitle></DialogHeader>
-           <div ref={formRef} className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
+          <div ref={formRef} className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
             <div className="space-y-4 mx-1">
               <h3 className="text-sm font-semibold text-foreground">Basic Information</h3>
               <div className="space-y-2" data-error={!!formErrors.name}>
@@ -1236,11 +1277,11 @@ const ServicesPage = () => {
               {['category', 'series', 'product'].includes(form.level) && (
                 <div className="space-y-2" data-error={!!formErrors.categoryId}>
                   <Label>Category *</Label>
-                   <Select value={form.categoryId} onValueChange={v => {
-                      setForm(f => ({ ...f, categoryId: v, seriesId: '', productId: '' }));
-                      setTouched(prev => ({ ...prev, categoryId: true }));
-                      setFormErrors(prev => ({ ...prev, categoryId: validateCategory(v), seriesId: undefined, productId: undefined }));
-                    }} disabled={!form.brandId}>
+                  <Select value={form.categoryId} onValueChange={v => {
+                    setForm(f => ({ ...f, categoryId: v, seriesId: '', productId: '' }));
+                    setTouched(prev => ({ ...prev, categoryId: true }));
+                    setFormErrors(prev => ({ ...prev, categoryId: validateCategory(v), seriesId: undefined, productId: undefined }));
+                  }} disabled={!form.brandId}>
                     <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>{formCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                   </Select>
@@ -1250,38 +1291,38 @@ const ServicesPage = () => {
               {['series', 'product'].includes(form.level) && (
                 <div className="space-y-2" data-error={!!formErrors.seriesId}>
                   <Label>Series *</Label>
-                   <Select value={form.seriesId} onValueChange={v => {
-                      setForm(f => ({ ...f, seriesId: v, productId: '' }));
-                      setTouched(prev => ({ ...prev, seriesId: true }));
-                      setFormErrors(prev => ({ ...prev, seriesId: validateSeries(v), productId: undefined }));
-                    }} disabled={!form.categoryId}>
+                  <Select value={form.seriesId} onValueChange={v => {
+                    setForm(f => ({ ...f, seriesId: v, productId: '' }));
+                    setTouched(prev => ({ ...prev, seriesId: true }));
+                    setFormErrors(prev => ({ ...prev, seriesId: validateSeries(v), productId: undefined }));
+                  }} disabled={!form.categoryId}>
                     <SelectTrigger><SelectValue placeholder="Select series" /></SelectTrigger>
                     <SelectContent>{formSeries.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                   </Select>
-                  {formErrors.seriesId && <p className="text-xs text-destructive">{formErrors.seriesId}</p>} 
+                  {formErrors.seriesId && <p className="text-xs text-destructive">{formErrors.seriesId}</p>}
                 </div>
               )}
               {form.level === 'product' && (
                 <div className="space-y-2" data-error={!!formErrors.productId}>
                   <Label>Product *</Label>
-                   <Select value={form.productId} onValueChange={v => {
-                      setForm(f => ({ ...f, productId: v }));
-                      setTouched(prev => ({ ...prev, productId: true }));
-                      setFormErrors(prev => ({ ...prev, productId: validateProduct(v) }));
-                    }} disabled={!form.seriesId}>
+                  <Select value={form.productId} onValueChange={v => {
+                    setForm(f => ({ ...f, productId: v }));
+                    setTouched(prev => ({ ...prev, productId: true }));
+                    setFormErrors(prev => ({ ...prev, productId: validateProduct(v) }));
+                  }} disabled={!form.seriesId}>
                     <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                     <SelectContent>{formProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                   </Select>
-                  {formErrors.productId && <p className="text-xs text-destructive">{formErrors.productId}</p>} 
+                  {formErrors.productId && <p className="text-xs text-destructive">{formErrors.productId}</p>}
                 </div>
               )}
               {form.brandId && (
                 <div className="rounded-md bg-muted/50 p-3 text-sm text-muted-foreground">
                   This service will apply to <strong className="text-foreground">
                     {form.level === 'product' && form.productId ? 1 :
-                     form.level === 'series' && form.seriesId ? products.filter(p => p.seriesId === form.seriesId).length :
-                     form.level === 'category' && form.categoryId ? products.filter(p => p.categoryId === form.categoryId).length :
-                     products.filter(p => p.brandId === form.brandId).length}
+                      form.level === 'series' && form.seriesId ? products.filter(p => p.seriesId === form.seriesId).length :
+                        form.level === 'category' && form.categoryId ? products.filter(p => p.categoryId === form.categoryId).length :
+                          products.filter(p => p.brandId === form.brandId).length}
                   </strong> product(s).
                   {form.hasVariants && variantItems.filter(v => v.name.trim()).length > 0 && (
                     <> Each product will get <strong className="text-foreground">{variantItems.filter(v => v.name.trim()).length}</strong> variant(s).</>
