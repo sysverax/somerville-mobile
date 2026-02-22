@@ -1,12 +1,12 @@
 import { useState, useCallback } from 'react';
-import { ServiceRecord, ServiceTemplate, ServiceAssignment, ServiceProductOverride } from '@/types';
+import { ServiceRecord, ServiceTemplate, ServiceAssignment, ServiceProduct, ServiceProductOverride } from '@/types';
 import { serviceService } from '@/services/service.service';
 
 export const useServices = () => {
   const [services, setServices] = useState<ServiceRecord[]>(serviceService.getAll());
   const [templates, setTemplates] = useState<ServiceTemplate[]>(serviceService.getTemplates());
   const [assignments, setAssignments] = useState<ServiceAssignment[]>(serviceService.getAssignments());
-  const [overrides, setOverrides] = useState<ServiceProductOverride[]>(serviceService.getOverrides());
+  const [overrides, setOverrides] = useState<ServiceProduct[]>(serviceService.getOverrides());
 
   const refreshServices = useCallback(() => setServices(serviceService.getAll()), []);
   const refreshTemplates = useCallback(() => setTemplates(serviceService.getTemplates()), []);
@@ -73,8 +73,8 @@ export const useServices = () => {
       serviceService.upsertOverride({
         serviceId,
         productId,
-        priceOverride: svc?.basePrice ?? 0,
-        estimatedTimeOverride: svc?.estimatedTime ?? 30,
+        price: svc?.basePrice ?? 0,
+        estimatedTime: svc?.estimatedTime ?? 30,
         isDisabled,
       });
     }

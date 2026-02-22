@@ -17,14 +17,17 @@ export interface ServiceRecord {
   isVariant: boolean;
 }
 
-export interface ServiceProductOverride {
+export interface ServiceProduct {
   id: string;
   serviceId: string;
   productId: string;
-  priceOverride: number;
-  estimatedTimeOverride: number;
+  price: number;
+  estimatedTime: number;
   isDisabled?: boolean;
 }
+
+// Legacy type alias for backwards compatibility
+export type ServiceProductOverride = ServiceProduct;
 
 // Keep legacy exports for compatibility
 export type ServiceType = 'Repair' | 'Replacement' | 'Diagnostic';
