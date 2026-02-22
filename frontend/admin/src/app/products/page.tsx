@@ -198,7 +198,7 @@ const ProductsPage = () => {
 
       {/* Add/Edit Product Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto scrollbar-hide">
           <DialogHeader><DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-2">

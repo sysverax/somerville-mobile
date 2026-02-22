@@ -10,8 +10,7 @@ const navItems = [
   { path: '/series', label: 'Series', icon: Layers },
   { path: '/products', label: 'Products', icon: Package },
   { path: '/services', label: 'Services', icon: Wrench },
-  // TODO: If need shop now please uncomment the following section
-  // { path: '/stock-pricing', label: 'Stock & Pricing', icon: DollarSign },
+  { path: '/stock-pricing', label: 'Stock & Pricing', icon: DollarSign },
   { path: '/bookings', label: 'Bookings', icon: Calendar },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];

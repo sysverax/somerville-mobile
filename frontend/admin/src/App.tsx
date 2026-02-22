@@ -37,8 +37,7 @@ const App = () => (
               <Route path="/series" element={<SeriesPage />} />
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/services" element={<ServicesPage />} />
-              {/* TODO: If need shop now please uncomment the following section */}
-              {/* <Route path="/stock-pricing" element={<StockPricingPage />} /> */}
+              <Route path="/stock-pricing" element={<StockPricingPage />} />
               <Route path="/bookings" element={<BookingsPage />} />
               <Route path="/bookings/calendar" element={<CalendarPage />} />
               <Route path="/settings" element={<SettingsPage />} />
