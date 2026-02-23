@@ -10,7 +10,7 @@ import { getActiveCategories, getCategoriesByBrand, getCategoryById } from './ca
 import { getActiveSeries, getSeriesByCategory, getSeriesById } from './seriesService';
 import { getActiveProducts, getProductById as getRawProductById, getProductsBySeries as getRawProductsBySeries, searchProducts as rawSearchProducts, getFeaturedProducts as rawFeaturedProducts } from './productService';
 import { getStockByProduct } from './stockService';
-import { getServicesForProduct, getEffectiveServicePrice, getEffectiveServiceTime } from './serviceService';
+import { getServicesForProduct, getEffectiveServicePrice, getEffectiveServiceTime, getAllServiceProductOverrides } from './serviceService';
 import { generateBookingSlots, addBooking as rawAddBooking } from './bookingService';
 import type { Booking } from '@/src/types';
 
@@ -76,9 +76,14 @@ export interface StorefrontSeries {
 
 export interface StorefrontService {
   id: string;
+  serviceId: string;
   productId: string;
+  parentServiceId?: string | null;
+  isVariant: boolean;
+  level: 'brand' | 'category' | 'series' | 'product';
   name: string;
   description: string;
+  estimatedTime: number;
   duration: string;
   price: number;
   isAvailable: boolean;
@@ -94,6 +99,9 @@ export interface StorefrontBooking {
   id: string;
   productId: string;
   serviceId: string;
+  parentServiceId?: string | null;
+  price?: number;
+  estimatedTime?: number;
   date: string;
   time: string;
   customerName?: string;
@@ -308,13 +316,22 @@ export const getStorefrontServicesByProduct = (productId: string): StorefrontSer
     const effectiveTime = getEffectiveServiceTime(svc.id, productId);
     return {
       id: `${svc.id}-${productId}`,
+      serviceId: svc.id,
       productId,
+      parentServiceId: svc.parentServiceId ?? null,
+      isVariant: svc.isVariant === true,
+      level: svc.level,
       name: svc.name,
       description: svc.description,
+      estimatedTime: effectiveTime,
       duration: formatDuration(effectiveTime),
       price: effectivePrice,
       isAvailable: svc.isActive,
     };
+  }).filter(svc => {
+    const source = applicableServices.find(s => s.id === svc.serviceId);
+    if (!source) return false;
+    return !getAllServiceProductOverrides().some(o => o.serviceId === source.id && o.productId === productId && o.isDisabled);
   });
 };
 
@@ -333,7 +350,9 @@ export const getStorefrontMinServicePrice = (productId: string): number | null =
 };
 
 export const getStorefrontServiceCount = (productId: string): number => {
-  return getStorefrontServicesByProduct(productId).length;
+  const services = getStorefrontServicesByProduct(productId);
+  const parentIds = new Set(services.map(s => s.parentServiceId).filter(Boolean));
+  return services.filter(s => !parentIds.has(s.serviceId)).length;
 };
 
 // ---- Booking helpers ----

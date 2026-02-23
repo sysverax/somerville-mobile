@@ -17,34 +17,11 @@ export interface ServiceRecord {
   isVariant: boolean;
 }
 
-export interface ServiceProductOverride {
+export interface ServiceProduct {
   id: string;
   serviceId: string;
   productId: string;
-  priceOverride: number;
-  estimatedTimeOverride: number;
-  isDisabled?: boolean;
-}
-
-// Keep legacy exports for compatibility
-export type ServiceType = 'Repair' | 'Replacement' | 'Diagnostic';
-
-export interface ServiceTemplate {
-  id: string;
-  name: string;
-  description: string;
-  estimatedTime: number;
-  serviceType: ServiceType;
-  isActive: boolean;
-}
-
-export interface ServiceAssignment {
-  id: string;
-  templateId: string;
-  level: AssignmentLevel;
-  levelId: string;
   price: number;
   estimatedTime: number;
-  descriptionOverride: string;
-  isActive: boolean;
+  isDisabled?: boolean;
 }

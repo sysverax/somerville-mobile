@@ -1,13 +1,16 @@
-import { serviceRecords, serviceProductOverrides } from '@/src/mock-data/services';
+import { serviceRecords, serviceProductOverrides } from '@/src/mock-data';
 import { getProductById } from '@/src/services/productService';
 import type { ServiceRecord, ServiceProductOverride } from '@/src/types';
 
+const records = serviceRecords as ServiceRecord[];
+const overrides = serviceProductOverrides as ServiceProductOverride[];
+
 export const getAllServiceRecords = (): ServiceRecord[] => {
-  return serviceRecords;
+  return records;
 };
 
 export const getServiceRecordById = (id: string): ServiceRecord | undefined => {
-  return serviceRecords.find(s => s.id === id);
+  return records.find((s: ServiceRecord) => s.id === id);
 };
 
 /**
@@ -18,7 +21,7 @@ export const getServicesForProduct = (productId: string): ServiceRecord[] => {
   const product = getProductById(productId);
   if (!product) return [];
 
-  return serviceRecords.filter(svc => {
+  return records.filter((svc: ServiceRecord) => {
     if (!svc.isActive) return false;
 
     switch (svc.level) {
@@ -36,15 +39,22 @@ export const getServicesForProduct = (productId: string): ServiceRecord[] => {
   });
 };
 
+export const isServiceDisabledForProduct = (serviceId: string, productId: string): boolean => {
+  const override = overrides.find(
+    (o: ServiceProductOverride) => o.serviceId === serviceId && o.productId === productId
+  );
+  return override?.isDisabled === true;
+};
+
 /**
  * Get the effective price for a service on a specific product,
  * considering product-level overrides.
  */
 export const getEffectiveServicePrice = (serviceId: string, productId: string): number => {
-  const override = serviceProductOverrides.find(
-    o => o.serviceId === serviceId && o.productId === productId
+  const override = overrides.find(
+    (o: ServiceProductOverride) => o.serviceId === serviceId && o.productId === productId
   );
-  if (override) return override.priceOverride;
+  if (override) return override.price;
 
   const service = getServiceRecordById(serviceId);
   return service?.basePrice ?? 0;
@@ -54,10 +64,10 @@ export const getEffectiveServicePrice = (serviceId: string, productId: string): 
  * Get the effective estimated time for a service on a specific product.
  */
 export const getEffectiveServiceTime = (serviceId: string, productId: string): number => {
-  const override = serviceProductOverrides.find(
-    o => o.serviceId === serviceId && o.productId === productId
+  const override = overrides.find(
+    (o: ServiceProductOverride) => o.serviceId === serviceId && o.productId === productId
   );
-  if (override) return override.estimatedTimeOverride;
+  if (override) return override.estimatedTime;
 
   const service = getServiceRecordById(serviceId);
   return service?.estimatedTime ?? 0;
@@ -67,14 +77,15 @@ export const getEffectiveServiceTime = (serviceId: string, productId: string): n
  * Get service count for a product (all applicable services).
  */
 export const getServiceCountForProduct = (productId: string): number => {
-  return getServicesForProduct(productId).length;
+  const applicable = getServicesForProduct(productId);
+  return applicable.filter(s => !isServiceDisabledForProduct(s.id, productId)).length;
 };
 
 /**
  * Get minimum service price for a product.
  */
 export const getMinServicePriceForProduct = (productId: string): number | null => {
-  const services = getServicesForProduct(productId);
+  const services = getServicesForProduct(productId).filter(s => !isServiceDisabledForProduct(s.id, productId));
   if (services.length === 0) return null;
 
   const prices = services.map(s => getEffectiveServicePrice(s.id, productId));
@@ -85,12 +96,12 @@ export const getMinServicePriceForProduct = (productId: string): number | null =
  * Get all product overrides.
  */
 export const getAllServiceProductOverrides = (): ServiceProductOverride[] => {
-  return serviceProductOverrides;
+  return overrides;
 };
 
 /**
  * Get overrides for a specific service.
  */
 export const getOverridesForService = (serviceId: string): ServiceProductOverride[] => {
-  return serviceProductOverrides.filter(o => o.serviceId === serviceId);
+  return overrides.filter((o: ServiceProductOverride) => o.serviceId === serviceId);
 };

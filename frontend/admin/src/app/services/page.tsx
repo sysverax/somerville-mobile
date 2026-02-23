@@ -20,9 +20,6 @@ import TablePagination from '@/components/TablePagination';
 
 const LEVELS: AssignmentLevel[] = ['brand', 'category', 'series', 'product'];
 
-type SortField = 'name' | 'level' | 'createdAt';
-type SortDir = 'asc' | 'desc';
-
 interface VariantFormItem {
   name: string;
   description: string;
@@ -84,8 +81,6 @@ const ServicesPage = () => {
   });
 
   // Table state
-  const [sortField, setSortField] = useState<SortField>('createdAt');
-  const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
@@ -253,27 +248,10 @@ const ServicesPage = () => {
     } else if (appliedFilters.brand !== "all") {
       result = result.filter(s => s.brandId === appliedFilters.brand);
     }
-    result.sort((a, b) => {
-      let cmp = 0;
-      if (sortField === "name") cmp = a.name.localeCompare(b.name);
-      else if (sortField === "level") cmp = a.level.localeCompare(b.level);
-      else cmp = a.createdAt.localeCompare(b.createdAt);
-      return sortDir === "asc" ? cmp : -cmp;
-    });
     return result;
-  }, [services, search, appliedFilters, sortField, sortDir, products, seriesList, categories]);
+  }, [services, search, appliedFilters, products, seriesList, categories]);
 
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortField(field); setSortDir('asc'); }
-  };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronUp className="h-3 w-3 opacity-30" />;
-    return sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />;
-  };
 
   const toggleExpanded = (parentId: string) => {
     setExpandedParents(prev => {
@@ -403,7 +381,7 @@ const ServicesPage = () => {
     const existingOverrides = getOverridesByService(s.id);
     const edits: Record<string, { price: number; time: number }> = {};
     existingOverrides.forEach(o => {
-      edits[o.productId] = { price: o.priceOverride, time: o.estimatedTimeOverride };
+      edits[o.productId] = { price: o.price, time: o.estimatedTime };
     });
     setOverrideEdits(edits);
   };
@@ -412,7 +390,7 @@ const ServicesPage = () => {
     const key = keyField === 'productId' ? productId : serviceId;
     const edit = overrideEdits[key];
     if (edit) {
-      upsertOverride({ serviceId, productId, priceOverride: edit.price, estimatedTimeOverride: edit.time });
+      upsertOverride({ serviceId, productId, price: edit.price, estimatedTime: edit.time });
     }
   };
 
@@ -457,7 +435,7 @@ const ServicesPage = () => {
     const existing = getOverridesByProduct(productId);
     const edits: Record<string, { price: number; time: number }> = {};
     existing.forEach(o => {
-      edits[o.serviceId] = { price: o.priceOverride, time: o.estimatedTimeOverride };
+      edits[o.serviceId] = { price: o.price, time: o.estimatedTime };
     });
     setOverrideEdits(edits);
   };
@@ -468,7 +446,7 @@ const ServicesPage = () => {
     const existing = getOverridesByService(serviceId);
     const edits: Record<string, { price: number; time: number }> = {};
     existing.forEach(o => {
-      edits[o.productId] = { price: o.priceOverride, time: o.estimatedTimeOverride };
+      edits[o.productId] = { price: o.price, time: o.estimatedTime };
     });
     setOverrideEdits(edits);
   };
@@ -479,17 +457,12 @@ const ServicesPage = () => {
     keyField?: 'serviceId' | 'productId'; label: string; sublabel: string; disabled: boolean;
   }) => {
     const key = keyField === 'productId' ? productId : svc.id;
-    const allOverrides = keyField === 'productId' ? getOverridesByService(svc.id) : getOverridesByProduct(productId);
-    const hasOverride = allOverrides.some(o => keyField === 'productId' ? o.productId === productId : o.serviceId === svc.id);
     const edit = overrideEdits[key];
     return (
       <div className={`rounded-lg border border-border p-3 space-y-2 ${isDisabledProp ? 'opacity-50' : ''}`}>
         <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-sm">{label}</p>
-              {hasOverride && !isDisabledProp && <Badge variant="outline" className="text-xs">Customized</Badge>}
-            </div>
+            <p className="font-medium text-sm">{label}</p>
             <p className="text-xs text-muted-foreground mt-1">{sublabel}</p>
           </div>
           <Switch checked={!isDisabledProp} onCheckedChange={(checked) => toggleServiceForProduct(svc.id, productId, !checked)} />
@@ -508,14 +481,7 @@ const ServicesPage = () => {
                 value={edit?.time ?? ''}
                 onChange={e => setOverrideEdits(prev => ({ ...prev, [key]: { price: prev[key]?.price ?? defaultPrice, time: Number(e.target.value) } }))} />
             </div>
-            <div className="flex gap-1">
-              <Button size="sm" variant="secondary" disabled={!edit} onClick={() => saveOverride(svc.id, productId, keyField)}>Save</Button>
-              {hasOverride && (
-                <Button size="sm" variant="ghost" title="Reset to default" onClick={() => removeOverride(svc.id, productId, keyField)}>
-                  <RotateCcw className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
+            <Button size="sm" variant="secondary" disabled={!edit} onClick={() => saveOverride(svc.id, productId, keyField)}>Save</Button>
           </div>
         )}
       </div>
@@ -619,103 +585,107 @@ const ServicesPage = () => {
 
           {/* Table */}
           <div className="rounded-lg border border-border bg-card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort('name')}>
-                      <span className="inline-flex items-center gap-1">Service Name <SortIcon field="name" /></span>
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Description</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort('level')}>
-                      <span className="inline-flex items-center gap-1">Level <SortIcon field="level" /></span>
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assigned To</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Base Price</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Est. Time</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden xl:table-cell">Variants</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden xl:table-cell">Linked Products</th>
-                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.length === 0 && (
-                    <tr><td colSpan={10} className="py-12 text-center text-muted-foreground">No services found.</td></tr>
-                  )}
-                  {paginated.map(s => {
-                    const variants = getVariants(s.id);
-                    const isExpanded = expandedParents.has(s.id);
-                    const variantCount = variants.length;
-                    return (
-                      <>
-                        <tr key={s.id} className="border-b border-border/50 hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => variantCount > 0 ? toggleExpanded(s.id) : openDetail(s)}>
-                          <td className="py-3 px-4 font-medium text-foreground">
-                            <div className="flex items-center gap-2">
-                              {variantCount > 0 && (
-                                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                              )}
-                              {s.name}
-                              {variantCount > 0 && <Badge variant="secondary" className="text-xs whitespace-nowrap">{variantCount} variants</Badge>}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate">{s.description}</td>
-                          <td className="py-3 px-4"><Badge variant="outline" className="capitalize">{s.level}</Badge></td>
-                          <td className="py-3 px-4">{getAssignedTo(s)}</td>
-                          <td className="py-3 px-4">{variantCount > 0 ? '—' : `$${s.basePrice}`}</td>
-                          <td className="py-3 px-4 hidden md:table-cell">{variantCount > 0 ? '—' : `${s.estimatedTime} min`}</td>
-                          <td className="py-3 px-4">
-                            <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
-                          </td>
-                          <td className="py-3 px-4 hidden xl:table-cell">{variantCount || '—'}</td>
-                          <td className="py-3 px-4 hidden xl:table-cell">{getLinkedProductCount(s)}</td>
-                          <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
-                            <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeactivateTarget(s)}>
-                                <Power className="h-3.5 w-3.5 text-muted-foreground" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                        {/* Variant rows */}
-                        {isExpanded && variants.map(v => (
-                          <tr key={v.id} className="border-b border-border/50 bg-muted/10 hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => openDetail(v)}>
-                            <td className="py-2 px-4 pl-12 font-medium text-foreground text-sm">
-                              <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground">└</span>
-                                {v.name}
-                                <Badge variant="outline" className="text-xs">Variant</Badge>
-                              </div>
-                            </td>
-                            <td className="py-2 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate text-sm">{v.description}</td>
-                            <td className="py-2 px-4"><Badge variant="outline" className="capitalize text-xs">{v.level}</Badge></td>
-                            <td className="py-2 px-4 text-sm">{getAssignedTo(v)}</td>
-                            <td className="py-2 px-4 text-sm">${v.basePrice}</td>
-                            <td className="py-2 px-4 hidden md:table-cell text-sm">{v.estimatedTime} min</td>
-                            <td className="py-2 px-4">
-                              <Badge variant={v.isActive ? 'default' : 'secondary'} className="text-xs">{v.isActive ? 'Active' : 'Inactive'}</Badge>
-                            </td>
-                            <td className="py-2 px-4 hidden xl:table-cell text-sm">—</td>
-                            <td className="py-2 px-4 hidden xl:table-cell text-sm">{getLinkedProductCount(v)}</td>
-                            <td className="py-2 px-4 text-right" onClick={e => e.stopPropagation()}>
-                              <div className="flex justify-end gap-1">
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetail(v)}>
-                                  <Pencil className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
+            {paginated.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No services found. {filtered.length === 0 && services.length > 0 ? 'Try adjusting your filters.' : 'Click "Add Service" to create one.'}</p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Service Name</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Description</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Level</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assigned To</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Base Price</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Est. Time</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden xl:table-cell">Variants</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden xl:table-cell">Linked Products</th>
+                        <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginated.length === 0 && (
+                        <tr><td colSpan={10} className="py-12 text-center text-muted-foreground">No services found.</td></tr>
+                      )}
+                      {paginated.map(s => {
+                        const variants = getVariants(s.id);
+                        const isExpanded = expandedParents.has(s.id);
+                        const variantCount = variants.length;
+                        return (
+                          <>
+                            <tr key={s.id} className="border-b border-border/50 hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => variantCount > 0 ? toggleExpanded(s.id) : openDetail(s)}>
+                              <td className="py-3 px-4 font-medium text-foreground">
+                                <div className="flex items-center gap-2">
+                                  {variantCount > 0 && (
+                                    <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                  )}
+                                  {s.name}
+                                  {variantCount > 0 && <Badge variant="secondary" className="text-xs whitespace-nowrap">{variantCount} variants</Badge>}
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate">{s.description}</td>
+                              <td className="py-3 px-4"><Badge variant="outline" className="capitalize">{s.level}</Badge></td>
+                              <td className="py-3 px-4">{getAssignedTo(s)}</td>
+                              <td className="py-3 px-4">{variantCount > 0 ? '—' : `$${s.basePrice}`}</td>
+                              <td className="py-3 px-4 hidden md:table-cell">{variantCount > 0 ? '—' : `${s.estimatedTime} min`}</td>
+                              <td className="py-3 px-4">
+                                <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
+                              </td>
+                              <td className="py-3 px-4 hidden xl:table-cell">{variantCount || '—'}</td>
+                              <td className="py-3 px-4 hidden xl:table-cell">{getLinkedProductCount(s)}</td>
+                              <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
+                                <div className="flex justify-end gap-1">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeactivateTarget(s)}>
+                                    <Power className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                            {/* Variant rows */}
+                            {isExpanded && variants.map(v => (
+                              <tr key={v.id} className="border-b border-border/50 bg-muted/10 hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => openDetail(v)}>
+                                <td className="py-2 px-4 pl-12 font-medium text-foreground text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">└</span>
+                                    {v.name}
+                                    <Badge variant="outline" className="text-xs">Variant</Badge>
+                                  </div>
+                                </td>
+                                <td className="py-2 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate text-sm">{v.description}</td>
+                                <td className="py-2 px-4"><Badge variant="outline" className="capitalize text-xs">{v.level}</Badge></td>
+                                <td className="py-2 px-4 text-sm">{getAssignedTo(v)}</td>
+                                <td className="py-2 px-4 text-sm">${v.basePrice}</td>
+                                <td className="py-2 px-4 hidden md:table-cell text-sm">{v.estimatedTime} min</td>
+                                <td className="py-2 px-4">
+                                  <Badge variant={v.isActive ? 'default' : 'secondary'} className="text-xs">{v.isActive ? 'Active' : 'Inactive'}</Badge>
+                                </td>
+                                <td className="py-2 px-4 hidden xl:table-cell text-sm">—</td>
+                                <td className="py-2 px-4 hidden xl:table-cell text-sm">{getLinkedProductCount(v)}</td>
+                                <td className="py-2 px-4 text-right" onClick={e => e.stopPropagation()}>
+                                  <div className="flex justify-end gap-1">
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetail(v)}>
+                                      <Pencil className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
+              </>
+            )}
           </div>
         </TabsContent>
 
@@ -759,15 +729,13 @@ const ServicesPage = () => {
                   const svcCount = getServicesForProduct(p.id).length;
                   const totalSvcCount = getServicesForProduct(p.id, true).length;
                   const disabledCount = totalSvcCount - svcCount;
-                  const overrideCount = getOverridesByProduct(p.id).length;
                   return (
                     <div key={p.id} className={`flex items-start gap-3 p-3 cursor-pointer transition-colors border-b border-border/50 last:border-b-0 ${byProductSelected === p.id ? 'bg-primary/10' : 'hover:bg-muted/30'}`} onClick={() => selectByProduct(p.id)}>
                       <img src={p.iconImage} alt={p.name} className="h-8 w-8 rounded object-cover bg-muted" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{p.name}</p>
-                        <p className="text-xs text-muted-foreground">{svcCount} active{disabledCount > 0 && `, ${disabledCount} disabled`}{overrideCount > 0 && ` · ${overrideCount} override(s)`}</p>
+                        <p className="text-xs text-muted-foreground">{svcCount} active{disabledCount > 0 && `, ${disabledCount} disabled`}</p>
                       </div>
-                      {overrideCount > 0 && <Badge variant="outline" className="text-xs shrink-0">Customized</Badge>}
                     </div>
                   );
                 })}
@@ -1002,7 +970,7 @@ const ServicesPage = () => {
                 <TabsContent value="details" className="space-y-4 mt-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div><Label className="text-muted-foreground text-xs">Name</Label><p className="font-medium">{detailView.name}</p></div>
-                    <div><Label className="text-muted-foreground text-xs">Status</Label><p><Badge variant={detailView.isActive ? 'default' : 'secondary'}>{detailView.isActive ? 'Active' : 'Inactive'}</Badge></p></div>
+                    <div><Label className="text-muted-foreground text-xs">Status</Label><div><Badge variant={detailView.isActive ? 'default' : 'secondary'}>{detailView.isActive ? 'Active' : 'Inactive'}</Badge></div></div>
                   </div>
                   <div><Label className="text-muted-foreground text-xs">Description</Label><p className="text-sm">{detailView.description || '—'}</p></div>
                   {detailView.isVariant && detailView.parentServiceId && (
@@ -1061,8 +1029,6 @@ const ServicesPage = () => {
                         <p className="text-sm text-muted-foreground">Customize price and estimated time for individual products.</p>
                         <div className="space-y-2">
                           {getLinkedProducts(detailView).map(p => {
-                            const existingOverrides = getOverridesByService(detailView.id);
-                            const hasOverride = existingOverrides.some(o => o.productId === p.id);
                             const edit = overrideEdits[p.id];
                             return (
                               <div key={p.id} className="rounded-lg border border-border p-3 space-y-2">
@@ -1071,7 +1037,6 @@ const ServicesPage = () => {
                                     <p className="font-medium text-sm">{p.name}</p>
                                     <p className="text-xs text-muted-foreground">{seriesName(p.seriesId)} · {categoryName(p.categoryId)}</p>
                                   </div>
-                                  {hasOverride && <Badge variant="outline" className="text-xs">Customized</Badge>}
                                 </div>
                                 <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
                                   <div className="space-y-1">
@@ -1084,14 +1049,7 @@ const ServicesPage = () => {
                                     <Input type="number" min={1} placeholder={String(detailView.estimatedTime)} value={edit?.time ?? ''}
                                       onChange={e => setOverrideEdits(prev => ({ ...prev, [p.id]: { price: prev[p.id]?.price ?? detailView.basePrice, time: Number(e.target.value) } }))} />
                                   </div>
-                                  <div className="flex gap-1">
-                                    <Button size="sm" variant="secondary" disabled={!edit} onClick={() => saveOverride(detailView.id, p.id)}>Save</Button>
-                                    {hasOverride && (
-                                      <Button size="sm" variant="ghost" title="Reset to default" onClick={() => removeOverride(detailView.id, p.id)}>
-                                        <RotateCcw className="h-3.5 w-3.5" />
-                                      </Button>
-                                    )}
-                                  </div>
+                                  <Button size="sm" variant="secondary" disabled={!edit} onClick={() => saveOverride(detailView.id, p.id)}>Save</Button>
                                 </div>
                               </div>
                             );

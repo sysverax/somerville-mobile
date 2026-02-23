@@ -1,8 +1,8 @@
 "use client";
-import { use, useState } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ChevronRight, Share2, Truck, Shield, RotateCcw, Package, Wrench, Clock, Calendar, DollarSign, Sparkles, RefreshCw } from "lucide-react";
+import { ChevronRight, Share2, Truck, Shield, RotateCcw, Package, Wrench, Clock, Calendar, Sparkles, RefreshCw, CheckCircle2 } from "lucide-react";
 import {
   getStorefrontProductById,
   getStorefrontSeriesById,
@@ -10,6 +10,7 @@ import {
   getStorefrontBrandById,
   getStorefrontServicesByProduct,
   type StockCondition,
+  type StorefrontService,
 } from "@/src/services";
 import Layout from "@/src/components/layout/Layout";
 import { Button } from "@/src/components/ui/button";
@@ -40,7 +41,11 @@ const ProductDetailPage = ({ params }: Props) => {
   const [activeTab, setActiveTab] = useState<"stock" | "services">("services");
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+  const [selectedParentServiceId, setSelectedParentServiceId] = useState<string | null>(null);
+  const [selectedServicePrice, setSelectedServicePrice] = useState<number | null>(null);
+  const [selectedServiceEstimatedTime, setSelectedServiceEstimatedTime] = useState<number | null>(null);
   const [selectedCondition, setSelectedCondition] = useState<StockCondition>("new");
+  const [selectedVariantsByParent, setSelectedVariantsByParent] = useState<Record<string, string>>({});
 
   if (!product) {
     return (
@@ -64,8 +69,39 @@ const ProductDetailPage = ({ params }: Props) => {
   const currentOriginalPrice = conditionStock?.originalPrice || product.originalPrice;
   const isInStock = conditionStock ? conditionStock.inStock : product.stock > 0;
 
-  const handleBookService = (serviceId: string) => {
-    setSelectedServiceId(serviceId);
+  const groupedServices = useMemo(() => {
+    const nonVariants = services.filter(service => !service.isVariant);
+    const variants = services.filter(service => service.isVariant);
+
+    const variantMap = new Map<string, StorefrontService[]>();
+    variants.forEach(variant => {
+      if (!variant.parentServiceId) return;
+      const existing = variantMap.get(variant.parentServiceId) || [];
+      variantMap.set(variant.parentServiceId, [...existing, variant]);
+    });
+
+    const groups: Array<
+      | { type: "single"; service: StorefrontService }
+      | { type: "parent"; parent: StorefrontService; variants: StorefrontService[] }
+    > = [];
+
+    nonVariants.forEach(service => {
+      const serviceVariants = variantMap.get(service.serviceId) || [];
+      if (serviceVariants.length > 0) {
+        groups.push({ type: "parent", parent: service, variants: serviceVariants });
+      } else {
+        groups.push({ type: "single", service });
+      }
+    });
+
+    return groups;
+  }, [services]);
+
+  const handleBookService = (service: StorefrontService, parentServiceId: string | null = null) => {
+    setSelectedServiceId(service.id);
+    setSelectedParentServiceId(parentServiceId);
+    setSelectedServicePrice(service.price);
+    setSelectedServiceEstimatedTime(service.estimatedTime);
     setBookingDialogOpen(true);
   };
 
@@ -456,52 +492,106 @@ const ProductDetailPage = ({ params }: Props) => {
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  {services.map((service) => (
-                    <div
-                      key={service.id}
-                      className="p-6 rounded-xl bg-gradient-card border border-border hover:border-primary/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-bold text-lg">{service.name}</h4>
-                            {service.isAvailable ? (
-                              <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
-                                Available
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="bg-destructive/10 text-destructive border-destructive/20">
-                                Unavailable
-                              </Badge>
-                            )}
+                <div className="columns-1 md:columns-2 [column-gap:24px]">
+                  {groupedServices.map((group) => {
+                    if (group.type === "single") {
+                      const service = group.service;
+                      return (
+                        <div
+                          key={service.id}
+                          className="inline-block w-full mb-6 break-inside-avoid p-6 rounded-xl bg-gradient-card border border-border hover:border-primary/50 transition-colors"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <h4 className="font-bold text-lg mb-2">{service.name}</h4>
+                              <p className="text-muted-foreground text-sm">{service.description}</p>
+                            </div>
                           </div>
-                          <p className="text-muted-foreground text-sm">{service.description}</p>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center gap-4 mb-4 text-sm">
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Clock className="h-4 w-4" />
-                          <span>{service.duration}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-2xl font-bold text-primary">${service.price}</span>
-                        </div>
-                      </div>
+                          <div className="flex items-center gap-4 mb-4 text-sm">
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                              <Clock className="h-4 w-4" />
+                              <span>{service.duration}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-2xl font-bold text-primary">${service.price}</span>
+                            </div>
+                          </div>
 
-                      <div className="flex gap-2">
+                          <Button
+                            className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2"
+                            disabled={!service.isAvailable}
+                            onClick={() => handleBookService(service)}
+                          >
+                            <Calendar className="h-4 w-4" />
+                            Book Now
+                          </Button>
+                        </div>
+                      );
+                    }
+
+                    const { parent, variants } = group;
+                    const selectedVariantId = selectedVariantsByParent[parent.serviceId] || (variants.length === 1 ? variants[0].id : null);
+                    const selectedVariant = variants.find(variant => variant.id === selectedVariantId) || null;
+                    const minPrice = Math.min(...variants.map(variant => variant.price));
+
+                    return (
+                      <div
+                        key={parent.id}
+                        className="inline-block w-full mb-6 break-inside-avoid p-6 rounded-xl bg-gradient-card border border-border hover:border-primary/50 transition-colors"
+                      >
+                        <div className="mb-4">
+                          <h4 className="font-bold text-lg mb-2">{parent.name}</h4>
+                          <p className="text-muted-foreground text-sm">{parent.description}</p>
+                        </div>
+
+                        <div className="mb-4">
+                          <p className="text-sm text-muted-foreground">Starting From</p>
+                          <p className="text-2xl font-bold text-primary">${minPrice}</p>
+                        </div>
+
+                        <p className="text-xs font-semibold text-muted-foreground mb-3">SELECT OPTION</p>
+
+                        <div className="space-y-3 mb-4">
+                          {variants.map(variant => {
+                            const isSelected = selectedVariantId === variant.id;
+                            return (
+                              <button
+                                key={variant.id}
+                                type="button"
+                                onClick={() => setSelectedVariantsByParent(prev => ({ ...prev, [parent.serviceId]: variant.id }))}
+                                className={`w-full text-left rounded-lg border p-3 transition-all ${isSelected ? "border-primary bg-primary/10 shadow-sm" : "border-border hover:border-primary/40"}`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-sm">{variant.name}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{variant.description}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="font-bold text-primary">${variant.price}</span>
+                                    <span className="text-xs text-muted-foreground">{variant.estimatedTime} min</span>
+                                    {isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+
                         <Button
-                          className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2"
-                          disabled={!service.isAvailable}
-                          onClick={() => handleBookService(service.id)}
+                          className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2"
+                          disabled={!selectedVariant}
+                          onClick={() => {
+                            if (!selectedVariant) return;
+                            handleBookService(selectedVariant, parent.serviceId);
+                          }}
                         >
                           <Calendar className="h-4 w-4" />
                           Book Now
                         </Button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : (
@@ -528,11 +618,15 @@ const ProductDetailPage = ({ params }: Props) => {
             </DialogTitle>
           </DialogHeader>
           <BookingForm
+            key={`${selectedServiceId || 'none'}-${bookingDialogOpen ? 'open' : 'closed'}`}
             preSelectedBrandId={brand?.id}
             preSelectedProductId={product.id}
-            preSelectedCategoryId={category?.id} 
-            preSelectedSeriesId={series?.id}     
+            preSelectedCategoryId={category?.id}
+            preSelectedSeriesId={series?.id}
             preSelectedServiceId={selectedServiceId || undefined}
+            preSelectedParentServiceId={selectedParentServiceId}
+            preSelectedPrice={selectedServicePrice || undefined}
+            preSelectedEstimatedTime={selectedServiceEstimatedTime || undefined}
             onSuccess={() => setBookingDialogOpen(false)}
           />
         </DialogContent>

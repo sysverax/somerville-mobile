@@ -79,6 +79,8 @@ export interface ServiceRecord {
   estimatedTime: number;
   isActive: boolean;
   createdAt: string;
+  parentServiceId?: string | null;
+  isVariant?: boolean;
 }
 
 export interface ServiceTemplate {
@@ -105,8 +107,9 @@ export interface ServiceProductOverride {
   id: string;
   serviceId: string;
   productId: string;
-  priceOverride: number;
-  estimatedTimeOverride: number;
+  price: number;
+  estimatedTime: number;
+  isDisabled?: boolean;
 }
 
 export interface BookingSlot {
@@ -119,6 +122,9 @@ export interface Booking {
   id: string;
   productId: string;
   serviceId: string;
+  parentServiceId?: string | null;
+  price?: number;
+  estimatedTime?: number;
   date: string;
   time: string;
   customerName?: string;
