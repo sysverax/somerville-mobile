@@ -350,7 +350,9 @@ export const getStorefrontMinServicePrice = (productId: string): number | null =
 };
 
 export const getStorefrontServiceCount = (productId: string): number => {
-  return getStorefrontServicesByProduct(productId).length;
+  const services = getStorefrontServicesByProduct(productId);
+  const parentIds = new Set(services.map(s => s.parentServiceId).filter(Boolean));
+  return services.filter(s => !parentIds.has(s.serviceId)).length;
 };
 
 // ---- Booking helpers ----

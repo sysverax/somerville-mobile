@@ -1,4 +1,4 @@
-import { ServiceRecord, ServiceTemplate, ServiceAssignment, ServiceProductOverride } from '@/src/types';
+import { ServiceRecord, ServiceProductOverride } from '@/src/types';
 
 export const serviceRecords: ServiceRecord[] = [
     { id: 'svc1', name: 'Screen Repair', description: 'Fix cracked or damaged screens', level: 'brand', brandId: 'b1', basePrice: 0, estimatedTime: 0, isActive: true, createdAt: '2024-01-20', parentServiceId: null, isVariant: false },
@@ -26,9 +26,6 @@ export const serviceRecords: ServiceRecord[] = [
 
     { id: 'svc18', name: 'Speaker Repair', description: 'Fix or replace faulty speakers', level: 'product', brandId: 'b1', categoryId: 'c1', seriesId: 's1', productId: 'p3', basePrice: 70, estimatedTime: 40, isActive: true, createdAt: '2024-02-06', parentServiceId: null, isVariant: false },
 ];
-
-export const serviceTemplates: ServiceTemplate[] = [];
-export const serviceAssignments: ServiceAssignment[] = [];
 
 export const serviceProductOverrides: ServiceProductOverride[] = [
     { id: 'sp1', serviceId: 'svc1v1', productId: 'p1', price: 200, estimatedTime: 60 },

@@ -20,9 +20,6 @@ import TablePagination from '@/components/TablePagination';
 
 const LEVELS: AssignmentLevel[] = ['brand', 'category', 'series', 'product'];
 
-type SortField = 'name' | 'level' | 'createdAt';
-type SortDir = 'asc' | 'desc';
-
 interface VariantFormItem {
   name: string;
   description: string;
@@ -84,8 +81,6 @@ const ServicesPage = () => {
   });
 
   // Table state
-  const [sortField, setSortField] = useState<SortField>('createdAt');
-  const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
@@ -253,27 +248,10 @@ const ServicesPage = () => {
     } else if (appliedFilters.brand !== "all") {
       result = result.filter(s => s.brandId === appliedFilters.brand);
     }
-    result.sort((a, b) => {
-      let cmp = 0;
-      if (sortField === "name") cmp = a.name.localeCompare(b.name);
-      else if (sortField === "level") cmp = a.level.localeCompare(b.level);
-      else cmp = a.createdAt.localeCompare(b.createdAt);
-      return sortDir === "asc" ? cmp : -cmp;
-    });
     return result;
-  }, [services, search, appliedFilters, sortField, sortDir, products, seriesList, categories]);
+  }, [services, search, appliedFilters, products, seriesList, categories]);
 
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortField(field); setSortDir('asc'); }
-  };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronUp className="h-3 w-3 opacity-30" />;
-    return sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />;
-  };
 
   const toggleExpanded = (parentId: string) => {
     setExpandedParents(prev => {
@@ -617,13 +595,9 @@ const ServicesPage = () => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/30">
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort('name')}>
-                          <span className="inline-flex items-center gap-1">Service Name <SortIcon field="name" /></span>
-                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Service Name</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Description</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground cursor-pointer select-none" onClick={() => toggleSort('level')}>
-                          <span className="inline-flex items-center gap-1">Level <SortIcon field="level" /></span>
-                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Level</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assigned To</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Base Price</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Est. Time</th>

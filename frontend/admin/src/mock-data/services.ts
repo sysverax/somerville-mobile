@@ -1,4 +1,4 @@
-import { ServiceRecord, ServiceTemplate, ServiceAssignment, ServiceProduct, ServiceProductOverride } from '@/types';
+import { ServiceRecord, ServiceProduct } from '@/types';
 
 export const mockServices: ServiceRecord[] = [
   // ── Brand-level services ──
@@ -49,22 +49,7 @@ export const mockServices: ServiceRecord[] = [
   { id: 'svc20', name: 'Disc Drive Replacement', description: 'Replace PS5 disc drive', level: 'product', brandId: 'b4', categoryId: 'c13', seriesId: 's21', productId: 'p44', basePrice: 120, estimatedTime: 75, isActive: true, createdAt: '2024-02-18', parentServiceId: null, isVariant: false },
 ];
 
-// Legacy data kept for compatibility
-export const mockServiceTemplates: ServiceTemplate[] = [
-  // { id: 'st1', name: 'Screen Repair', description: 'Fix cracked or damaged screens', estimatedTime: 60, serviceType: 'Repair', isActive: true },
-  // { id: 'st2', name: 'Battery Replacement', description: 'Replace worn-out battery', estimatedTime: 45, serviceType: 'Replacement', isActive: true },
-  // { id: 'st3', name: 'Full Diagnostic', description: 'Complete device health check', estimatedTime: 30, serviceType: 'Diagnostic', isActive: true },
-  // { id: 'st4', name: 'Charging Port Repair', description: 'Fix charging port issues', estimatedTime: 45, serviceType: 'Repair', isActive: true },
-];
-
-export const mockServiceAssignments: ServiceAssignment[] = [
-  // { id: 'sa1', templateId: 'st1', level: 'brand', levelId: 'b1', price: 150, estimatedTime: 60, descriptionOverride: '', isActive: true },
-  // { id: 'sa2', templateId: 'st1', level: 'product', levelId: 'p3', price: 200, estimatedTime: 90, descriptionOverride: 'iPhone 15 Pro screen repair', isActive: true },
-  // { id: 'sa3', templateId: 'st2', level: 'brand', levelId: 'b1', price: 80, estimatedTime: 45, descriptionOverride: '', isActive: true },
-  // { id: 'sa4', templateId: 'st3', level: 'brand', levelId: 'b2', price: 50, estimatedTime: 30, descriptionOverride: '', isActive: true },
-];
-
-export const mockServiceProductOverrides: ServiceProductOverride[] = [
+export const mockServiceProductOverrides: ServiceProduct[] = [
   // ═══════════════════════════════════════════════════════════════════════════════
   // BRAND-LEVEL SERVICES - Apple (b1) - Products: p1-p21
   // ═══════════════════════════════════════════════════════════════════════════════

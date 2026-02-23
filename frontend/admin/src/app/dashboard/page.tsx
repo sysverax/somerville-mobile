@@ -13,7 +13,7 @@ const stats = [
   { label: 'Categories', icon: FolderTree, path: '/categories', getValue: () => String(categoryService.getCount()) },
   { label: 'Series', icon: Layers, path: '/series', getValue: () => String(seriesService.getCount()) },
   { label: 'Products', icon: Package, path: '/products', getValue: () => String(productService.getCount()) },
-  { label: 'Services', icon: Wrench, path: '/services', getValue: () => String(serviceService.getTemplateCount()) },
+  { label: 'Services', icon: Wrench, path: '/services', getValue: () => String(serviceService.getCount()) },
   { label: 'Bookings', icon: Calendar, path: '/bookings', getValue: () => String(bookingService.getCount()) },
 ];
 

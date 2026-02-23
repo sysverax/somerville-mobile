@@ -1,18 +1,14 @@
 import { useState, useCallback } from 'react';
-import { ServiceRecord, ServiceTemplate, ServiceAssignment, ServiceProduct, ServiceProductOverride } from '@/types';
+import { ServiceRecord, ServiceProduct, } from '@/types';
 import { serviceService } from '@/services/service.service';
 
 export const useServices = () => {
   const [services, setServices] = useState<ServiceRecord[]>(serviceService.getAll());
-  const [templates, setTemplates] = useState<ServiceTemplate[]>(serviceService.getTemplates());
-  const [assignments, setAssignments] = useState<ServiceAssignment[]>(serviceService.getAssignments());
   const [overrides, setOverrides] = useState<ServiceProduct[]>(serviceService.getOverrides());
 
   const refreshServices = useCallback(() => setServices(serviceService.getAll()), []);
-  const refreshTemplates = useCallback(() => setTemplates(serviceService.getTemplates()), []);
-  const refreshAssignments = useCallback(() => setAssignments(serviceService.getAssignments()), []);
   const refreshOverrides = useCallback(() => setOverrides(serviceService.getOverrides()), []);
-  const refresh = useCallback(() => { refreshServices(); refreshTemplates(); refreshAssignments(); refreshOverrides(); }, [refreshServices, refreshTemplates, refreshAssignments, refreshOverrides]);
+  const refresh = useCallback(() => { refreshServices(); refreshOverrides(); }, [refreshServices, refreshOverrides]);
 
   // ServiceRecord ops
   const createService = useCallback((data: Omit<ServiceRecord, 'id' | 'createdAt'>) => {
@@ -46,7 +42,7 @@ export const useServices = () => {
   }, [services]);
 
   // Override ops
-  const upsertOverride = useCallback((data: Omit<ServiceProductOverride, 'id'>) => {
+  const upsertOverride = useCallback((data: Omit<ServiceProduct, 'id'>) => {
     serviceService.upsertOverride(data);
     refreshOverrides();
   }, [refreshOverrides]);
@@ -81,42 +77,9 @@ export const useServices = () => {
     refreshOverrides();
   }, [overrides, refreshOverrides]);
 
-  // Legacy template ops
-  const createTemplate = useCallback((data: Omit<ServiceTemplate, 'id' | 'isActive'>) => {
-    serviceService.createTemplate(data);
-    refreshTemplates();
-  }, [refreshTemplates]);
-
-  const updateTemplate = useCallback((id: string, data: Partial<ServiceTemplate>) => {
-    serviceService.updateTemplate(id, data);
-    refreshTemplates();
-  }, [refreshTemplates]);
-
-  const deleteTemplate = useCallback((id: string) => {
-    serviceService.deleteTemplate(id);
-    refreshTemplates();
-  }, [refreshTemplates]);
-
-  const createAssignment = useCallback((data: Omit<ServiceAssignment, 'id' | 'isActive'>) => {
-    serviceService.createAssignment(data);
-    refreshAssignments();
-  }, [refreshAssignments]);
-
-  const updateAssignment = useCallback((id: string, data: Partial<ServiceAssignment>) => {
-    serviceService.updateAssignment(id, data);
-    refreshAssignments();
-  }, [refreshAssignments]);
-
-  const deleteAssignment = useCallback((id: string) => {
-    serviceService.deleteAssignment(id);
-    refreshAssignments();
-  }, [refreshAssignments]);
-
   return {
     services, createService, updateService, deleteService,
     getVariants, hasVariants, getParentServices,
-    overrides, upsertOverride, deleteOverride, getOverridesByService, getOverridesByProduct, toggleServiceForProduct,
-    templates, assignments, createTemplate, updateTemplate, deleteTemplate,
-    createAssignment, updateAssignment, deleteAssignment, refresh,
+    overrides, upsertOverride, deleteOverride, getOverridesByService, getOverridesByProduct, toggleServiceForProduct, refresh,
   };
 };

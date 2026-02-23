@@ -69,7 +69,7 @@ const ProductsPage = () => {
 
   // Service overrides dialog
   const [serviceProduct, setServiceProduct] = useState<Product | null>(null);
-  const [overrideEdits, setOverrideEdits] = useState<Record<string, { price: number; time: number }>>({});
+  const [overrideEdits, setOverrideEdits] = useState<Record<string, { price: number | string; time: number | string }>>({});
   const [popupCollapsedParents, setPopupCollapsedParents] = useState<Set<string>>(new Set());
 
   const filteredCats = filters.brandId !== 'all' ? categories.filter(c => c.brandId === filters.brandId) : categories;
@@ -184,7 +184,7 @@ const ProductsPage = () => {
   const saveServiceOverride = (serviceId: string, productId: string) => {
     const edit = overrideEdits[serviceId];
     if (edit) {
-      upsertOverride({ serviceId, productId, price: edit.price, estimatedTime: edit.time });
+      upsertOverride({ serviceId, productId, price: Number(edit.price), estimatedTime: Number(edit.time) });
     }
   };
 
@@ -424,7 +424,7 @@ const ProductsPage = () => {
 
       {/* Service Overrides Dialog */}
       <Dialog open={!!serviceProduct} onOpenChange={() => setServiceProduct(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="flex flex-col max-h-[90vh] max-w-2xl">
           <DialogHeader>
             <DialogTitle>Service Overrides — {serviceProduct?.name}</DialogTitle>
           </DialogHeader>
@@ -436,7 +436,7 @@ const ProductsPage = () => {
             }
 
             return (
-              <div className="space-y-4">
+              <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
                 <div className="flex items-center gap-3">
                   <img src={serviceProduct.iconImage} alt={serviceProduct.name} className="h-10 w-10 rounded-lg object-cover bg-muted" />
                   <div>
@@ -492,7 +492,7 @@ const ProductsPage = () => {
                                           value={edit?.price ?? ''}
                                           onChange={e => setOverrideEdits(prev => ({
                                             ...prev,
-                                            [svc.id]: { price: Number(e.target.value), time: prev[svc.id]?.time ?? svc.estimatedTime }
+                                            [svc.id]: { price: e.target.value, time: prev[svc.id]?.time ?? svc.estimatedTime }
                                           }))}
                                         />
                                       </div>
@@ -505,7 +505,7 @@ const ProductsPage = () => {
                                           value={edit?.time ?? ''}
                                           onChange={e => setOverrideEdits(prev => ({
                                             ...prev,
-                                            [svc.id]: { price: prev[svc.id]?.price ?? svc.basePrice, time: Number(e.target.value) }
+                                            [svc.id]: { price: prev[svc.id]?.price ?? svc.basePrice, time: e.target.value }
                                           }))}
                                         />
                                       </div>
