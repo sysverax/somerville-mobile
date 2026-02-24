@@ -9,12 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import TablePagination from '@/components/TablePagination';
 
 const BookingsPage = () => {
-  const location = useLocation();
   const { bookings } = useBookings();
   const { brands } = useBrands();
   const { categories } = useCategories();
@@ -38,13 +37,6 @@ const BookingsPage = () => {
     (!applied.date || b.date === applied.date)
   );
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  useEffect(() => {
-    if (location.state?.bookingId) {
-      const booking = bookings.find(b => b.id === location.state.bookingId);
-      if (booking) setSelected(booking);
-    }
-  }, [location.state, bookings]);
   
   return (
     <div className="space-y-6">
@@ -78,12 +70,28 @@ const BookingsPage = () => {
           </tr></thead>
           <tbody>
             {paginated.map(b => (
-              <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer" onClick={() => setSelected(b)}>
+              <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30">
                 <td className="py-3 px-4">{b.date}</td>
                 <td className="py-3 px-4">{b.timeSlot}</td>
                 <td className="py-3 px-4">{b.customerName}</td>
-                <td className="py-3 px-4 hidden md:table-cell">{b.customerEmail}</td>
-                <td className="py-3 px-4 hidden lg:table-cell">{b.customerPhone}</td>
+                <td className="py-3 px-4 hidden md:table-cell">
+                  <a 
+                  href={`https://mail.google.com/mail/?view=cm&to=${b.customerEmail}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                  onClick={e => e.stopPropagation()}
+                >
+                  {b.customerEmail}
+                </a>
+                </td>
+                <td className="py-3 px-4 hidden lg:table-cell"> <a 
+                  href={`tel:${b.customerPhone}`}
+                  className="hover:underline"
+                  onClick={e => e.stopPropagation()}
+                >
+                  {b.customerPhone}
+                </a></td>
                 <td className="py-3 px-4">{b.productName}</td>
                 <td className="py-3 px-4">{b.serviceName}</td>
                 <td className="py-3 px-4">{b.createdAt}</td>
@@ -95,27 +103,6 @@ const BookingsPage = () => {
       </div>
 
       <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
-
-      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
-          <DialogHeader><DialogTitle>Booking Details</DialogTitle></DialogHeader>
-          {selected && (
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-xs text-muted-foreground">Customer</Label><p className="font-medium">{selected.customerName}</p></div>
-                <div><Label className="text-xs text-muted-foreground">Email</Label><p className="font-medium">{selected.customerEmail}</p></div>
-                <div><Label className="text-xs text-muted-foreground">Phone</Label><p className="font-medium">{selected.customerPhone}</p></div>
-                <div><Label className="text-xs text-muted-foreground">Brand</Label><p className="font-medium">{selected.brandName}</p></div>
-                <div><Label className="text-xs text-muted-foreground">Product</Label><p className="font-medium">{selected.productName}</p></div>
-                <div><Label className="text-xs text-muted-foreground">Category</Label><p className="font-medium">{selected.categoryName}</p></div>
-                <div><Label className="text-xs text-muted-foreground">Service</Label><p className="font-medium">{selected.serviceName}</p></div>
-                <div><Label className="text-xs text-muted-foreground">Date & Time</Label><p className="font-medium">{selected.date} at {selected.timeSlot}</p></div>
-                <div><Label className="text-xs text-muted-foreground">Created</Label><p className="font-medium">{selected.createdAt}</p></div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
