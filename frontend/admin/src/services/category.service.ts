@@ -4,7 +4,7 @@ import { mockCategories } from '@/mock-data/categories';
 let categories: Category[] = [...mockCategories];
 
 export const categoryService = {
-  getAll: (): Category[] => [...categories],
+  getAll: (): Category[] => [...categories].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
   getByBrand: (brandId: string): Category[] => categories.filter(c => c.brandId === brandId),
   getById: (id: string): Category | undefined => categories.find(c => c.id === id),
   create: (data: Omit<Category, 'id' | 'isActive' | 'createdAt'>): Category => {

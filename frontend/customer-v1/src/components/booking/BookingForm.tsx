@@ -124,7 +124,19 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
 
   const availableServices = useMemo(() => {
     if (!selectedProductId) return [];
-    return allServices.filter(s => s.productId === selectedProductId);
+    const productServices = allServices.filter(s => s.productId === selectedProductId);
+
+    const parentServiceIds = new Set(
+      productServices
+        .map(s => s.parentServiceId)
+        .filter(Boolean)
+    );
+
+    return productServices.filter(s => {
+      if (parentServiceIds.has(s.serviceId)) return false;
+      if (!s.isVariant && s.price === 0 && parentServiceIds.size > 0) return false;
+      return true;
+    });
   }, [selectedProductId, allServices]);
 
   const selectedService = useMemo(() => {

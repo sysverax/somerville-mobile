@@ -610,13 +610,14 @@ const ProductDetailPage = ({ params }: Props) => {
 
       {/* Booking Dialog */}
       <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="flex flex-col max-w-lg max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
               Book Service
             </DialogTitle>
           </DialogHeader>
+          <div className="overflow-y-auto flex-1 p-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>          
           <BookingForm
             key={`${selectedServiceId || 'none'}-${bookingDialogOpen ? 'open' : 'closed'}`}
             preSelectedBrandId={brand?.id}
@@ -629,6 +630,7 @@ const ProductDetailPage = ({ params }: Props) => {
             preSelectedEstimatedTime={selectedServiceEstimatedTime || undefined}
             onSuccess={() => setBookingDialogOpen(false)}
           />
+          </div>
         </DialogContent>
       </Dialog>
     </Layout>

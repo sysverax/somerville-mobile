@@ -53,7 +53,8 @@ const DashboardPage = () => {
               </thead>
               <tbody>
                 {recentBookings.map(b => (
-                  <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30">
+                  <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
+                    onClick={() => navigate('/bookings', { state: { bookingId: b.id } })}                  >
                     <td className="py-2.5 px-3">{b.customerName}</td>
                     <td className="py-2.5 px-3">{b.productName}</td>
                     <td className="py-2.5 px-3">{b.serviceName}</td>

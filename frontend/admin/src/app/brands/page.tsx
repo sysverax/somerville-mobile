@@ -72,10 +72,10 @@ const BrandsPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Badge variant="secondary" className="text-sm">{count} / 10 brands used</Badge>
+          <Badge variant="secondary" className="text-sm">{count} / 7 brands used</Badge>
           <ViewToggle view={view} onChange={setView} />
         </div>
-        <Button onClick={openAdd} disabled={count >= 10} className="gap-2"><Plus className="h-4 w-4" /> Add Brand</Button>
+        <Button onClick={openAdd} disabled={count >= 7} className="gap-2"><Plus className="h-4 w-4" /> Add Brand</Button>
       </div>
 
       {view === 'card' ? (
@@ -108,12 +108,12 @@ const BrandsPage = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12">Icon</TableHead>
-                <TableHead>Name</TableHead>
+                <TableHead className="w-[150px]">Icon</TableHead>
+                <TableHead className="w-[200px]">Name</TableHead>
                 <TableHead className="hidden md:table-cell">Description</TableHead>
-                <TableHead className="w-24">Status</TableHead>
-                <TableHead className="w-20">Active</TableHead>
-                <TableHead className="w-24 text-right">Actions</TableHead>
+                <TableHead className="w-[110px]">Status</TableHead>
+                <TableHead className="w-[100px]">Active</TableHead>
+                <TableHead className="w-[110px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -137,8 +137,6 @@ const BrandsPage = () => {
         </div>
       )}
 
-      <TablePagination totalItems={brands.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
-
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? 'Edit Brand' : 'Add Brand'}</DialogTitle></DialogHeader>
@@ -159,7 +157,7 @@ const BrandsPage = () => {
             <div className="space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Icon Image</Label>
+                <Label>Icon Image *</Label>
                 <ImageUpload value={form.iconImage} onChange={handleIconChange} size={120} />
                 {formErrors.iconImage && (                    
                   <p className="text-xs text-destructive">{formErrors.iconImage}</p>

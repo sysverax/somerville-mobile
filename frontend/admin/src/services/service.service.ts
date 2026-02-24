@@ -45,7 +45,7 @@ const autoPopulateProductServices = (service: ServiceRecord): void => {
 
 export const serviceService = {
   // New ServiceRecord CRUD
-  getAll: (): ServiceRecord[] => [...services],
+  getAll: (): ServiceRecord[] => [...services].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
   getById: (id: string): ServiceRecord | undefined => services.find(s => s.id === id),
   getParentServices: (): ServiceRecord[] => services.filter(s => !s.isVariant),
   getVariants: (parentId: string): ServiceRecord[] => services.filter(s => s.parentServiceId === parentId && s.isVariant),

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useBookings } from '@/hooks/useBookings';
 import { useBrands } from '@/hooks/useBrands';
 import { useCategories } from '@/hooks/useCategories';
@@ -9,11 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import TablePagination from '@/components/TablePagination';
 
 const BookingsPage = () => {
+  const location = useLocation();
   const { bookings } = useBookings();
   const { brands } = useBrands();
   const { categories } = useCategories();
@@ -38,6 +39,13 @@ const BookingsPage = () => {
   );
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
+  useEffect(() => {
+    if (location.state?.bookingId) {
+      const booking = bookings.find(b => b.id === location.state.bookingId);
+      if (booking) setSelected(booking);
+    }
+  }, [location.state, bookings]);
+  
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end gap-3">
@@ -74,8 +82,8 @@ const BookingsPage = () => {
                 <td className="py-3 px-4">{b.date}</td>
                 <td className="py-3 px-4">{b.timeSlot}</td>
                 <td className="py-3 px-4">{b.customerName}</td>
-                <td className="py-3 px-4 hidden md:table-cell text-muted-foreground">{b.customerEmail}</td>
-                <td className="py-3 px-4 hidden lg:table-cell text-muted-foreground">{b.customerPhone}</td>
+                <td className="py-3 px-4 hidden md:table-cell">{b.customerEmail}</td>
+                <td className="py-3 px-4 hidden lg:table-cell">{b.customerPhone}</td>
                 <td className="py-3 px-4">{b.productName}</td>
                 <td className="py-3 px-4">{b.serviceName}</td>
                 <td className="py-3 px-4">{b.createdAt}</td>
@@ -89,7 +97,7 @@ const BookingsPage = () => {
       <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent>
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader><DialogTitle>Booking Details</DialogTitle></DialogHeader>
           {selected && (
             <div className="space-y-3 text-sm">
