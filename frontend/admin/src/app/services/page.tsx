@@ -58,7 +58,7 @@ const validateEstimatedTime = (value: number): string | undefined => {
   return undefined;
 };
 
-type FormErrors = { name?: string; brandId?: string; categoryId?: string; seriesId?: string; productId?: string; basePrice?: string; estimatedTime?: string };
+type FormErrors = { name?: string; brandId?: string; categoryId?: string; seriesId?: string; productId?: string; basePrice?: string; estimatedTime?: string; variants?: string };
 
 const ServicesPage = () => {
   const { services, createService, updateService, deleteService, getVariants, hasVariants, getOverridesByService, getOverridesByProduct, upsertOverride, deleteOverride, overrides, toggleServiceForProduct } = useServices();
@@ -355,10 +355,10 @@ const ServicesPage = () => {
 
     const hasVariantErrs = Object.keys(variantErrs).length > 0;
     const hasNoVariants = form.hasVariants && variantItems.length === 0;
+    const variantsErr = hasNoVariants ? 'At least one variant is required' : undefined;
 
-
-    if (nameErr || brandErr || categoryErr || seriesErr || productErr || basePriceErr || estimatedTimeErr) {
-      setFormErrors({ name: nameErr, brandId: brandErr, categoryId: categoryErr, seriesId: seriesErr, productId: productErr, basePrice: basePriceErr, estimatedTime: estimatedTimeErr });
+    if (nameErr || brandErr || categoryErr || seriesErr || productErr || basePriceErr || estimatedTimeErr || hasVariantErrs || hasNoVariants) {
+      setFormErrors({ name: nameErr, brandId: brandErr, categoryId: categoryErr, seriesId: seriesErr, productId: productErr, basePrice: basePriceErr, estimatedTime: estimatedTimeErr, variants: variantsErr });
       setVariantErrors(variantErrs); 
       setTouched({ name: true, brandId: true, categoryId: true, seriesId: true, productId: true, basePrice: true, estimatedTime: true });
       scrollToFirstError();
@@ -1199,7 +1199,9 @@ const ServicesPage = () => {
                     </Button>
                   </div>
                   {variantItems.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-2">No variants added. Click "Add Variant" to begin.</p>
+                    <p className={`text-sm text-center py-2 ${formErrors.variants ? 'text-destructive font-medium' : 'text-muted-foreground'}`} data-error={!!formErrors.variants}>
+                      {formErrors.variants || 'No variants added. Click "Add Variant" to begin.'}
+                    </p>
                   )}
                   {variantItems.map((vi, index) => (
                     <div key={index} className="rounded-lg border border-border bg-card p-3 space-y-2">
