@@ -5,8 +5,12 @@ const validators = require("../../utils/validators/validator");
 
 class CreateBrandRequestDTO {
   constructor(body, files) {
-    this.name = body.name?.trim() || "";
-    this.description = body.description?.trim() || "";
+    this.name =
+      typeof body.name === "string" ? body.name.trim() : (body.name ?? "");
+    this.description =
+      typeof body.description === "string"
+        ? body.description.trim()
+        : (body.description ?? "");
     this.isActive = true; // default to active on creation
     this.iconImageFile = files?.iconImage ? files.iconImage[0] : null;
     this.bannerImageFile = files?.bannerImage ? files.bannerImage[0] : null;
@@ -132,9 +136,18 @@ class GetBrandByIdRequestDTO {
 class UpdateBrandRequestDTO {
   constructor(params, body, files) {
     this.id = params.id;
-    this.name = body?.name !== undefined ? body.name.trim() : undefined;
+    this.name =
+      body?.name !== undefined
+        ? typeof body.name === "string"
+          ? body.name.trim()
+          : body.name
+        : undefined;
     this.description =
-      body?.description !== undefined ? body.description.trim() : undefined;
+      body?.description !== undefined
+        ? typeof body.description === "string"
+          ? body.description.trim()
+          : body.description
+        : undefined;
     this.isActive = body?.isActive !== undefined ? body.isActive : undefined;
     if (files) {
       this.iconImageFile = files?.iconImage ? files.iconImage[0] : null;

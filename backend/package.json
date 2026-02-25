@@ -7,7 +7,8 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch",
     "start": "node src/index.js",
     "dev": "nodemon src/index.js"
   },
@@ -27,5 +28,9 @@
     "uuid": "^13.0.0",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "jest": "^30.0.5",
+    "supertest": "^7.1.4"
   }
 }
