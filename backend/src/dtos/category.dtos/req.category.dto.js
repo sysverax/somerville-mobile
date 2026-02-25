@@ -201,8 +201,88 @@ class UpdateCategoryStatusRequestDTO {
   }
 }
 
+class GetAllCategoriesRequestDTO {
+  constructor(query, userRole) {
+    this.page = query.page ? parseInt(query.page, 10) : 1;
+    this.limit = query.limit ? parseInt(query.limit, 10) : 10;
+    this.brandId = query.brandId || null;
+    this.userRole = userRole; 
+  }
+  validate() {
+    if (isNaN(this.page) || this.page < 1) {
+      throw new appError.BadRequestError(
+        "Invalid page number",
+        "The 'page' query parameter must be a positive integer.",
+        "Provide a valid page number and try again.",
+      );
+    }
+    if (isNaN(this.limit) || this.limit < 1 || this.limit > 100) {
+      throw new appError.BadRequestError(
+        "Invalid limit value",
+        "The 'limit' query parameter must be a positive integer between 1 and 100.",
+        "Provide a valid limit value and try again.",
+      );
+    }
+    if (this.brandId && !mongoose.Types.ObjectId.isValid(this.brandId)) {
+      throw new appError.BadRequestError(
+        "Invalid Brand ID format",
+        "The 'brandId' query parameter must be a valid MongoDB ObjectId.",
+        "Provide a valid brand ID and try again.",
+      );
+    }
+  }
+}
+
+class GetCategoryByIdRequestDTO {
+  constructor(params, userRole) {
+    this.id = params.id;
+    this.userRole = userRole; 
+  }
+  validate() {
+    if (!this.id) {
+      throw new appError.BadRequestError(
+        "Category id is required",
+        "The 'id' parameter is required to fetch category details.",
+        "Provide a valid category id and try again.",
+      );
+    }
+    if (!mongoose.Types.ObjectId.isValid(this.id)) {
+      throw new appError.BadRequestError(
+        "Invalid category id",
+        "Provided category id is not a valid MongoDB ObjectId.",
+        "Provide a valid category id and try again.",
+      );
+    }
+  }
+}
+
+class DeleteCategoryRequestDTO {
+  constructor(params) {
+    this.id = params.id;
+  }
+  validate() {
+    if (!this.id) {
+      throw new appError.BadRequestError(
+        "Category id is required",
+        "The 'id' parameter is required to delete a category.",
+        "Provide a valid category id and try again.",
+      );
+    }
+    if (!mongoose.Types.ObjectId.isValid(this.id)) {
+      throw new appError.BadRequestError(
+        "Invalid category id",
+        "Provided category id is not a valid MongoDB ObjectId.",
+        "Provide a valid category id and try again.",
+      );
+    }
+  }
+}
+
 module.exports = {
   CreateCategoryRequestDTO,
   UpdateCategoryRequestDTO,
   UpdateCategoryStatusRequestDTO,
+  GetAllCategoriesRequestDTO,
+  GetCategoryByIdRequestDTO,
+  DeleteCategoryRequestDTO,
 };

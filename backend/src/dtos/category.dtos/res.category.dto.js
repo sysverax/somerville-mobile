@@ -29,9 +29,26 @@ class UpdateCategoryStatusResponseDTO extends CategoryResponseDTO {
   }
 }
 
+class GetAllCategoriesResponseDTO {
+  constructor(categories, totalCategories, currentPage, pageSize) {
+    this.categories = categories.map((category) => new CategoryResponseDTO(category));
+    this.totalCategories = totalCategories;
+    this.currentPage = currentPage;
+    this.pageSize = pageSize;
+  }
+}
+
+class GetCategoryByIdResponseDTO extends CategoryResponseDTO {
+  constructor(category) {
+    super(category);
+  }
+}
+
 module.exports = {
   CategoryResponseDTO,
   CreateCategoryResponseDTO,
   UpdateCategoryResponseDTO,
   UpdateCategoryStatusResponseDTO,
+  GetAllCategoriesResponseDTO,
+  GetCategoryByIdResponseDTO,
 };

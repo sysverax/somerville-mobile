@@ -136,8 +136,144 @@ const updateCategoryStatusController = async (req, res, next) => {
   }
 };
 
+const getAllCategoriesController = async (req, res, next) => {
+  try {
+    req.logger.info(
+      "Get all categories request received with query parameters",
+      {
+        query: req.query,
+        userRole: req.userRole,
+      },
+    );
+    const getAllCategoriesRequestDto =
+      new categoryRequestDto.GetAllCategoriesRequestDTO(
+        req.query,
+        req.userRole,
+      );
+    getAllCategoriesRequestDto.validate();
+    req.logger.info(
+      "Get all categories request query parameters are validated",
+    );
+
+    const getAllCategoriesResponseDto =
+      await categoryService.getAllCategoriesService(
+        getAllCategoriesRequestDto,
+        req.logger,
+      );
+
+    return res.status(200).json({
+      message: "Categories fetched successfully",
+      data: getAllCategoriesResponseDto,
+      error: null,
+    });
+  } catch (error) {
+    req.logger.error("Get all categories request failed", {
+      error: error.message,
+    });
+
+    if (error instanceof appError.AppError) {
+      return next(error);
+    }
+
+    return next(
+      new appError.InternalServerError(
+        "Fetch categories failed",
+        "An unexpected error occurred while fetching categories.",
+        "Please try again later.",
+      ),
+    );
+  }
+};
+
+const getCategoryByIdController = async (req, res, next) => {
+  try {
+    req.logger.info("Get category by id request received", {
+      categoryId: req.params.id,
+      userRole: req.userRole,
+    });
+    const getCategoryByIdRequestDto =
+      new categoryRequestDto.GetCategoryByIdRequestDTO(
+        req.params,
+        req.userRole,
+      );
+    getCategoryByIdRequestDto.validate();
+    req.logger.info("Get category by id request parameters are validated");
+
+    const getCategoryByIdResponseDto =
+      await categoryService.getCategoryByIdService(
+        getCategoryByIdRequestDto,
+        req.logger,
+      );
+
+    return res.status(200).json({
+      message: "Category fetched successfully",
+      data: getCategoryByIdResponseDto,
+      error: null,
+    });
+  } catch (error) {
+    req.logger.error("Get category by id request failed", {
+      error: error.message,
+    });
+
+    if (error instanceof appError.AppError) {
+      return next(error);
+    }
+
+    return next(
+      new appError.InternalServerError(
+        "Fetch category failed",
+        "An unexpected error occurred while fetching the category.",
+        "Please try again later.",
+      ),
+    );
+  }
+};
+
+const deleteCategoryController = async (req, res, next) => {
+  try {
+    req.logger.info("Delete category request received", {
+      categoryId: req.params.id,
+    });
+
+    const deleteCategoryRequestDto =
+      new categoryRequestDto.DeleteCategoryRequestDTO(req.params);
+    deleteCategoryRequestDto.validate();
+    req.logger.info("Delete category request parameters are validated");
+
+    await categoryService.deleteCategoryService(
+      deleteCategoryRequestDto.id,
+      req.logger,
+    );
+
+    return res.status(200).json({
+      message: "Category deleted successfully",
+      data: null,
+      error: null,
+    });
+  } catch (error) {
+    req.logger.error("Delete category request failed", {
+      error: error.message,
+    });
+
+    if (error instanceof appError.AppError) {
+      return next(error);
+    }
+
+    return next(
+      new appError.InternalServerError(
+        "Delete category failed",
+        "An unexpected error occurred while deleting the category.",
+        "Please try again later.",
+      ),
+    );
+  }
+};
+
 module.exports = {
   createCategoryController,
   updateCategoryController,
   updateCategoryStatusController,
+  getAllCategoriesController,
+  getCategoryByIdController,
+  deleteCategoryController,
 };

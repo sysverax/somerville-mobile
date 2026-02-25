@@ -29,4 +29,22 @@ router.patch(
   categoryController.updateCategoryStatusController,
 );
 
+router.get(
+  "/",
+  validateRoleBasedHeader,
+  categoryController.getAllCategoriesController,
+);
+
+router.get(
+  "/:id",
+  validateRoleBasedHeader,
+  categoryController.getCategoryByIdController,
+);
+
+router.delete(
+  "/:id",
+  validateAdmin,
+  categoryController.deleteCategoryController,
+);
+
 module.exports = router;
