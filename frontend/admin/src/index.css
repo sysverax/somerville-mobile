@@ -68,3 +68,9 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Make date picker calendar icon white */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}

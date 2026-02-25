@@ -114,13 +114,13 @@ const CategoriesPage = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12">Image</TableHead>
-                <TableHead>Name</TableHead>
+                <TableHead className="w-[130px]">Image</TableHead>
+                <TableHead className="w-[200px]">Name</TableHead>
                 <TableHead>Brand</TableHead>
                 <TableHead className="hidden md:table-cell">Description</TableHead>
-                <TableHead className="w-24">Status</TableHead>
-                <TableHead className="w-20">Active</TableHead>
-                <TableHead className="w-24 text-right">Actions</TableHead>
+                <TableHead className="w-[110px]">Status</TableHead>
+                <TableHead className="w-[100px]">Active</TableHead>
+                <TableHead className="w-[110px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -198,7 +198,7 @@ const CategoriesPage = () => {
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Delete Category</AlertDialogTitle><AlertDialogDescription>Delete &quot;{deleteTarget?.name}&quot;?</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle>Delete Category</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete &quot;{deleteTarget?.name}&quot;? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => { if (deleteTarget) { remove(deleteTarget.id); setDeleteTarget(null); } }}>Delete</AlertDialogAction>

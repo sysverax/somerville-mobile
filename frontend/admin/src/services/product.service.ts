@@ -4,7 +4,7 @@ import { mockProducts } from '@/mock-data/products';
 let products: Product[] = [...mockProducts];
 
 export const productService = {
-  getAll: (): Product[] => [...products],
+  getAll: (): Product[] => [...products].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
   getBySeries: (seriesId: string): Product[] => products.filter(p => p.seriesId === seriesId),
   getById: (id: string): Product | undefined => products.find(p => p.id === id),
   create: (data: Omit<Product, 'id' | 'isActive' | 'createdAt'>): Product => {

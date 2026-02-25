@@ -18,6 +18,7 @@ const LoginPage = () => {
   const [attempts, setAttempts] = useState(0);
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({});
 
   if (isAuthenticated) { navigate('/dashboard', { replace: true }); return null; }
 
@@ -34,17 +35,18 @@ const LoginPage = () => {
   };
 
   const handleEmailBlur = () => {
-    const err = validateEmail(email);
-    setErrors(prev => ({ ...prev, email: err }));
+    setTouched(prev => ({ ...prev, email: true }));
+    setErrors(prev => ({ ...prev, email: validateEmail(email) }));
   };
 
   const handlePasswordBlur = () => {
-    const err = validatePassword(password);
-    setErrors(prev => ({ ...prev, password: err }));
+    setTouched(prev => ({ ...prev, password: true }));
+    setErrors(prev => ({ ...prev, password: validatePassword(password) }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched({ email: true, password: true });
     const emailErr = validateEmail(email);
     const passwordErr = validatePassword(password);
     if (emailErr || passwordErr) {
@@ -84,12 +86,15 @@ const LoginPage = () => {
               id="email"
               type="email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={e => {
+                setEmail(e.target.value);
+                if (touched.email) setErrors(prev => ({ ...prev, email: validateEmail(e.target.value) }));
+              }}
               onBlur={handleEmailBlur}
               placeholder="Enter your email"
-              autoComplete="off"
+              // autoComplete="off"
             />
-            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+            {touched.email && errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
@@ -98,10 +103,13 @@ const LoginPage = () => {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => {
+                  setPassword(e.target.value);
+                  if (touched.password) setErrors(prev => ({ ...prev, password: validatePassword(e.target.value) }));
+                }}
                 onBlur={handlePasswordBlur}
                 placeholder="Enter your password"
-                autoComplete="new-password"
+                autoComplete="one-time-code"
                 className="pr-10"
               />
               <button
@@ -113,7 +121,7 @@ const LoginPage = () => {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+            {touched.password && errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
           </div>
           <Button type="submit" className="w-full" disabled={attempts >= 5}>Sign In</Button>
         </form>

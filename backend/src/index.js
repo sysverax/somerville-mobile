@@ -11,6 +11,7 @@ const connectDB = require("./config/db");
 
 const authRoutes = require("./routes/auth.route");
 const brandRoutes = require("./routes/brand.route");
+const categoryRoutes = require("./routes/category.route");
 
 const invalidJsonHandler = (err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
@@ -60,7 +61,8 @@ const server = async () => {
 
   app.use("/api/auth", authRoutes);
   app.use("/api/brands", brandRoutes);
-
+  app.use("/api/categories", categoryRoutes);
+  
   app.use(invalidJsonHandler);
   app.use(errorHandler);
 

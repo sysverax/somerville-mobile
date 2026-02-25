@@ -1185,11 +1185,29 @@ const ServicesPage = () => {
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1" data-error={!!formErrors.basePrice}>
                           <Label className="text-xs">Base Price ($)</Label>
-                          <Input type="number" min={0} step={0.01} value={vi.basePrice} onChange={e => updateVariantItem(index, 'basePrice', Number(e.target.value))} />
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="0"
+                            value={vi.basePrice === 0 ? '' : vi.basePrice}
+                            onChange={e => {
+                              const raw = e.target.value.replace(/[^0-9.]/g, '').replace(/^0+(?=\d)/, '');
+                              updateVariantItem(index, 'basePrice', raw === '' ? 0 : Number(raw));
+                            }}
+                          />
                         </div>
                         <div className="space-y-1" data-error={!!formErrors.estimatedTime}>
                           <Label className="text-xs">Est. Time (min)</Label>
-                          <Input type="number" min={1} value={vi.estimatedTime} onChange={e => updateVariantItem(index, 'estimatedTime', Math.max(1, Number(e.target.value)))} />
+                          <Input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="30"
+                            value={vi.estimatedTime === 0 ? '' : vi.estimatedTime}
+                            onChange={e => {
+                              const raw = e.target.value.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+                              updateVariantItem(index, 'estimatedTime', raw === '' ? 0 : Math.max(1, Number(raw)));
+                            }}
+                          />
                         </div>
                       </div>
                     </div>

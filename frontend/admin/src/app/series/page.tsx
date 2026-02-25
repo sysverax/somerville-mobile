@@ -98,7 +98,7 @@ const SeriesPage = () => {
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Category</Label>
-          <Select value={filters.categoryId} onValueChange={v => { setFilters(f => ({ ...f, categoryId: v })); setPage(1); }}>
+          <Select value={filters.categoryId} onValueChange={v => { setFilters(f => ({ ...f, categoryId: v })); setPage(1); }} disabled={!filters.brandId}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Categories" /></SelectTrigger>
             <SelectContent>{filteredCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
           </Select>
@@ -138,7 +138,7 @@ const SeriesPage = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12">Image</TableHead>
+                <TableHead className="w-[130px]">Image</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Brand</TableHead>
                 <TableHead>Category</TableHead>
@@ -196,7 +196,8 @@ const SeriesPage = () => {
                   setForm(f => ({ ...f, categoryId: v }));
                   setTouched(prev => ({ ...prev, categoryId: true }));
                   setFormErrors(prev => ({ ...prev, categoryId: validateCategory(v) }));
-                }}>
+                }}
+                disabled={!form.brandId}>
                 <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>{categories.filter(c => c.brandId === form.brandId).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
@@ -238,7 +239,7 @@ const SeriesPage = () => {
       </Dialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Series</AlertDialogTitle><AlertDialogDescription>Delete &quot;{deleteTarget?.name}&quot;?</AlertDialogDescription></AlertDialogHeader>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Series</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete &quot;{deleteTarget?.name}&quot;? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { if (deleteTarget) { remove(deleteTarget.id); setDeleteTarget(null); } }}>Delete</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
