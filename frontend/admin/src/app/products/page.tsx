@@ -330,6 +330,7 @@ const ProductsPage = () => {
                 <Label className="text-xs">Category *</Label>
                 <Select
                   value={form.categoryId}
+                  disabled={!form.brandId} 
                   onValueChange={v => {
                     setForm(f => ({ ...f, categoryId: v, seriesId: '' }));
                     setTouched(prev => ({ ...prev, categoryId: true }));
@@ -345,6 +346,7 @@ const ProductsPage = () => {
                 <Label className="text-xs">Series *</Label>
                 <Select
                   value={form.seriesId}
+                  disabled={!form.categoryId}
                   onValueChange={v => {
                     setForm(f => ({ ...f, seriesId: v }));
                     setTouched(prev => ({ ...prev, seriesId: true }));
@@ -397,8 +399,9 @@ const ProductsPage = () => {
               {formErrors.iconImage && <p className="text-xs text-destructive">{formErrors.iconImage}</p>}
             </div>
 
+            {/* TODO: If need shop now please uncomment the following section */}
             {/* Specifications */}
-            <div className="space-y-2 mx-1">
+            {/* <div className="space-y-2 mx-1">
               <Label>Specifications</Label>
               <div className="flex gap-2">
                 <Input placeholder="Key" value={specKey} onChange={e => setSpecKey(e.target.value)} />
@@ -412,7 +415,7 @@ const ProductsPage = () => {
                   </Badge>
                 ))}
               </div>
-            </div>
+            </div> */}
 
           </div>
           <DialogFooter>

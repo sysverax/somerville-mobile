@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const appError = require("../utils/errors/errors");
+const { USER_ROLES } = require("../utils/constants/user.constants");
 const categoryRepo = require("../repositories/category.repo");
 const categoryResponseDto = require("../dtos/category.dtos/res.category.dto");
 const { uploadFileToS3, deleteImageFromS3 } = require("../utils/aws/s3Utils");
@@ -124,8 +125,80 @@ const updateCategoryStatusService = async (updateStatusDto, logger) => {
   );
 };
 
+const getAllCategoriesService = async (getAllCategoriesRequestDto, logger) => {
+  logger.info("Fetching categories with pagination", {
+    page: getAllCategoriesRequestDto.page,
+    limit: getAllCategoriesRequestDto.limit,
+    userRole: getAllCategoriesRequestDto.userRole,
+    brandId: getAllCategoriesRequestDto.brandId,
+  });
+  const { categories, totalCategories } =
+    await categoryRepo.getAllCategoriesRepo(
+      getAllCategoriesRequestDto.page,
+      getAllCategoriesRequestDto.limit,
+      getAllCategoriesRequestDto.userRole,
+      getAllCategoriesRequestDto.brandId,
+    );
+  return new categoryResponseDto.GetAllCategoriesResponseDTO(
+    categories,
+    totalCategories,
+    getAllCategoriesRequestDto.page,
+    getAllCategoriesRequestDto.limit,
+  );
+};
+
+const getCategoryByIdService = async (getCategoryByIdRequestDto, logger) => {
+  logger.info("Fetching category by id", {
+    categoryId: getCategoryByIdRequestDto.id,
+  });
+  const category = await categoryRepo.getCategoryByIdRepo(
+    getCategoryByIdRequestDto.id,
+  );
+  if (!category) {
+    throw new appError.NotFoundError(
+      "Category not found",
+      "No category exists for the provided id.",
+      "Check the category id and try again.",
+    );
+  }
+  if (
+    getCategoryByIdRequestDto.userRole !== USER_ROLES.ADMIN &&
+    !category.isActive
+  ) {
+    throw new appError.ForbiddenError(
+      "Category is inactive",
+      "The requested category is inactive and cannot be accessed.",
+      "Contact an administrator for more information.",
+    );
+  }
+
+  return new categoryResponseDto.GetCategoryByIdResponseDTO(category);
+};
+
+const deleteCategoryService = async (id, logger) => {
+  const category = await categoryRepo.getCategoryByIdRepo(id);
+  if (!category) {
+    throw new appError.NotFoundError(
+      "Category not found",
+      "No category exists for the provided id.",
+      "Check the category id and try again.",
+    );
+  }
+
+  await Promise.all([deleteImageFromS3(category.iconImage)]);
+
+  await categoryRepo.deleteCategoryRepo(id);
+
+  logger?.info("Category deleted successfully", {
+    categoryId: category._id.toString(),
+  });
+};
+
 module.exports = {
   createCategoryService,
   updateCategoryService,
   updateCategoryStatusService,
+  getAllCategoriesService,
+  getCategoryByIdService,
+  deleteCategoryService,
 };

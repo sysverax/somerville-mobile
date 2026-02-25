@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Category = require("../models/category");
+const { USER_ROLES } = require("../utils/constants/user.constants");
 
 const createCategoryRepo = async (payload) => {
   return Category.create({
@@ -40,10 +41,33 @@ const updateCategoryStatusRepo = async (id, isActive) => {
   );
 };
 
+const getAllCategoriesRepo = async (page, limit, userRole, brandId) => {
+  const skip = (page - 1) * limit;
+  let filter = {};
+  if (userRole !== USER_ROLES.ADMIN) {
+    filter.isActive = true;
+  }
+  if (brandId) {
+    filter.brandId = new mongoose.Types.ObjectId(brandId);
+  }
+
+  const [categories, totalCategories] = await Promise.all([
+    Category.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Category.countDocuments(filter),
+  ]);
+  return { categories, totalCategories };
+};
+
+const deleteCategoryRepo = async (id) => {
+  return Category.findByIdAndDelete(id);
+};
+
 module.exports = {
   createCategoryRepo,
   getCategoryByIdRepo,
   getCategoryByNameRepo,
   updateCategoryRepo,
   updateCategoryStatusRepo,
+  getAllCategoriesRepo,
+  deleteCategoryRepo,
 };

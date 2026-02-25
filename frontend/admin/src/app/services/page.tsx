@@ -96,6 +96,8 @@ const ServicesPage = () => {
   const [basePriceInput, setBasePriceInput] = useState('');
   const [estimatedTimeInput, setEstimatedTimeInput] = useState('');
 
+  const [variantErrors, setVariantErrors] = useState<Record<number, { name?: string; basePrice?: string; estimatedTime?: string }>>({});
+
   const formRef = useRef<HTMLDivElement>(null);
   const scrollToFirstError = () => {
     setTimeout(() => {
@@ -108,7 +110,7 @@ const ServicesPage = () => {
   const [form, setForm] = useState({
     name: '', description: '', level: 'brand' as AssignmentLevel,
     brandId: '', categoryId: '', seriesId: '', productId: '',
-    basePrice: 0, estimatedTime: 30, isActive: true,
+    basePrice: 0, estimatedTime: 0, isActive: true,
     hasVariants: false,
   });
   const [variantItems, setVariantItems] = useState<VariantFormItem[]>([]);
@@ -283,13 +285,14 @@ const ServicesPage = () => {
   // Open form
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: '', description: '', level: 'brand', brandId: '', categoryId: '', seriesId: '', productId: '', basePrice: 0, estimatedTime: 30, isActive: true, hasVariants: false });
+    setForm({ name: '', description: '', level: 'brand', brandId: '', categoryId: '', seriesId: '', productId: '', basePrice: 0, estimatedTime: 0, isActive: true, hasVariants: false });
     setVariantItems([]);
     setFormErrors({});
     setTouched({});
     setIsFormOpen(true);
     setBasePriceInput('0');
-    setEstimatedTimeInput('30');
+    setEstimatedTimeInput('0');
+    setVariantErrors({});
   };
 
   const openEdit = (s: ServiceRecord) => {
@@ -307,13 +310,14 @@ const ServicesPage = () => {
     setIsFormOpen(true);
     setBasePriceInput(s.basePrice > 0 ? String(s.basePrice) : '');
     setEstimatedTimeInput(String(s.estimatedTime));
+    setVariantErrors({});
   };
 
   const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
 
 
   const addVariantItem = () => {
-    setVariantItems(prev => [...prev, { name: '', description: '', basePrice: 0, estimatedTime: 30 }]);
+    setVariantItems(prev => [...prev, { name: '', description: '', basePrice: 0, estimatedTime: 0 }]);
   };
 
   const removeVariantItem = (index: number) => {
@@ -333,8 +337,29 @@ const ServicesPage = () => {
     const basePriceErr = !form.hasVariants ? validateBasePrice(form.basePrice) : undefined;
     const estimatedTimeErr = !form.hasVariants ? validateEstimatedTime(form.estimatedTime) : undefined;
 
+    // Validate variants
+    const variantErrs: Record<number, { name?: string; basePrice?: string; estimatedTime?: string }> = {};
+    if (form.hasVariants) {
+      if (variantItems.length === 0) {
+        // We'll surface this as a general form signal — handled below
+      } else {
+        variantItems.forEach((vi, i) => {
+          const errs: { name?: string; basePrice?: string; estimatedTime?: string } = {};
+          if (!vi.name.trim()) errs.name = 'Variant name is required';
+          if (!vi.basePrice || vi.basePrice <= 0) errs.basePrice = 'Price is required';
+          if (!vi.estimatedTime || vi.estimatedTime <= 0) errs.estimatedTime = 'Time is required';
+          if (Object.keys(errs).length > 0) variantErrs[i] = errs;
+        });
+      }
+    }
+
+    const hasVariantErrs = Object.keys(variantErrs).length > 0;
+    const hasNoVariants = form.hasVariants && variantItems.length === 0;
+
+
     if (nameErr || brandErr || categoryErr || seriesErr || productErr || basePriceErr || estimatedTimeErr) {
       setFormErrors({ name: nameErr, brandId: brandErr, categoryId: categoryErr, seriesId: seriesErr, productId: productErr, basePrice: basePriceErr, estimatedTime: estimatedTimeErr });
+      setVariantErrors(variantErrs); 
       setTouched({ name: true, brandId: true, categoryId: true, seriesId: true, productId: true, basePrice: true, estimatedTime: true });
       scrollToFirstError();
       return;
@@ -601,10 +626,11 @@ const ServicesPage = () => {
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assigned To</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Base Price</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Est. Time</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden xl:table-cell">Variants</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden xl:table-cell">Linked Products</th>
-                        <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Active</th>
+                        <th className="text-right py-3 px-4 font-medium text-muted-foreground">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -632,18 +658,18 @@ const ServicesPage = () => {
                               <td className="py-3 px-4">{getAssignedTo(s)}</td>
                               <td className="py-3 px-4">{variantCount > 0 ? '—' : `$${s.basePrice}`}</td>
                               <td className="py-3 px-4 hidden md:table-cell">{variantCount > 0 ? '—' : `${s.estimatedTime} min`}</td>
+                              <td className="py-3 px-4 hidden xl:table-cell">{variantCount || '—'}</td>
+                              <td className="py-3 px-4 hidden xl:table-cell">{getLinkedProductCount(s)}</td>
                               <td className="py-3 px-4">
                                 <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
                               </td>
-                              <td className="py-3 px-4 hidden xl:table-cell">{variantCount || '—'}</td>
-                              <td className="py-3 px-4 hidden xl:table-cell">{getLinkedProductCount(s)}</td>
+                              <td className="py-3 px-4">                                  
+                                <Switch checked={s.isActive} onCheckedChange={() => setDeactivateTarget(s)} />
+                              </td>
                               <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
                                 <div className="flex justify-end gap-1">
                                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
                                     <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeactivateTarget(s)}>
-                                    <Power className="h-3.5 w-3.5 text-muted-foreground" />
                                   </Button>
                                 </div>
                               </td>
@@ -663,11 +689,14 @@ const ServicesPage = () => {
                                 <td className="py-2 px-4 text-sm">{getAssignedTo(v)}</td>
                                 <td className="py-2 px-4 text-sm">${v.basePrice}</td>
                                 <td className="py-2 px-4 hidden md:table-cell text-sm">{v.estimatedTime} min</td>
+                                <td className="py-2 px-4 hidden xl:table-cell text-sm">—</td>
+                                <td className="py-2 px-4 hidden xl:table-cell text-sm">{getLinkedProductCount(v)}</td>
                                 <td className="py-2 px-4">
                                   <Badge variant={v.isActive ? 'default' : 'secondary'} className="text-xs">{v.isActive ? 'Active' : 'Inactive'}</Badge>
                                 </td>
-                                <td className="py-2 px-4 hidden xl:table-cell text-sm">—</td>
-                                <td className="py-2 px-4 hidden xl:table-cell text-sm">{getLinkedProductCount(v)}</td>
+                                <td className="py-2 px-4" onClick={e => e.stopPropagation()}>
+                                  <Switch checked={v.isActive} onCheckedChange={() => updateService(v.id, { isActive: !v.isActive })} />
+                                </td>
                                 <td className="py-2 px-4 text-right" onClick={e => e.stopPropagation()}>
                                   <div className="flex justify-end gap-1">
                                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetail(v)}>
@@ -957,16 +986,18 @@ const ServicesPage = () => {
             const hasVars = variants.length > 0;
             return (
               <Tabs defaultValue="details" className="w-full">
-                <TabsList className="w-full">
-                  <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
-                  {hasVars && <TabsTrigger value="variants" className="flex-1">Variants ({variants.length})</TabsTrigger>}
-                  {!detailView.isVariant && (
-                    <TabsTrigger value="overrides" className="flex-1">
-                      Product Overrides ({getLinkedProducts(detailView).length})
-                    </TabsTrigger>
-                  )}
-                </TabsList>
-
+                {detailView.isVariant && (
+                  <div className="-mb-4">    </div>
+              )}
+                {!detailView.isVariant && (
+                  <TabsList className="w-full">
+                    <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+                    {hasVars && <TabsTrigger value="variants" className="flex-1">Variants ({variants.length})</TabsTrigger>}
+                      <TabsTrigger value="overrides" className="flex-1">
+                        Product Overrides ({getLinkedProducts(detailView).length})
+                      </TabsTrigger>
+                  </TabsList>    
+                )}
                 <TabsContent value="details" className="space-y-4 mt-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div><Label className="text-muted-foreground text-xs">Name</Label><p className="font-medium">{detailView.name}</p></div>
@@ -1179,7 +1210,16 @@ const ServicesPage = () => {
                         </Button>
                       </div>
                       <div className="space-y-2">
-                        <Input placeholder="Variant name (e.g. Original Screen)" value={vi.name} onChange={e => updateVariantItem(index, 'name', e.target.value)} />
+                        <Input
+                          placeholder="Variant name (e.g. Original Screen)"
+                          value={vi.name}
+                          onChange={e => {
+                            updateVariantItem(index, 'name', e.target.value);
+                            if (variantErrors[index]?.name)
+                              setVariantErrors(prev => ({ ...prev, [index]: { ...prev[index], name: undefined } }));
+                          }}
+                        />              
+                        {variantErrors[index]?.name && <p className="text-xs text-destructive">{variantErrors[index].name}</p>}
                         <Input placeholder="Description (optional)" value={vi.description} onChange={e => updateVariantItem(index, 'description', e.target.value)} />
                       </div>
                       <div className="grid grid-cols-2 gap-2">
@@ -1193,8 +1233,11 @@ const ServicesPage = () => {
                             onChange={e => {
                               const raw = e.target.value.replace(/[^0-9.]/g, '').replace(/^0+(?=\d)/, '');
                               updateVariantItem(index, 'basePrice', raw === '' ? 0 : Number(raw));
+                              if (variantErrors[index]?.basePrice)
+                                setVariantErrors(prev => ({ ...prev, [index]: { ...prev[index], basePrice: undefined } }));
                             }}
                           />
+                          {variantErrors[index]?.basePrice && <p className="text-xs text-destructive">{variantErrors[index].basePrice}</p>}
                         </div>
                         <div className="space-y-1" data-error={!!formErrors.estimatedTime}>
                           <Label className="text-xs">Est. Time (min)</Label>
@@ -1206,8 +1249,11 @@ const ServicesPage = () => {
                             onChange={e => {
                               const raw = e.target.value.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
                               updateVariantItem(index, 'estimatedTime', raw === '' ? 0 : Math.max(1, Number(raw)));
+                              if (variantErrors[index]?.estimatedTime)
+                                setVariantErrors(prev => ({ ...prev, [index]: { ...prev[index], estimatedTime: undefined } }));
                             }}
                           />
+                          {variantErrors[index]?.estimatedTime && <p className="text-xs text-destructive">{variantErrors[index].estimatedTime}</p>}
                         </div>
                       </div>
                     </div>
