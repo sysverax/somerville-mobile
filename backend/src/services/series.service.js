@@ -166,26 +166,26 @@ const getSeriesByIdService = async (getSeriesByIdRequestDto, logger) => {
   }
   if (getSeriesByIdRequestDto.userRole !== USER_ROLES.ADMIN) {
     if (!series.isActive) {
-      throw new appError.ForbiddenError(
-        "Series is inactive",
-        "The requested series is inactive and cannot be accessed.",
-        "Contact an administrator for more information.",
+      throw new appError.NotFoundError(
+        "Series not found",
+        "No series exists for the provided id.",
+        "Check the series id and try again.",
       );
     }
 
     if (!series.categoryId?.isActive) {
-      throw new appError.ForbiddenError(
-        "Series unavailable",
-        "The category of this series is inactive.",
-        "Contact an administrator for more information.",
+      throw new appError.NotFoundError(
+        "Series not found",
+        "No series exists for the provided id.",
+        "Check the series id and try again.",
       );
     }
 
     if (!series.categoryId?.brandId?.isActive) {
-      throw new appError.ForbiddenError(
-        "Series unavailable",
-        "The brand of this series is inactive.",
-        "Contact an administrator for more information.",
+      throw new appError.NotFoundError(
+        "Series not found",
+        "No series exists for the provided id.",
+        "Check the series id and try again.",
       );
     }
   }

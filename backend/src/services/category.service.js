@@ -67,10 +67,23 @@ const updateCategoryService = async (updatePayload, logger) => {
     );
   }
 
+  if (updatePayload.brandId) {
+    const brand = await brandRepo.getBrandByIdRepo(updatePayload.brandId);
+    if (!brand) {
+      throw new appError.NotFoundError(
+        "Brand not found",
+        "No brand exists for the provided brand id.",
+        "Check the brand id and try again.",
+      );
+    }
+  }
+
+  const targetBrandId = updatePayload.brandId || existingCategory.brandId._id.toString();
+
   if (updatePayload.name) {
     const categoryWithSameName = await categoryRepo.getCategoryByNameRepo(
       updatePayload.name,
-      existingCategory.brandId._id.toString(),
+      targetBrandId,
     );
     if (
       categoryWithSameName &&
@@ -90,6 +103,10 @@ const updateCategoryService = async (updatePayload, logger) => {
       folder: `categories/${existingCategory.name}-${randomUUID()}`,
     });
     updatePayload.imageUrl = uploadedIcon.url;
+  }
+
+  if (updatePayload.brandId) {
+    updatePayload.brandId = new mongoose.Types.ObjectId(updatePayload.brandId);
   }
 
   const updatedCategory = await categoryRepo.updateCategoryRepo(
@@ -176,18 +193,18 @@ const getCategoryByIdService = async (getCategoryByIdRequestDto, logger) => {
   }
   if (getCategoryByIdRequestDto.userRole !== USER_ROLES.ADMIN) {
     if (!category.isActive) {
-      throw new appError.ForbiddenError(
-        "Category is inactive",
-        "The requested category is inactive and cannot be accessed.",
-        "Contact an administrator for more information.",
+      throw new appError.NotFoundError(
+        "Category not found",
+        "No category exists for the provided id.",
+        "Check the category id and try again.",
       );
     }
 
     if (!category.brandId?.isActive) {
-      throw new appError.ForbiddenError(
-        "Category unavailable",
-        "The brand of this category is inactive.",
-        "Contact an administrator for more information.",
+      throw new appError.NotFoundError(
+        "Category not found",
+        "No category exists for the provided id.",
+        "Check the category id and try again.",
       );
     }
   }
