@@ -94,7 +94,6 @@ class UpdateSeriesRequestDTO {
           : body.description
         : undefined;
     this.categoryId = body?.categoryId !== undefined ? body.categoryId : undefined;
-    this.brandId = body?.brandId !== undefined ? body.brandId : undefined;
     this.isActive = body?.isActive !== undefined ? body.isActive : undefined;
     if (files) {
       this.iconImageFile = files?.iconImage ? files.iconImage[0] : null;
@@ -154,23 +153,6 @@ class UpdateSeriesRequestDTO {
       }
     }
 
-    if (this.brandId !== undefined) {
-      if (!this.brandId) {
-        throw new appError.BadRequestError(
-          "Invalid Brand ID",
-          "The 'brandId' field must not be empty when provided.",
-          "Provide a valid brand ID and try again.",
-        );
-      }
-      if (!mongoose.Types.ObjectId.isValid(this.brandId)) {
-        throw new appError.BadRequestError(
-          "Invalid Brand ID format",
-          "Brand ID must be a valid MongoDB ObjectId.",
-          "Please provide a valid brand ID.",
-        );
-      }
-    }
-
     if (this.isActive !== undefined) {
       if (typeof this.isActive !== "boolean") {
         throw new appError.BadRequestError(
@@ -205,7 +187,6 @@ class UpdateSeriesRequestDTO {
     if (this.name !== undefined) payload.name = this.name;
     if (this.description !== undefined) payload.description = this.description;
     if (this.categoryId !== undefined) payload.categoryId = this.categoryId;
-    if (this.brandId !== undefined) payload.brandId = this.brandId;
     if (this.isActive !== undefined) payload.isActive = this.isActive;
     if (this.iconImageFile) payload.iconImageFile = this.iconImageFile;
     return payload;
@@ -256,6 +237,7 @@ class GetAllSeriesRequestDTO {
     this.page = query.page ? parseInt(query.page, 10) : 1;
     this.limit = query.limit ? parseInt(query.limit, 10) : 10;
     this.categoryId = query.categoryId || null;
+    this.brandId = query.brandId || null;
     this.userRole = userRole;
   }
   validate() {
@@ -278,6 +260,13 @@ class GetAllSeriesRequestDTO {
         "Invalid Category ID format",
         "The 'categoryId' query parameter must be a valid MongoDB ObjectId.",
         "Provide a valid category ID and try again.",
+      );
+    }
+    if (this.brandId && !mongoose.Types.ObjectId.isValid(this.brandId)) {
+      throw new appError.BadRequestError(
+        "Invalid Brand ID format",
+        "The 'brandId' query parameter must be a valid MongoDB ObjectId.",
+        "Provide a valid Brand ID and try again.",
       );
     }
   }

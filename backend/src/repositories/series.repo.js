@@ -79,7 +79,7 @@ const updateSeriesStatusRepo = async (id, isActive) => {
     .lean();
 };
 
-const getAllSeriesRepo = async (page, limit, userRole, categoryId) => {
+const getAllSeriesRepo = async (page, limit, userRole, categoryId, brandId) => {
   const skip = (page - 1) * limit;
 
   const matchFilter = {};
@@ -110,6 +110,15 @@ const getAllSeriesRepo = async (page, limit, userRole, categoryId) => {
       },
     },
     { $unwind: "$categoryId.brandId" },
+    ...(brandId
+      ? [
+          {
+            $match: {
+              "categoryId.brandId._id": new mongoose.Types.ObjectId(brandId),
+            },
+          },
+        ]
+      : []),
     ...(userRole !== USER_ROLES.ADMIN
       ? [
           {
