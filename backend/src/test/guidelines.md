@@ -1,0 +1,1 @@
+pm config set fetch-timeout 300000; npm config set fetch-retry-maxtimeout 300000; npm config set fetch-retries 5; npm install
