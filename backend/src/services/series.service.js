@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 const appError = require("../utils/errors/errors");
 const { USER_ROLES } = require("../utils/constants/user.constants");
 const categoryRepo = require("../repositories/category.repo");
-const brandRepo = require("../repositories/brand.repo");
 const seriesRepo = require("../repositories/series.repo");
 const seriesResponseDto = require("../dtos/series.dtos/res.series.dto");
 const { uploadFileToS3, deleteImageFromS3 } = require("../utils/aws/s3Utils");
@@ -78,37 +77,6 @@ const updateSeriesService = async (updatePayload, logger) => {
     }
   }
 
-  if (updatePayload.brandId) {
-    const brand = await brandRepo.getBrandByIdRepo(updatePayload.brandId);
-    if (!brand) {
-      throw new appError.NotFoundError(
-        "Brand not found",
-        "No brand exists for the provided brand id.",
-        "Check the brand id and try again.",
-      );
-    }
-
-    if (updatePayload.categoryId) {
-      const categoryBrandId = resolvedCategory.brandId?._id?.toString() || resolvedCategory.brandId?.toString();
-      if (categoryBrandId !== updatePayload.brandId) {
-        throw new appError.BadRequestError(
-          "Category does not belong to brand",
-          "The provided category does not belong to the specified brand.",
-          "Provide a category that belongs to the specified brand.",
-        );
-      }
-    } else {
-      const existingCategoryBrandId = existingSeries.categoryId?.brandId?._id?.toString() || existingSeries.categoryId?.brandId?.toString();
-      if (existingCategoryBrandId !== updatePayload.brandId) {
-        throw new appError.BadRequestError(
-          "Category does not belong to brand",
-          "The current category of this series does not belong to the specified brand.",
-          "Either change the category to one under this brand, or use the correct brand id.",
-        );
-      }
-    }
-  }
-
   const targetCategoryId = updatePayload.categoryId || existingSeries.categoryId._id.toString();
 
   if (updatePayload.name) {
@@ -139,8 +107,6 @@ const updateSeriesService = async (updatePayload, logger) => {
   if (updatePayload.categoryId) {
     updatePayload.categoryId = new mongoose.Types.ObjectId(updatePayload.categoryId);
   }
-
-  delete updatePayload.brandId;
 
   const updatedSeries = await seriesRepo.updateSeriesRepo(
     updatePayload.id,
@@ -190,12 +156,14 @@ const getAllSeriesService = async (getAllSeriesRequestDto, logger) => {
     limit: getAllSeriesRequestDto.limit,
     userRole: getAllSeriesRequestDto.userRole,
     categoryId: getAllSeriesRequestDto.categoryId,
+    brandId: getAllSeriesRequestDto.brandId,
   });
   const { series, totalSeries } = await seriesRepo.getAllSeriesRepo(
     getAllSeriesRequestDto.page,
     getAllSeriesRequestDto.limit,
     getAllSeriesRequestDto.userRole,
     getAllSeriesRequestDto.categoryId,
+    getAllSeriesRequestDto.brandId,
   );
   return new seriesResponseDto.GetAllSeriesResponseDTO(
     series,
