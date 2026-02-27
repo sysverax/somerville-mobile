@@ -7,7 +7,20 @@ const categoryResponseDto = require("../dtos/category.dtos/res.category.dto");
 const { uploadFileToS3, deleteImageFromS3 } = require("../utils/aws/s3Utils");
 const { randomUUID } = require("crypto");
 
+const brandRepo = require("../repositories/brand.repo");
+
 const createCategoryService = async (createCategoryRequestDto, logger) => {
+  const brand = await brandRepo.getBrandByIdRepo(
+    createCategoryRequestDto.brandId,
+  );
+  if (!brand) {
+    throw new appError.NotFoundError(
+      "Brand not found",
+      "No brand exists for the provided brand id.",
+      "Check the brand id and try again.",
+    );
+  }
+
   const existingCategory = await categoryRepo.getCategoryByNameRepo(
     createCategoryRequestDto.name,
     createCategoryRequestDto.brandId,
@@ -54,10 +67,23 @@ const updateCategoryService = async (updatePayload, logger) => {
     );
   }
 
+  if (updatePayload.brandId) {
+    const brand = await brandRepo.getBrandByIdRepo(updatePayload.brandId);
+    if (!brand) {
+      throw new appError.NotFoundError(
+        "Brand not found",
+        "No brand exists for the provided brand id.",
+        "Check the brand id and try again.",
+      );
+    }
+  }
+
+  const targetBrandId = updatePayload.brandId || existingCategory.brandId._id.toString();
+
   if (updatePayload.name) {
     const categoryWithSameName = await categoryRepo.getCategoryByNameRepo(
       updatePayload.name,
-      existingCategory.brandId.toString(),
+      targetBrandId,
     );
     if (
       categoryWithSameName &&
@@ -77,6 +103,10 @@ const updateCategoryService = async (updatePayload, logger) => {
       folder: `categories/${existingCategory.name}-${randomUUID()}`,
     });
     updatePayload.imageUrl = uploadedIcon.url;
+  }
+
+  if (updatePayload.brandId) {
+    updatePayload.brandId = new mongoose.Types.ObjectId(updatePayload.brandId);
   }
 
   const updatedCategory = await categoryRepo.updateCategoryRepo(
@@ -161,15 +191,22 @@ const getCategoryByIdService = async (getCategoryByIdRequestDto, logger) => {
       "Check the category id and try again.",
     );
   }
-  if (
-    getCategoryByIdRequestDto.userRole !== USER_ROLES.ADMIN &&
-    !category.isActive
-  ) {
-    throw new appError.ForbiddenError(
-      "Category is inactive",
-      "The requested category is inactive and cannot be accessed.",
-      "Contact an administrator for more information.",
-    );
+  if (getCategoryByIdRequestDto.userRole !== USER_ROLES.ADMIN) {
+    if (!category.isActive) {
+      throw new appError.NotFoundError(
+        "Category not found",
+        "No category exists for the provided id.",
+        "Check the category id and try again.",
+      );
+    }
+
+    if (!category.brandId?.isActive) {
+      throw new appError.NotFoundError(
+        "Category not found",
+        "No category exists for the provided id.",
+        "Check the category id and try again.",
+      );
+    }
   }
 
   return new categoryResponseDto.GetCategoryByIdResponseDTO(category);
@@ -185,7 +222,39 @@ const deleteCategoryService = async (id, logger) => {
     );
   }
 
-  await Promise.all([deleteImageFromS3(category.iconImage)]);
+  // Delete all associated series and their images
+  const seriesRepo = require("../repositories/series.repo");
+  const associatedSeries = await seriesRepo.getSeriesByCategoryIdRepo(id);
+
+  if (associatedSeries.length > 0) {
+    const seriesImageDeletions = associatedSeries
+      .filter((s) => s.imageUrl)
+      .map((s) =>
+        deleteImageFromS3(s.imageUrl).catch((err) => {
+          logger?.error("Error deleting series image", {
+            seriesId: s._id.toString(),
+            error: err,
+          });
+        }),
+      );
+
+    await Promise.all(seriesImageDeletions);
+    await seriesRepo.deleteSeriesByCategoryIdRepo(id);
+
+    logger?.info("Associated series deleted", {
+      categoryId: id,
+      count: associatedSeries.length,
+    });
+  }
+
+  // Delete category image
+  if (category.imageUrl) {
+    try {
+      await deleteImageFromS3(category.imageUrl);
+    } catch (error) {
+      logger?.error("Error deleting category image", { error });
+    }
+  }
 
   await categoryRepo.deleteCategoryRepo(id);
 

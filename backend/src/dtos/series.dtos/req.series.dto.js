@@ -3,45 +3,45 @@ const mongoose = require("mongoose");
 const appError = require("../../utils/errors/errors");
 const validators = require("../../utils/validators/validator");
 
-class CreateCategoryRequestDTO {
+class CreateSeriesRequestDTO {
   constructor(body, files) {
     this.name = typeof body.name === "string" ? body.name.trim() : body.name;
     this.description =
       typeof body.description === "string"
         ? body.description.trim()
         : body.description;
-    this.brandId = body.brandId || null;
+    this.categoryId = body.categoryId || null;
     this.isActive = true;
     this.iconImageFile = files?.iconImage ? files.iconImage[0] : null;
   }
 
   validate() {
-    if (!this.brandId) {
+    if (!this.categoryId) {
       throw new appError.BadRequestError(
-        "Brand ID is required",
-        "The 'brandId' field is required to create a category.",
-        "Provide a valid brand ID and try again.",
+        "Category ID is required",
+        "The 'categoryId' field is required to create a series.",
+        "Provide a valid category ID and try again.",
       );
     }
-    if (!mongoose.Types.ObjectId.isValid(this.brandId)) {
+    if (!mongoose.Types.ObjectId.isValid(this.categoryId)) {
       throw new appError.BadRequestError(
-        "Invalid Brand ID format",
-        "Brand ID must be a valid MongoDB ObjectId.",
-        "Please provide a valid brand ID.",
+        "Invalid Category ID format",
+        "Category ID must be a valid MongoDB ObjectId.",
+        "Please provide a valid category ID.",
       );
     }
     if (!this.name) {
       throw new appError.BadRequestError(
-        "Category name is required",
-        "The 'name' field is required to create a category.",
-        "Provide a valid category name and try again.",
+        "Series name is required",
+        "The 'name' field is required to create a series.",
+        "Provide a valid series name and try again.",
       );
     }
     if (typeof this.name !== "string" || this.name.trim() === "") {
       throw new appError.BadRequestError(
-        "Invalid category name",
+        "Invalid series name",
         "The 'name' field must be a non-empty string.",
-        "Provide a valid category name and try again.",
+        "Provide a valid series name and try again.",
       );
     }
     if (
@@ -57,7 +57,7 @@ class CreateCategoryRequestDTO {
     if (!this.iconImageFile) {
       throw new appError.BadRequestError(
         "Icon image is required",
-        "The 'iconImage' field is required to create a category.",
+        "The 'iconImage' field is required to create a series.",
         "Provide a valid icon image and try again.",
       );
     }
@@ -78,7 +78,7 @@ class CreateCategoryRequestDTO {
   }
 }
 
-class UpdateCategoryRequestDTO {
+class UpdateSeriesRequestDTO {
   constructor(params, body, files) {
     this.id = params.id;
     this.name =
@@ -93,6 +93,7 @@ class UpdateCategoryRequestDTO {
           ? body.description.trim()
           : body.description
         : undefined;
+    this.categoryId = body?.categoryId !== undefined ? body.categoryId : undefined;
     this.brandId = body?.brandId !== undefined ? body.brandId : undefined;
     this.isActive = body?.isActive !== undefined ? body.isActive : undefined;
     if (files) {
@@ -103,25 +104,25 @@ class UpdateCategoryRequestDTO {
   validate() {
     if (!this.id) {
       throw new appError.BadRequestError(
-        "Category id is required",
-        "The 'id' parameter is required to update a category.",
-        "Provide a valid category id and try again.",
+        "Series id is required",
+        "The 'id' parameter is required to update a series.",
+        "Provide a valid series id and try again.",
       );
     }
     if (!mongoose.Types.ObjectId.isValid(this.id)) {
       throw new appError.BadRequestError(
-        "Invalid Category ID format",
-        "Provided category id is not a valid MongoDB ObjectId.",
-        "Provide a valid category id and try again.",
+        "Invalid series id",
+        "Provided series id is not a valid MongoDB ObjectId.",
+        "Provide a valid series id and try again.",
       );
     }
 
     if (this.name !== undefined) {
       if (typeof this.name !== "string" || this.name.trim() === "") {
         throw new appError.BadRequestError(
-          "Invalid category name",
+          "Invalid series name",
           "The 'name' field must be a non-empty string when provided.",
-          "Provide a valid category name and try again.",
+          "Provide a valid series name and try again.",
         );
       }
     }
@@ -132,6 +133,23 @@ class UpdateCategoryRequestDTO {
           "Invalid description",
           "The 'description' field must be a string when provided.",
           "Provide a valid description or omit the field.",
+        );
+      }
+    }
+
+    if (this.categoryId !== undefined) {
+      if (!this.categoryId) {
+        throw new appError.BadRequestError(
+          "Invalid Category ID",
+          "The 'categoryId' field must not be empty when provided.",
+          "Provide a valid category ID and try again.",
+        );
+      }
+      if (!mongoose.Types.ObjectId.isValid(this.categoryId)) {
+        throw new appError.BadRequestError(
+          "Invalid Category ID format",
+          "Category ID must be a valid MongoDB ObjectId.",
+          "Please provide a valid category ID.",
         );
       }
     }
@@ -186,6 +204,7 @@ class UpdateCategoryRequestDTO {
     payload.id = this.id;
     if (this.name !== undefined) payload.name = this.name;
     if (this.description !== undefined) payload.description = this.description;
+    if (this.categoryId !== undefined) payload.categoryId = this.categoryId;
     if (this.brandId !== undefined) payload.brandId = this.brandId;
     if (this.isActive !== undefined) payload.isActive = this.isActive;
     if (this.iconImageFile) payload.iconImageFile = this.iconImageFile;
@@ -193,7 +212,7 @@ class UpdateCategoryRequestDTO {
   }
 }
 
-class UpdateCategoryStatusRequestDTO {
+class UpdateSeriesStatusRequestDTO {
   constructor(params, body) {
     this.id = params.id;
     this.isActive = body.isActive;
@@ -202,23 +221,23 @@ class UpdateCategoryStatusRequestDTO {
   validate() {
     if (!this.id) {
       throw new appError.BadRequestError(
-        "Category id is required",
-        "The 'id' parameter is required to update category status.",
-        "Provide a valid category id and try again.",
+        "Series id is required",
+        "The 'id' parameter is required to update series status.",
+        "Provide a valid series id and try again.",
       );
     }
     if (!mongoose.Types.ObjectId.isValid(this.id)) {
       throw new appError.BadRequestError(
-        "Invalid Category ID format",
-        "Provided category id is not a valid MongoDB ObjectId.",
-        "Provide a valid category id and try again.",
+        "Invalid series id",
+        "Provided series id is not a valid MongoDB ObjectId.",
+        "Provide a valid series id and try again.",
       );
     }
 
     if (this.isActive === undefined) {
       throw new appError.BadRequestError(
         "Status value is required",
-        "The 'isActive' field is required to update category status.",
+        "The 'isActive' field is required to update series status.",
         "Provide a valid status value and try again.",
       );
     }
@@ -232,11 +251,11 @@ class UpdateCategoryStatusRequestDTO {
   }
 }
 
-class GetAllCategoriesRequestDTO {
+class GetAllSeriesRequestDTO {
   constructor(query, userRole) {
     this.page = query.page ? parseInt(query.page, 10) : 1;
     this.limit = query.limit ? parseInt(query.limit, 10) : 10;
-    this.brandId = query.brandId || null;
+    this.categoryId = query.categoryId || null;
     this.userRole = userRole;
   }
   validate() {
@@ -254,17 +273,17 @@ class GetAllCategoriesRequestDTO {
         "Provide a valid limit value and try again.",
       );
     }
-    if (this.brandId && !mongoose.Types.ObjectId.isValid(this.brandId)) {
+    if (this.categoryId && !mongoose.Types.ObjectId.isValid(this.categoryId)) {
       throw new appError.BadRequestError(
-        "Invalid Brand ID format",
-        "The 'brandId' query parameter must be a valid MongoDB ObjectId.",
-        "Provide a valid brand ID and try again.",
+        "Invalid Category ID format",
+        "The 'categoryId' query parameter must be a valid MongoDB ObjectId.",
+        "Provide a valid category ID and try again.",
       );
     }
   }
 }
 
-class GetCategoryByIdRequestDTO {
+class GetSeriesByIdRequestDTO {
   constructor(params, userRole) {
     this.id = params.id;
     this.userRole = userRole;
@@ -272,48 +291,48 @@ class GetCategoryByIdRequestDTO {
   validate() {
     if (!this.id) {
       throw new appError.BadRequestError(
-        "Category id is required",
-        "The 'id' parameter is required to fetch category details.",
-        "Provide a valid category id and try again.",
+        "Series id is required",
+        "The 'id' parameter is required to fetch series details.",
+        "Provide a valid series id and try again.",
       );
     }
     if (!mongoose.Types.ObjectId.isValid(this.id)) {
       throw new appError.BadRequestError(
-        "Invalid Category ID format",
-        "Provided category id is not a valid MongoDB ObjectId.",
-        "Provide a valid category id and try again.",
+        "Invalid series id",
+        "Provided series id is not a valid MongoDB ObjectId.",
+        "Provide a valid series id and try again.",
       );
     }
   }
 }
 
-class DeleteCategoryRequestDTO {
+class DeleteSeriesRequestDTO {
   constructor(params) {
     this.id = params.id;
   }
   validate() {
     if (!this.id) {
       throw new appError.BadRequestError(
-        "Category id is required",
-        "The 'id' parameter is required to delete a category.",
-        "Provide a valid category id and try again.",
+        "Series id is required",
+        "The 'id' parameter is required to delete a series.",
+        "Provide a valid series id and try again.",
       );
     }
     if (!mongoose.Types.ObjectId.isValid(this.id)) {
       throw new appError.BadRequestError(
-        "Invalid Category ID format",
-        "Provided category id is not a valid MongoDB ObjectId.",
-        "Provide a valid category id and try again.",
+        "Invalid series id",
+        "Provided series id is not a valid MongoDB ObjectId.",
+        "Provide a valid series id and try again.",
       );
     }
   }
 }
 
 module.exports = {
-  CreateCategoryRequestDTO,
-  UpdateCategoryRequestDTO,
-  UpdateCategoryStatusRequestDTO,
-  GetAllCategoriesRequestDTO,
-  GetCategoryByIdRequestDTO,
-  DeleteCategoryRequestDTO,
+  CreateSeriesRequestDTO,
+  UpdateSeriesRequestDTO,
+  UpdateSeriesStatusRequestDTO,
+  GetAllSeriesRequestDTO,
+  GetSeriesByIdRequestDTO,
+  DeleteSeriesRequestDTO,
 };
