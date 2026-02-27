@@ -12,7 +12,7 @@ const createBrandService = async (createBrandRequestDto, logger) => {
   );
   if (existingBrand) {
     throw new appError.ConflictError(
-      "Brand already exists ",
+      "Brand with this name already exists",
       "A brand with this name already exists.",
       "Use a different brand name.",
     );
@@ -73,10 +73,10 @@ const getBrandByIdService = async (getBrandByIdRequestDto, logger) => {
     );
   }
   if (getBrandByIdRequestDto.userRole !== USER_ROLES.ADMIN && !brand.isActive) {
-    throw new appError.ForbiddenError(
-      "Brand is inactive",
-      "The requested brand is inactive and cannot be accessed.",
-      "Contact an administrator for more information.",
+    throw new appError.NotFoundError(
+      "Brand is not available",
+      "The requested brand is currently inactive.",
+      "Contact support for more information.",
     );
   }
 
@@ -102,7 +102,7 @@ const updateBrandService = async (updatePayload, logger) => {
       brandWithSameName._id.toString() !== updatePayload.id
     ) {
       throw new appError.ConflictError(
-        "Brand name conflict",
+        "Brand with this name already exists",
         "Another brand with the same name already exists.",
         "Use a different brand name.",
       );

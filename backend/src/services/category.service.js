@@ -77,7 +77,7 @@ const updateCategoryService = async (updatePayload, logger) => {
       categoryWithSameName._id.toString() !== updatePayload.id
     ) {
       throw new appError.ConflictError(
-        "Category name conflict",
+        "Category with this name already exists for the selected brand",
         "Another category with the same name already exists in this brand.",
         "Use a different category name.",
       );

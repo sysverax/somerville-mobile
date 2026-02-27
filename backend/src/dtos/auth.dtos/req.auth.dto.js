@@ -1,11 +1,10 @@
 const appError = require("../../utils/errors/errors");
-const {
-  isValidPassword,
-} = require("../../utils/validators/validator");
+const { isValidPassword } = require("../../utils/validators/validator");
 
 class RegisterAdminRequestDTO {
   constructor(payload = {}) {
-    this.name = payload.name?.trim();
+    this.name =
+      typeof payload.name === "string" ? payload.name.trim() : payload.name;
     this.email = payload.email?.trim().toLowerCase();
     this.password = payload.password;
   }
@@ -16,6 +15,14 @@ class RegisterAdminRequestDTO {
         "Name is required",
         "The admin registration request is missing the name field.",
         "Provide a valid name and try again.",
+      );
+    }
+
+    if (typeof this.name !== "string" || this.name.trim() === "") {
+      throw new appError.BadRequestError(
+        "Invalid name format",
+        "The admin registration request has an invalid name field.",
+        "Provide a valid non-empty name and try again.",
       );
     }
 
