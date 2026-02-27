@@ -125,7 +125,7 @@ class GetBrandByIdRequestDTO {
     }
     if (!mongoose.Types.ObjectId.isValid(this.id)) {
       throw new appError.BadRequestError(
-        "Invalid brand id",
+        "Invalid brand id format",
         "Provided brand id is not a valid MongoDB ObjectId.",
         "Provide a valid brand id and try again.",
       );
@@ -158,7 +158,7 @@ class UpdateBrandRequestDTO {
   validate() {
     if (!mongoose.Types.ObjectId.isValid(this.id)) {
       throw new appError.BadRequestError(
-        "Invalid brand id",
+        "Invalid brand id format",
         "Provided brand id is not a valid MongoDB ObjectId.",
         "Provide a valid brand id and try again.",
       );
@@ -255,7 +255,7 @@ class UpdateBrandStatusRequestDTO {
     }
     if (!mongoose.Types.ObjectId.isValid(this.id)) {
       throw new appError.BadRequestError(
-        "Invalid brand id",
+        "Invalid brand id format",
         "Provided brand id is not a valid MongoDB ObjectId.",
         "Provide a valid brand id and try again.",
       );
@@ -263,7 +263,7 @@ class UpdateBrandStatusRequestDTO {
 
     if (this.isActive === undefined) {
       throw new appError.BadRequestError(
-        "Status value is required",
+        "Status is required",
         "The 'isActive' field is required to update brand status.",
         "Provide a valid status value and try again.",
       );
@@ -292,7 +292,7 @@ class DeleteBrandRequestDTO {
     }
     if (!mongoose.Types.ObjectId.isValid(this.id)) {
       throw new appError.BadRequestError(
-        "Invalid brand id",
+        "Invalid brand id format",
         "Provided brand id is not a valid MongoDB ObjectId.",
         "Provide a valid brand id and try again.",
       );

@@ -12,7 +12,7 @@ const createBrandService = async (createBrandRequestDto, logger) => {
   );
   if (existingBrand) {
     throw new appError.ConflictError(
-      "Brand already exists ",
+      "Brand with this name already exists",
       "A brand with this name already exists.",
       "Use a different brand name.",
     );
@@ -102,7 +102,7 @@ const updateBrandService = async (updatePayload, logger) => {
       brandWithSameName._id.toString() !== updatePayload.id
     ) {
       throw new appError.ConflictError(
-        "Brand name conflict",
+        "Brand with this name already exists",
         "Another brand with the same name already exists.",
         "Use a different brand name.",
       );

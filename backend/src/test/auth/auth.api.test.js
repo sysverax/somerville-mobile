@@ -4,7 +4,7 @@ jest.mock("uuid", () => ({
   v4: () => "test-request-id",
 }));
 
-jest.mock("../middlewares/auth.middleware", () => ({
+jest.mock("../../middlewares/auth.middleware", () => ({
   validateAdmin: (req, res, next) => {
     req.userRole = "admin";
     next();
@@ -15,7 +15,7 @@ jest.mock("../middlewares/auth.middleware", () => ({
   },
 }));
 
-jest.mock("../services/brand.service", () => ({
+jest.mock("../../services/brand.service", () => ({
   createBrandService: jest.fn(),
   getAllBrandsService: jest.fn(),
   getBrandByIdService: jest.fn(),
@@ -24,7 +24,7 @@ jest.mock("../services/brand.service", () => ({
   deleteBrandService: jest.fn(),
 }));
 
-jest.mock("../services/category.service", () => ({
+jest.mock("../../services/category.service", () => ({
   createCategoryService: jest.fn(),
   updateCategoryService: jest.fn(),
   updateCategoryStatusService: jest.fn(),
@@ -33,13 +33,13 @@ jest.mock("../services/category.service", () => ({
   deleteCategoryService: jest.fn(),
 }));
 
-jest.mock("../services/auth.service", () => ({
+jest.mock("../../services/auth.service", () => ({
   adminRegisterService: jest.fn(),
   adminLoginService: jest.fn(),
 }));
 
-const { createApp } = require("../app");
-const authService = require("../services/auth.service");
+const { createApp } = require("../../app");
+const authService = require("../../services/auth.service");
 
 const validId = "507f1f77bcf86cd799439011";
 

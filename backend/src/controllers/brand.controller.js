@@ -9,10 +9,9 @@ const {
 const createBrandController = async (req, res, next) => {
   try {
     req.logger.info("Create brand request received");
-    // // Parse the body from the multipart/form-data request for testing purposes
-    const body = JSON.parse(req.body.body);
+    const body =
+      typeof req.body?.body === "string" ? JSON.parse(req.body.body) : req.body;
     const createBrandRequestDto = new brandRequestDto.CreateBrandRequestDTO(
-      //   req.body,
       body,
       req.files,
     );
