@@ -39,7 +39,7 @@ const Brand = require("../../models/brand");
 const Category = require("../../models/category");
 const Series = require("../../models/series");
 
-describe.skip("Series DB integration tests", () => {
+describe("Series DB integration tests", () => {
   let app;
   let mongoServer;
 

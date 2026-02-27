@@ -5,7 +5,8 @@ const seriesRequestDto = require("../dtos/series.dtos/req.series.dto");
 const createSeriesController = async (req, res, next) => {
   try {
     req.logger.info("Create series request received");
-    const body = JSON.parse(req.body.body);
+    const body =
+      typeof req.body?.body === "string" ? JSON.parse(req.body.body) : req.body;
     const createSeriesRequestDto = new seriesRequestDto.CreateSeriesRequestDTO(
       body,
       req.files,

@@ -75,7 +75,7 @@ const validId = "507f1f77bcf86cd799439011";
 const validCategoryId = "507f1f77bcf86cd799439022";
 const validBrandId = "507f1f77bcf86cd799439033";
 
-describe.skip("Series API tests", () => {
+describe("Series API tests", () => {
   const app = createApp();
   const oversizedFile = Buffer.alloc(6 * 1024 * 1024, 1); // 6MB
 
