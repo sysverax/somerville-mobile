@@ -97,7 +97,7 @@ class UpdateCategoryRequestDTO {
     }
     if (!mongoose.Types.ObjectId.isValid(this.id)) {
       throw new appError.BadRequestError(
-        "Invalid category id",
+        "Invalid Category ID format",
         "Provided category id is not a valid MongoDB ObjectId.",
         "Provide a valid category id and try again.",
       );
@@ -178,7 +178,7 @@ class UpdateCategoryStatusRequestDTO {
     }
     if (!mongoose.Types.ObjectId.isValid(this.id)) {
       throw new appError.BadRequestError(
-        "Invalid category id",
+        "Invalid Category ID format",
         "Provided category id is not a valid MongoDB ObjectId.",
         "Provide a valid category id and try again.",
       );
@@ -248,7 +248,7 @@ class GetCategoryByIdRequestDTO {
     }
     if (!mongoose.Types.ObjectId.isValid(this.id)) {
       throw new appError.BadRequestError(
-        "Invalid category id",
+        "Invalid Category ID format",
         "Provided category id is not a valid MongoDB ObjectId.",
         "Provide a valid category id and try again.",
       );
@@ -270,7 +270,7 @@ class DeleteCategoryRequestDTO {
     }
     if (!mongoose.Types.ObjectId.isValid(this.id)) {
       throw new appError.BadRequestError(
-        "Invalid category id",
+        "Invalid Category ID format",
         "Provided category id is not a valid MongoDB ObjectId.",
         "Provide a valid category id and try again.",
       );

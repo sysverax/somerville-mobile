@@ -5,7 +5,8 @@ const categoryRequestDto = require("../dtos/category.dtos/req.category.dto");
 const createCategoryController = async (req, res, next) => {
   try {
     req.logger.info("Create category request received");
-    const body = JSON.parse(req.body.body);
+    const body =
+      typeof req.body?.body === "string" ? JSON.parse(req.body.body) : req.body;
     const createCategoryRequestDto =
       new categoryRequestDto.CreateCategoryRequestDTO(body, req.files);
     createCategoryRequestDto.validate();

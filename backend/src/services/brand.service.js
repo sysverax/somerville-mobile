@@ -73,10 +73,10 @@ const getBrandByIdService = async (getBrandByIdRequestDto, logger) => {
     );
   }
   if (getBrandByIdRequestDto.userRole !== USER_ROLES.ADMIN && !brand.isActive) {
-    throw new appError.ForbiddenError(
-      "Brand is inactive",
-      "The requested brand is inactive and cannot be accessed.",
-      "Contact an administrator for more information.",
+    throw new appError.NotFoundError(
+      "Brand is not available",
+      "The requested brand is currently inactive.",
+      "Contact support for more information.",
     );
   }
 

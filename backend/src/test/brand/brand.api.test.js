@@ -63,6 +63,7 @@ const validId = "507f1f77bcf86cd799439011";
 
 describe("Brand API tests", () => {
   const app = createApp();
+  const oversizedFile = Buffer.alloc(6 * 1024 * 1024, 1); // 6MB
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -515,5 +516,71 @@ describe("Brand API tests", () => {
 
     expect(res.status).toBe(409);
     expect(res.body.message).toBe("Brand with this name already exists");
+  });
+
+  it("POST /api/brands should fail when icon image file size exceeds limit", async () => {
+    const res = await request(app)
+      .post("/api/brands")
+      .set("x-user-role", "admin")
+      .field("name", "Apple")
+      .attach("iconImage", oversizedFile, {
+        filename: "icon.png",
+        contentType: "image/png",
+      })
+      .attach("bannerImage", Buffer.from([1, 2, 3]), {
+        filename: "banner.png",
+        contentType: "image/png",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message.toLowerCase()).toContain("too large");
+    expect(brandService.createBrandService).not.toHaveBeenCalled();
+  });
+
+  it("POST /api/brands should fail when banner image file size exceeds limit", async () => {
+    const res = await request(app)
+      .post("/api/brands")
+      .set("x-user-role", "admin")
+      .field("name", "Apple")
+      .attach("iconImage", Buffer.from([1, 2, 3]), {
+        filename: "icon.png",
+        contentType: "image/png",
+      })
+      .attach("bannerImage", oversizedFile, {
+        filename: "banner.png",
+        contentType: "image/png",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message.toLowerCase()).toContain("too large");
+    expect(brandService.createBrandService).not.toHaveBeenCalled();
+  });
+
+  it("PATCH /api/brands/:id should fail when icon image file size exceeds limit", async () => {
+    const res = await request(app)
+      .patch(`/api/brands/${validId}`)
+      .set("x-user-role", "admin")
+      .attach("iconImage", oversizedFile, {
+        filename: "icon.png",
+        contentType: "image/png",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message.toLowerCase()).toContain("too large");
+    expect(brandService.updateBrandService).not.toHaveBeenCalled();
+  });
+
+  it("PATCH /api/brands/:id should fail when banner image file size exceeds limit", async () => {
+    const res = await request(app)
+      .patch(`/api/brands/${validId}`)
+      .set("x-user-role", "admin")
+      .attach("bannerImage", oversizedFile, {
+        filename: "banner.png",
+        contentType: "image/png",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message.toLowerCase()).toContain("too large");
+    expect(brandService.updateBrandService).not.toHaveBeenCalled();
   });
 });

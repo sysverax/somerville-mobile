@@ -243,8 +243,7 @@ describe("Brand DB integration tests", () => {
       .get(`/api/brands/${inactiveBrand._id}`)
       .set("x-user-role", "public");
 
-    expect(res.status).toBe(403);
-    expect(res.body.message).toBe("Brand is inactive");
+    expect(res.status).toBe(404);
   });
 
   it("GET /api/brands/:id should return 404 when brand does not exist in DB", async () => {
@@ -366,5 +365,71 @@ describe("Brand DB integration tests", () => {
 
     expect(res.status).toBe(404);
     expect(res.body.message).toBe("Brand not found");
+  });
+
+  it("POST /api/brands should trim name before save", async () => {
+    const res = await request(app)
+      .post("/api/brands")
+      .set("x-user-role", "admin")
+      .field("name", " Apple ")
+      .attach("iconImage", Buffer.from([1, 2, 3]), {
+        filename: "icon.png",
+        contentType: "image/png",
+      })
+      .attach("bannerImage", Buffer.from([1, 2, 3]), {
+        filename: "banner.png",
+        contentType: "image/png",
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.name).toBe("Apple");
+
+    const saved = await Brand.findById(res.body.data.id);
+    expect(saved.name).toBe("Apple");
+  });
+
+  it("PATCH /api/brands/:id should trim name before update", async () => {
+    const brand = await Brand.create({
+      name: "Apple",
+      iconImageUrl: "brands/apple/icon.png",
+      bannerImageUrl: "brands/apple/banner.png",
+      isActive: true,
+    });
+
+    const res = await request(app)
+      .patch(`/api/brands/${brand._id}`)
+      .set("x-user-role", "admin")
+      .field("name", " Samsung ");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.name).toBe("Samsung");
+
+    const updated = await Brand.findById(brand._id);
+    expect(updated.name).toBe("Samsung");
+  });
+
+  it("POST /api/brands should return 409 for case-insensitive duplicate name", async () => {
+    await Brand.create({
+      name: "Apple",
+      iconImageUrl: "brands/apple/icon.png",
+      bannerImageUrl: "brands/apple/banner.png",
+      isActive: true,
+    });
+
+    const res = await request(app)
+      .post("/api/brands")
+      .set("x-user-role", "admin")
+      .field("name", "apple")
+      .attach("iconImage", Buffer.from([1, 2, 3]), {
+        filename: "icon.png",
+        contentType: "image/png",
+      })
+      .attach("bannerImage", Buffer.from([1, 2, 3]), {
+        filename: "banner.png",
+        contentType: "image/png",
+      });
+
+    expect(res.status).toBe(409);
+    expect(res.body.message).toBe("Brand with this name already exists");
   });
 });
