@@ -93,6 +93,8 @@ class UpdateSeriesRequestDTO {
           ? body.description.trim()
           : body.description
         : undefined;
+    this.categoryId = body?.categoryId !== undefined ? body.categoryId : undefined;
+    this.brandId = body?.brandId !== undefined ? body.brandId : undefined;
     this.isActive = body?.isActive !== undefined ? body.isActive : undefined;
     if (files) {
       this.iconImageFile = files?.iconImage ? files.iconImage[0] : null;
@@ -135,6 +137,40 @@ class UpdateSeriesRequestDTO {
       }
     }
 
+    if (this.categoryId !== undefined) {
+      if (!this.categoryId) {
+        throw new appError.BadRequestError(
+          "Invalid Category ID",
+          "The 'categoryId' field must not be empty when provided.",
+          "Provide a valid category ID and try again.",
+        );
+      }
+      if (!mongoose.Types.ObjectId.isValid(this.categoryId)) {
+        throw new appError.BadRequestError(
+          "Invalid Category ID format",
+          "Category ID must be a valid MongoDB ObjectId.",
+          "Please provide a valid category ID.",
+        );
+      }
+    }
+
+    if (this.brandId !== undefined) {
+      if (!this.brandId) {
+        throw new appError.BadRequestError(
+          "Invalid Brand ID",
+          "The 'brandId' field must not be empty when provided.",
+          "Provide a valid brand ID and try again.",
+        );
+      }
+      if (!mongoose.Types.ObjectId.isValid(this.brandId)) {
+        throw new appError.BadRequestError(
+          "Invalid Brand ID format",
+          "Brand ID must be a valid MongoDB ObjectId.",
+          "Please provide a valid brand ID.",
+        );
+      }
+    }
+
     if (this.isActive !== undefined) {
       if (typeof this.isActive !== "boolean") {
         throw new appError.BadRequestError(
@@ -164,16 +200,12 @@ class UpdateSeriesRequestDTO {
   }
 
   toUpdatePayload() {
-    console.log("body fields:", {
-      name: this.name,
-      description: this.description,
-      isActive: this.isActive,
-      iconImageFile: this.iconImageFile,
-    });
     const payload = {};
     payload.id = this.id;
     if (this.name !== undefined) payload.name = this.name;
     if (this.description !== undefined) payload.description = this.description;
+    if (this.categoryId !== undefined) payload.categoryId = this.categoryId;
+    if (this.brandId !== undefined) payload.brandId = this.brandId;
     if (this.isActive !== undefined) payload.isActive = this.isActive;
     if (this.iconImageFile) payload.iconImageFile = this.iconImageFile;
     return payload;
