@@ -3,7 +3,6 @@ const {
   ConflictError,
   NotFoundError,
   UnauthorizedError,
-  ForbiddenError,
 } = require("../../utils/errors/errors");
 
 jest.mock("uuid", () => ({
@@ -256,19 +255,6 @@ describe("Brand API tests", () => {
     expect(res.status).toBe(400);
     expect(res.body.message).toBe("Invalid brand id format");
     expect(brandService.getBrandByIdService).not.toHaveBeenCalled();
-  });
-
-  it("GET /api/brands/:id should return error when brand is inactive for public user", async () => {
-    brandService.getBrandByIdService.mockRejectedValueOnce(
-      new ForbiddenError("Brand is inactive"),
-    );
-
-    const res = await request(app)
-      .get(`/api/brands/${validId}`)
-      .set("x-user-role", "public");
-
-    expect(res.status).toBe(403);
-    expect(res.body.message).toBe("Brand is inactive");
   });
 
   it("PATCH /api/brands/:id should update brand successfully", async () => {

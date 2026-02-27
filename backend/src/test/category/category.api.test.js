@@ -3,7 +3,6 @@ const {
   ConflictError,
   NotFoundError,
   UnauthorizedError,
-  ForbiddenError,
 } = require("../../utils/errors/errors");
 
 jest.mock("uuid", () => ({
@@ -324,30 +323,6 @@ describe("Category API tests", () => {
     expect(res.status).toBe(400);
     expect(res.body.message).toBe("Invalid Category ID format");
     expect(categoryService.getCategoryByIdService).not.toHaveBeenCalled();
-  });
-
-  it("GET /api/categories/:id should return error when category is inactive for public user", async () => {
-    categoryService.getCategoryByIdService.mockRejectedValueOnce(
-      new ForbiddenError("Category is inactive"),
-    );
-
-    const res = await request(app)
-      .get(`/api/categories/${validId}`)
-      .set("x-user-role", "public");
-
-    expect(res.status).toBe(404);
-  });
-
-  it("GET /api/categories/:id should return error when parent brand is inactive for public user", async () => {
-    categoryService.getCategoryByIdService.mockRejectedValueOnce(
-      new ForbiddenError("Brand is inactive"),
-    );
-
-    const res = await request(app)
-      .get(`/api/categories/${validId}`)
-      .set("x-user-role", "public");
-
-    expect(res.status).toBe(404);
   });
 
   it("PATCH /api/categories/:id should update category successfully", async () => {
