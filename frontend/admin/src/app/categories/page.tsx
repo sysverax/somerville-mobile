@@ -16,6 +16,8 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import ImageUpload from '@/components/ImageUpload';
 import TablePagination from '@/components/TablePagination';
+import { computeCategoryVisibility, isParentInactive } from '@/lib/visibility';
+import { VisibilityBadge, HiddenReasonCell, ParentNameCell } from '@/components/VisibilityBadge';
 
 const validateBrand = (value: string): string | undefined => {
   if (!value) return 'Brand is required';
@@ -72,6 +74,7 @@ const CategoriesPage = () => {
   };
 
   const brandName = (id: string) => brands.find(b => b.id === id)?.name || id;
+  const getBrand = (id: string) => brands.find(b => b.id === id);
 
   return (
     <div className="space-y-6">
@@ -97,7 +100,7 @@ const CategoriesPage = () => {
                   <h3 className="font-semibold truncate">{cat.name}</h3>
                   <p className="text-xs text-muted-foreground">{brandName(cat.brandId)}</p>
                 </div>
-                <Badge variant={cat.isActive ? 'default' : 'secondary'}>{cat.isActive ? 'Active' : 'Inactive'}</Badge>
+                <VisibilityBadge visibility={computeCategoryVisibility(cat, getBrand(cat.brandId))} />
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-border/50">
                 <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={cat.isActive} onCheckedChange={() => toggleActive(cat.id)} /></div>
@@ -118,28 +121,35 @@ const CategoriesPage = () => {
                 <TableHead className="w-[200px]">Name</TableHead>
                 <TableHead>Brand</TableHead>
                 <TableHead className="hidden md:table-cell">Description</TableHead>
-                <TableHead className="w-[110px]">Status</TableHead>
+                <TableHead className="w-[110px]">Visibility</TableHead>
+                <TableHead className="w-[150px] hidden lg:table-cell">Hidden Reason</TableHead>
                 <TableHead className="w-[100px]">Active</TableHead>
                 <TableHead className="w-[110px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginated.map(cat => (
-                <TableRow key={cat.id}>
-                  <TableCell><img src={cat.image} alt={cat.name} className="h-8 w-8 rounded-md object-cover bg-muted" /></TableCell>
-                  <TableCell className="font-medium">{cat.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{brandName(cat.brandId)}</TableCell>
-                  <TableCell className="hidden md:table-cell text-muted-foreground text-sm truncate max-w-[200px]">{cat.description}</TableCell>
-                  <TableCell><Badge variant={cat.isActive ? 'default' : 'secondary'} className="text-xs">{cat.isActive ? 'Active' : 'Inactive'}</Badge></TableCell>
-                  <TableCell><Switch checked={cat.isActive} onCheckedChange={() => toggleActive(cat.id)} /></TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(cat)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {paginated.map(cat => {
+                const brand = getBrand(cat.brandId);
+                const visibility = computeCategoryVisibility(cat, brand);
+                const brandInactive = isParentInactive(brand);
+                return (
+                  <TableRow key={cat.id}>
+                    <TableCell><img src={cat.image} alt={cat.name} className="h-8 w-8 rounded-md object-cover bg-muted" /></TableCell>
+                    <TableCell className="font-medium">{cat.name}</TableCell>
+                    <TableCell className="text-sm"><ParentNameCell name={brandName(cat.brandId)} isInactive={brandInactive} /></TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm truncate max-w-[200px]">{cat.description}</TableCell>
+                    <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
+                    <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
+                    <TableCell><Switch checked={cat.isActive} onCheckedChange={() => toggleActive(cat.id)} /></TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(cat)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -153,14 +163,14 @@ const CategoriesPage = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Brand *</Label>
-              <Select value={form.brandId} onValueChange={v => {setForm(f => ({ ...f, brandId: v })); setTouched(prev => ({ ...prev, brandId: true })); setFormErrors(prev => ({ ...prev, brandId: validateBrand(v) })); }}>
+              <Select value={form.brandId} onValueChange={v => { setForm(f => ({ ...f, brandId: v })); setTouched(prev => ({ ...prev, brandId: true })); setFormErrors(prev => ({ ...prev, brandId: validateBrand(v) })); }}>
                 <SelectTrigger><SelectValue placeholder="Select Brand" /></SelectTrigger>
                 <SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
               </Select>
               {formErrors.brandId && <p className="text-xs text-destructive">{formErrors.brandId}</p>}
             </div>
             <div className="space-y-2"><Label>Name *</Label>
-             <Input
+              <Input
                 value={form.name}
                 onChange={e => {
                   const val = e.target.value;

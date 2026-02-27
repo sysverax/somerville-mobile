@@ -20,6 +20,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import ImageUpload from '@/components/ImageUpload';
 import TablePagination from '@/components/TablePagination';
+import { computeProductVisibility, isParentInactive } from '@/lib/visibility';
+import { VisibilityBadge, HiddenReasonCell, ParentNameCell } from '@/components/VisibilityBadge';
 
 const validateBrand = (value: string): string | undefined => {
   if (!value) return 'Brand is required';
@@ -200,6 +202,9 @@ const ProductsPage = () => {
   const brandName = (id: string) => brands.find(b => b.id === id)?.name || id;
   const categoryName = (id: string) => categories.find(c => c.id === id)?.name || id;
   const seriesName = (id: string) => seriesList.find(s => s.id === id)?.name || id;
+  const getBrand = (id: string) => brands.find(b => b.id === id);
+  const getCategory = (id: string) => categories.find(c => c.id === id);
+  const getSeries = (id: string) => seriesList.find(s => s.id === id);
 
   return (
     <div className="space-y-6">
@@ -226,12 +231,16 @@ const ProductsPage = () => {
             </div>
           ) : paginated.map(p => {
             const productServices = getServicesForProduct(p);
+            const series = getSeries(p.seriesId);
+            const category = getCategory(p.categoryId);
+            const brand = getBrand(p.brandId);
+            const visibility = computeProductVisibility(p, series, category, brand);
             return (
               <div key={p.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
                 <div className="flex items-center gap-3">
                   <img src={p.iconImage} alt={p.name} className="h-12 w-12 rounded-lg object-cover bg-muted" />
                   <div className="flex-1 min-w-0"><h3 className="font-semibold truncate">{p.name}</h3><p className="text-xs text-muted-foreground truncate">{p.description}</p></div>
-                  <Badge variant={p.isActive ? 'default' : 'secondary'}>{p.isActive ? 'Active' : 'Inactive'}</Badge>
+                  <VisibilityBadge visibility={visibility} />
                 </div>
                 {Object.keys(p.specifications).length > 0 && (
                   <div className="flex flex-wrap gap-1">{Object.entries(p.specifications).map(([k, v]) => <Badge key={k} variant="outline" className="text-xs">{k}: {v}</Badge>)}</div>
@@ -264,7 +273,8 @@ const ProductsPage = () => {
                 <TableHead>Series</TableHead>
                 <TableHead className="hidden md:table-cell">Category</TableHead>
                 <TableHead className="hidden lg:table-cell">Services</TableHead>
-                <TableHead className="w-24">Status</TableHead>
+                <TableHead className="w-24">Visibility</TableHead>
+                <TableHead className="w-[150px] hidden xl:table-cell">Hidden Reason</TableHead>
                 <TableHead className="w-20">Active</TableHead>
                 <TableHead className="w-32 text-right">Actions</TableHead>
               </TableRow>
@@ -278,14 +288,21 @@ const ProductsPage = () => {
                 </TableRow>
               ) : paginated.map(p => {
                 const productServices = getServicesForProduct(p);
+                const series = getSeries(p.seriesId);
+                const category = getCategory(p.categoryId);
+                const brand = getBrand(p.brandId);
+                const visibility = computeProductVisibility(p, series, category, brand);
+                const seriesInactive = isParentInactive(series);
+                const categoryInactive = isParentInactive(category);
                 return (
                   <TableRow key={p.id}>
                     <TableCell><img src={p.iconImage} alt={p.name} className="h-8 w-8 rounded-md object-cover bg-muted" /></TableCell>
                     <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{seriesName(p.seriesId)}</TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{categoryName(p.categoryId)}</TableCell>
+                    <TableCell className="text-sm"><ParentNameCell name={seriesName(p.seriesId)} isInactive={seriesInactive} /></TableCell>
+                    <TableCell className="hidden md:table-cell text-sm"><ParentNameCell name={categoryName(p.categoryId)} isInactive={categoryInactive} /></TableCell>
                     <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{productServices.length} service(s)</TableCell>
-                    <TableCell><Badge variant={p.isActive ? 'default' : 'secondary'} className="text-xs">{p.isActive ? 'Active' : 'Inactive'}</Badge></TableCell>
+                    <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
+                    <TableCell className="hidden xl:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
                     <TableCell><Switch checked={p.isActive} onCheckedChange={() => toggleActive(p.id)} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
@@ -330,7 +347,7 @@ const ProductsPage = () => {
                 <Label className="text-xs">Category *</Label>
                 <Select
                   value={form.categoryId}
-                  disabled={!form.brandId} 
+                  disabled={!form.brandId}
                   onValueChange={v => {
                     setForm(f => ({ ...f, categoryId: v, seriesId: '' }));
                     setTouched(prev => ({ ...prev, categoryId: true }));
