@@ -15,10 +15,10 @@ const createSeriesRepo = async (payload) => {
   return Series.findById(series._id)
     .populate({
       path: "categoryId",
-      select: "name brandId",
+      select: "name brandId isActive",
       populate: {
         path: "brandId",
-        select: "name",
+        select: "name isActive",
       },
     })
     .lean();
@@ -53,10 +53,10 @@ const updateSeriesRepo = async (id, payload) => {
   })
     .populate({
       path: "categoryId",
-      select: "name brandId",
+      select: "name brandId isActive",
       populate: {
         path: "brandId",
-        select: "name",
+        select: "name isActive",
       },
     })
     .lean();
@@ -70,10 +70,10 @@ const updateSeriesStatusRepo = async (id, isActive) => {
   )
     .populate({
       path: "categoryId",
-      select: "name brandId",
+      select: "name brandId isActive",
       populate: {
         path: "brandId",
-        select: "name",
+        select: "name isActive",
       },
     })
     .lean();

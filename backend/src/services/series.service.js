@@ -89,7 +89,7 @@ const updateSeriesService = async (updatePayload, logger) => {
       seriesWithSameName._id.toString() !== updatePayload.id
     ) {
       throw new appError.ConflictError(
-        "Series name conflict",
+        "Series with this name already exists",
         "Another series with the same name already exists in this category.",
         "Use a different series name.",
       );

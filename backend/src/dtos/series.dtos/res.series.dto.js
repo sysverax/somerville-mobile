@@ -1,20 +1,35 @@
 class SeriesResponseDTO {
   constructor(series) {
     this.id = series._id?.toString() || series.id || null;
-    this.categoryId =
-      series.categoryId?._id?.toString() ||
-      series.categoryId?.toString() ||
-      null;
-    this.categoryName = series.categoryId?.name || null;
-    this.brandId =
-      series.categoryId?.brandId?._id?.toString() ||
-      series.categoryId?.brandId?.toString() ||
-      null;
-    this.brandName = series.categoryId?.brandId?.name || null;
     this.name = series.name;
     this.description = series.description || "";
     this.imageUrl = series.imageUrl || null;
     this.isActive = Boolean(series.isActive);
+
+    this.category = {
+      id:
+        series.categoryId?._id?.toString() ||
+        series.categoryId?.toString() ||
+        null,
+      name: series.categoryId?.name || null,
+      isActive:
+        series.categoryId?.isActive != null
+          ? Boolean(series.categoryId.isActive)
+          : null,
+    };
+
+    this.brand = {
+      id:
+        series.categoryId?.brandId?._id?.toString() ||
+        series.categoryId?.brandId?.toString() ||
+        null,
+      name: series.categoryId?.brandId?.name || null,
+      isActive:
+        series.categoryId?.brandId?.isActive != null
+          ? Boolean(series.categoryId.brandId.isActive)
+          : null,
+    };
+
     this.createdAt = series.createdAt || null;
     this.updatedAt = series.updatedAt || null;
   }

@@ -88,8 +88,17 @@ const uploadSeriesImages = (req, res, next) => {
   handler(req, res, (err) => multerErrorHandler(err, req, res, next));
 };
 
+const uploadProductImages = (req, res, next) => {
+  const handler = upload.fields([
+    { name: "iconImage", maxCount: 1 },
+  ]);
+
+  handler(req, res, (err) => multerErrorHandler(err, req, res, next));
+};
+
 module.exports = {
   uploadBrandImages,
   uploadCategoryImages,
   uploadSeriesImages,
+  uploadProductImages,
 };

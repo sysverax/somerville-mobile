@@ -11,6 +11,7 @@ const authRoutes = require("./routes/auth.route");
 const brandRoutes = require("./routes/brand.route");
 const categoryRoutes = require("./routes/category.route");
 const seriesRoutes = require("./routes/series.route");
+const productRoutes = require("./routes/product.route");
 
 const testLogger = {
   info: () => {},
@@ -64,6 +65,7 @@ const createApp = (logger = testLogger) => {
   app.use("/api/brands", brandRoutes);
   app.use("/api/categories", categoryRoutes);
   app.use("/api/series", seriesRoutes);
+  app.use("/api/products", productRoutes);
 
   app.use(invalidJsonHandler);
   app.use(errorHandler);

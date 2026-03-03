@@ -12,7 +12,7 @@ const createCategoryRepo = async (payload) => {
   });
 
   return Category.findById(category._id)
-    .populate("brandId", "name")
+    .populate("brandId", "name isActive")
     .lean();
 };
 
@@ -36,7 +36,7 @@ const updateCategoryRepo = async (id, payload) => {
     returnDocument: "after",
     runValidators: true,
   })
-    .populate("brandId", "name")
+    .populate("brandId", "name isActive")
     .lean();
 };
 
@@ -46,7 +46,7 @@ const updateCategoryStatusRepo = async (id, isActive) => {
     { isActive },
     { returnDocument: "after", runValidators: true },
   )
-    .populate("brandId", "name")
+    .populate("brandId", "name isActive")
     .lean();
 };
 
