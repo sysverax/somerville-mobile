@@ -361,7 +361,7 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
             <CalendarIcon className="h-4 w-4 text-primary" />
             Select Date
           </Label>
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen} modal={true}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -371,7 +371,7 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                {selectedDate ? format(selectedDate, "PPP") : <span>Pick a datee</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0 bg-background border-border z-50" align="start">
