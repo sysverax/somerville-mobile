@@ -36,13 +36,13 @@ const CalendarPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(m => subMonths(m, 1))}><ChevronLeft className="h-4 w-4" /></Button>
-          <h3 className="text-lg font-semibold min-w-[160px] text-center">{format(currentMonth, 'MMMM yyyy')}</h3>
+          <h3 className="text-base sm:text-lg font-semibold min-w-[130px] sm:min-w-[160px] text-center">{format(currentMonth, 'MMMM yyyy')}</h3>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(m => addMonths(m, 1))}><ChevronRight className="h-4 w-4" /></Button>
         </div>
-        <Button variant="outline" className="gap-2" onClick={() => navigate('/bookings')}><List className="h-4 w-4" /> List View</Button>
+        <Button variant="outline" className="gap-2 shrink-0" onClick={() => navigate('/bookings')}><List className="h-4 w-4" /> List View</Button>
       </div>
 
       <div className="rounded-xl border border-border overflow-hidden">

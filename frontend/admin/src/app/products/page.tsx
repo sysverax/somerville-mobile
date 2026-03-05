@@ -262,8 +262,8 @@ const ProductsPage = () => {
                 <TableHead className="w-[90px]">Icon</TableHead>
                 <TableHead className="w-[200px]">Name</TableHead>
                 <TableHead>Series</TableHead>
-                <TableHead className="hidden md:table-cell">Category</TableHead>
-                <TableHead className="hidden lg:table-cell">Services</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Services</TableHead>
                 <TableHead className="w-24">Status</TableHead>
                 <TableHead className="w-20">Active</TableHead>
                 <TableHead className="w-32 text-right">Actions</TableHead>
@@ -283,8 +283,8 @@ const ProductsPage = () => {
                     <TableCell><img src={p.iconImage} alt={p.name} className="h-8 w-8 rounded-md object-cover bg-muted" /></TableCell>
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{seriesName(p.seriesId)}</TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{categoryName(p.categoryId)}</TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{productServices.length} service(s)</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{categoryName(p.categoryId)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{productServices.length} service(s)</TableCell>
                     <TableCell><Badge variant={p.isActive ? 'default' : 'secondary'} className="text-xs">{p.isActive ? 'Active' : 'Inactive'}</Badge></TableCell>
                     <TableCell><Switch checked={p.isActive} onCheckedChange={() => toggleActive(p.id)} /></TableCell>
                     <TableCell className="text-right">
