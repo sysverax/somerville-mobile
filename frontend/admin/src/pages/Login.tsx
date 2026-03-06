@@ -14,6 +14,7 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [attempts, setAttempts] = useState(0);
   const { login, isAuthenticated } = useAuth();
@@ -44,8 +45,9 @@ const LoginPage = () => {
     setErrors(prev => ({ ...prev, password: validatePassword(password) }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setTouched({ email: true, password: true });
     const emailErr = validateEmail(email);
     const passwordErr = validatePassword(password);
@@ -59,12 +61,18 @@ const LoginPage = () => {
       return;
     }
 
-    if (login(email, password)) {
-      navigate('/dashboard');
-    } else {
-      setAttempts(prev => prev + 1);
-      setPassword('');
-      setErrors({ general: 'Invalid email or password' });
+    setIsSubmitting(true);
+    try {
+      const ok = await login(email, password);
+      if (ok) {
+        navigate('/dashboard');
+      } else {
+        setAttempts(prev => prev + 1);
+        setPassword('');
+        setErrors({ general: 'Invalid email or password' });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -123,7 +131,7 @@ const LoginPage = () => {
             </div>
             {touched.password && errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
           </div>
-          <Button type="submit" className="w-full" disabled={attempts >= 5}>Sign In</Button>
+          <Button type="submit" className="w-full" disabled={attempts >= 5 || isSubmitting}>{isSubmitting ? 'Signing In...' : 'Sign In'}</Button>
         </form>
       </div>
     </div>

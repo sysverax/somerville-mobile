@@ -5,21 +5,48 @@
 export interface Brand {
   id: string;
   name: string;
-  iconImage: string;
-  mainImage: string;
   description: string;
   isActive: boolean;
   createdAt: string;
+  updatedAt?: string;
+  iconImage: string;
+  mainImage?: string;
+  iconImageUrl?: string | null;
+  bannerImageUrl?: string | null;
+}
+
+export interface BrandDocument {
+  id: string;
+  name: string;
+  description: string;
+  iconImageUrl: string | null;
+  bannerImageUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Category {
   id: string;
   brandId: string;
   name: string;
-  image: string;
   description: string;
   isActive: boolean;
   createdAt: string;
+  updatedAt?: string;
+  image: string;
+  imageUrl?: string | null;
+}
+
+export interface CategoryDocument {
+  id: string;
+  brandId: string;
+  name: string;
+  description: string;
+  imageUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Series {
@@ -27,10 +54,23 @@ export interface Series {
   categoryId: string;
   brandId: string;
   name: string;
-  image: string;
   description: string;
   isActive: boolean;
   createdAt: string;
+  updatedAt?: string;
+  image: string;
+  imageUrl?: string | null;
+}
+
+export interface SeriesDocument {
+  id: string;
+  categoryId: string;
+  name: string;
+  description: string;
+  imageUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Product {
@@ -45,6 +85,19 @@ export interface Product {
   galleryImages: string[];
   isActive: boolean;
   createdAt: string;
+  updatedAt?: string;
+  imageUrl?: string | null;
+}
+
+export interface ProductDocument {
+  id: string;
+  seriesId: string;
+  name: string;
+  description: string;
+  imageUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface StockVariant {
@@ -71,14 +124,21 @@ export interface ServiceRecord {
   name: string;
   description: string;
   level: 'brand' | 'category' | 'series' | 'product';
+  levelId: string;
+  basePrice: number;
+  estimatedTime: number;
+  isActive: boolean;
+  parentServiceId?: string | null;
+  isVariant?: boolean;
+  isParent?: boolean;
+  createdAt: string;
+}
+
+export interface ServiceRecordResolved extends ServiceRecord {
   brandId: string;
   categoryId?: string;
   seriesId?: string;
   productId?: string;
-  basePrice: number;
-  estimatedTime: number;
-  isActive: boolean;
-  createdAt: string;
   parentServiceId?: string | null;
   isVariant?: boolean;
 }
@@ -109,7 +169,7 @@ export interface ServiceProductOverride {
   productId: string;
   price: number;
   estimatedTime: number;
-  isDisabled?: boolean;
+  isActive?: boolean;
 }
 
 export interface BookingSlot {

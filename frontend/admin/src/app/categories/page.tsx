@@ -46,6 +46,7 @@ const CategoriesPage = () => {
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [form, setForm] = useState({ brandId: '', name: '', image: null as string | null, description: '' });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [requestError, setRequestError] = useState<string | null>(null);
   const [touched, setTouched] = useState<{ brandId?: boolean; name?: boolean; image?: boolean }>({});
 
   // Pagination
@@ -55,12 +56,12 @@ const CategoriesPage = () => {
   const filtered = selectedBrand ? categories.filter(c => c.brandId === selectedBrand) : categories;
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const openAdd = () => { setEditing(null); setForm({ brandId: selectedBrand, name: '', image: null, description: '' }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
-  const openEdit = (c: Category) => { setEditing(c); setForm({ brandId: c.brandId, name: c.name, image: c.image, description: c.description }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
+  const openAdd = () => { setEditing(null); setForm({ brandId: selectedBrand, name: '', image: null, description: '' }); setFormErrors({}); setTouched({}); setRequestError(null); setIsFormOpen(true); };
+  const openEdit = (c: Category) => { setEditing(c); setForm({ brandId: c.brandId, name: c.name, image: c.image, description: c.description }); setFormErrors({}); setTouched({}); setRequestError(null); setIsFormOpen(true); };
 
-  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
+  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); setRequestError(null); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const brandErr = validateBrand(form.brandId);
     const nameErr = validateName(form.name);
     const imageErr = validateImage(form.image);
@@ -69,8 +70,17 @@ const CategoriesPage = () => {
       setTouched({ brandId: true, name: true, image: true });
       return;
     }
-    if (editing) { update(editing.id, form); } else { create(form); }
-    setIsFormOpen(false);
+    setRequestError(null);
+    try {
+      if (editing) {
+        await update(editing.id, form);
+      } else {
+        await create(form);
+      }
+      setIsFormOpen(false);
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : 'Failed to save category');
+    }
   };
 
   const brandName = (id: string) => brands.find(b => b.id === id)?.name || id;
@@ -103,7 +113,7 @@ const CategoriesPage = () => {
                 <VisibilityBadge visibility={computeCategoryVisibility(cat, getBrand(cat.brandId))} />
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={cat.isActive} onCheckedChange={() => toggleActive(cat.id)} /></div>
+                <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={cat.isActive} onCheckedChange={() => { toggleActive(cat.id).catch(() => undefined); }} /></div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)}><Pencil className="h-3.5 w-3.5" /></Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(cat)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
@@ -140,7 +150,7 @@ const CategoriesPage = () => {
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm truncate max-w-[200px]">{cat.description}</TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
-                    <TableCell><Switch checked={cat.isActive} onCheckedChange={() => toggleActive(cat.id)} /></TableCell>
+                    <TableCell><Switch checked={cat.isActive} onCheckedChange={() => { toggleActive(cat.id).catch(() => undefined); }} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -161,6 +171,7 @@ const CategoriesPage = () => {
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? 'Edit Category' : 'Add Category'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
+            {requestError && <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{requestError}</div>}
             <div className="space-y-2">
               <Label>Brand *</Label>
               <Select value={form.brandId} onValueChange={v => { setForm(f => ({ ...f, brandId: v })); setTouched(prev => ({ ...prev, brandId: true })); setFormErrors(prev => ({ ...prev, brandId: validateBrand(v) })); }}>
@@ -211,7 +222,7 @@ const CategoriesPage = () => {
           <AlertDialogHeader><AlertDialogTitle>Delete Category</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete &quot;{deleteTarget?.name}&quot;? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (deleteTarget) { remove(deleteTarget.id); setDeleteTarget(null); } }}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={() => { if (deleteTarget) { remove(deleteTarget.id).catch(() => undefined); setDeleteTarget(null); } }}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

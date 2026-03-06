@@ -176,7 +176,7 @@ const ServicesPage = () => {
       if (!matches) return false;
       if (!includeDisabled) {
         const override = overrides.find(o => o.serviceId === s.id && o.productId === productId);
-        if (override?.isDisabled) return false;
+        if (override && override.isActive === false) return false;
       }
       return true;
     });
@@ -184,7 +184,7 @@ const ServicesPage = () => {
 
   const isServiceDisabledForProduct = (serviceId: string, productId: string): boolean => {
     const override = overrides.find(o => o.serviceId === serviceId && o.productId === productId);
-    return override?.isDisabled === true;
+    return override?.isActive === false;
   };
 
   // Group services for "By Product" display: group variants under parent

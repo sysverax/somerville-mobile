@@ -1,7 +1,7 @@
-import { Series } from '@/src/types';
+import { SeriesDocument } from '@/src/types';
 const P = '/mock-images/default/placeholder.png';
 
-export const seriesList: Series[] = [
+const legacySeries = [
   // Apple > iPhone
   { id: 's1', categoryId: 'c1', brandId: 'b1', name: 'iPhone 15 Series', image: '/mock-images/series/iphone15.jpg', description: 'Latest iPhone 15 lineup', isActive: true, createdAt: '2024-01-17' },
   { id: 's2', categoryId: 'c1', brandId: 'b1', name: 'iPhone 14 Series', image: '/mock-images/series/iphone14.jpeg', description: 'iPhone 14 lineup', isActive: true, createdAt: '2024-01-17' },
@@ -42,3 +42,9 @@ export const seriesList: Series[] = [
   // OnePlus > Nord
   { id: 's24', categoryId: 'c15', brandId: 'b5', name: 'Nord 3 Series', image: '/mock-images/categories/oneplus-nord.png', description: 'OnePlus Nord 3 mid-range', isActive: true, createdAt: '2024-03-01' },
 ];
+
+export const seriesList: SeriesDocument[] = legacySeries.map(({ brandId, image, ...series }) => ({
+  ...series,
+  imageUrl: image,
+  updatedAt: series.createdAt,
+}));

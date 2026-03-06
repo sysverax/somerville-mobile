@@ -63,7 +63,7 @@ export const useServices = () => {
   const toggleServiceForProduct = useCallback((serviceId: string, productId: string, isDisabled: boolean) => {
     const existing = overrides.find(o => o.serviceId === serviceId && o.productId === productId);
     if (existing) {
-      serviceService.upsertOverride({ ...existing, isDisabled });
+      serviceService.upsertOverride({ ...existing, isActive: !isDisabled });
     } else {
       const svc = serviceService.getById(serviceId);
       serviceService.upsertOverride({
@@ -71,7 +71,7 @@ export const useServices = () => {
         productId,
         price: svc?.basePrice ?? 0,
         estimatedTime: svc?.estimatedTime ?? 30,
-        isDisabled,
+        isActive: !isDisabled,
       });
     }
     refreshOverrides();

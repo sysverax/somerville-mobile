@@ -37,6 +37,7 @@ const BrandsPage = () => {
   const [deleteTarget, setDeleteTarget] = useState<Brand | null>(null);
   const [form, setForm] = useState({ name: '', iconImage: '' as string | null, description: '' });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [requestError, setRequestError] = useState<string | null>(null);
   const [touched, setTouched] = useState<{ name?: boolean; iconImage?: boolean }>({});
 
   // Pagination
@@ -46,17 +47,26 @@ const BrandsPage = () => {
 
   const openAdd = () => { setEditing(null); setForm({ name: '', iconImage: null, description: '' }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
   const openEdit = (b: Brand) => { setEditing(b); setForm({ name: b.name, iconImage: b.iconImage, description: b.description }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
-  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
+  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); setRequestError(null); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const nameErr = validateName(form.name);
     const iconErr = validateIcon(form.iconImage);
     if (nameErr || iconErr) {
       setFormErrors({ name: nameErr, iconImage: iconErr });
       return;
     }
-    if (editing) { update(editing.id, form); } else { create(form); }
-    setIsFormOpen(false);
+    setRequestError(null);
+    try {
+      if (editing) {
+        await update(editing.id, form);
+      } else {
+        await create(form);
+      }
+      setIsFormOpen(false);
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : 'Failed to save brand');
+    }
   };
 
   const handleNameBlur = () => {
@@ -95,7 +105,7 @@ const BrandsPage = () => {
               <div className="flex items-center justify-between pt-2 border-t border-border/50">
                 <div className="flex items-center gap-2">
                   <Label className="text-xs">Active</Label>
-                  <Switch checked={brand.isActive} onCheckedChange={() => toggleActive(brand.id)} />
+                  <Switch checked={brand.isActive} onCheckedChange={() => { toggleActive(brand.id).catch(() => undefined); }} />
                 </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -129,7 +139,7 @@ const BrandsPage = () => {
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm truncate max-w-[200px]">{brand.description}</TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
-                    <TableCell><Switch checked={brand.isActive} onCheckedChange={() => toggleActive(brand.id)} /></TableCell>
+                    <TableCell><Switch checked={brand.isActive} onCheckedChange={() => { toggleActive(brand.id).catch(() => undefined); }} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -148,6 +158,7 @@ const BrandsPage = () => {
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? 'Edit Brand' : 'Add Brand'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
+            {requestError && <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{requestError}</div>}
             <div className="space-y-2"><Label>Brand Name *</Label><Input value={form.name}
               onChange={e => {
                 const val = e.target.value;
@@ -187,7 +198,7 @@ const BrandsPage = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (deleteTarget) { remove(deleteTarget.id); setDeleteTarget(null); } }}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={() => { if (deleteTarget) { remove(deleteTarget.id).catch(() => undefined); setDeleteTarget(null); } }}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

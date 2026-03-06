@@ -1,38 +1,94 @@
 import { serviceRecords, serviceProductOverrides } from '@/src/mock-data';
+import { categories } from '@/src/mock-data/categories';
+import { seriesList } from '@/src/mock-data/series';
+import { products } from '@/src/mock-data/products';
 import { getProductById } from '@/src/services/productService';
-import type { ServiceRecord, ServiceProductOverride } from '@/src/types';
+import type { ServiceRecord, ServiceRecordResolved, ServiceProductOverride } from '@/src/types';
 
-const records = serviceRecords as ServiceRecord[];
-const overrides = serviceProductOverrides as ServiceProductOverride[];
+const categoriesById = new Map(categories.map(c => [c.id, c]));
+const seriesById = new Map(seriesList.map(s => [s.id, s]));
+const productsById = new Map(products.map(p => [p.id, p]));
 
-export const getAllServiceRecords = (): ServiceRecord[] => {
+const resolveServiceRecord = (service: ServiceRecord): ServiceRecordResolved => {
+  let brandId = '';
+  let categoryId: string | undefined;
+  let seriesId: string | undefined;
+  let productId: string | undefined;
+
+  switch (service.level) {
+    case 'brand':
+      brandId = service.levelId;
+      break;
+    case 'category': {
+      const category = categoriesById.get(service.levelId);
+      brandId = category?.brandId || '';
+      categoryId = service.levelId;
+      break;
+    }
+    case 'series': {
+      const series = seriesById.get(service.levelId);
+      const category = series ? categoriesById.get(series.categoryId) : undefined;
+      brandId = category?.brandId || '';
+      categoryId = series?.categoryId;
+      seriesId = service.levelId;
+      break;
+    }
+    case 'product': {
+      const product = productsById.get(service.levelId);
+      const series = product ? seriesById.get(product.seriesId) : undefined;
+      const category = series ? categoriesById.get(series.categoryId) : undefined;
+      brandId = category?.brandId || '';
+      categoryId = series?.categoryId;
+      seriesId = product?.seriesId;
+      productId = service.levelId;
+      break;
+    }
+    default:
+      break;
+  }
+
+  return {
+    ...service,
+    brandId,
+    categoryId,
+    seriesId,
+    productId,
+    parentServiceId: service.parentServiceId ?? null,
+    isVariant: service.isVariant ?? false,
+  };
+};
+
+const records = (serviceRecords as ServiceRecord[]).map(resolveServiceRecord);
+const overrides = (serviceProductOverrides as ServiceProductOverride[]).map(o => ({ ...o, isActive: o.isActive ?? true }));
+
+export const getAllServiceRecords = (): ServiceRecordResolved[] => {
   return records;
 };
 
-export const getServiceRecordById = (id: string): ServiceRecord | undefined => {
-  return records.find((s: ServiceRecord) => s.id === id);
+export const getServiceRecordById = (id: string): ServiceRecordResolved | undefined => {
+  return records.find((s: ServiceRecordResolved) => s.id === id);
 };
 
 /**
  * Get all services applicable to a specific product.
  * This resolves the hierarchy: brand → category → series → product level services.
  */
-export const getServicesForProduct = (productId: string): ServiceRecord[] => {
+export const getServicesForProduct = (productId: string): ServiceRecordResolved[] => {
   const product = getProductById(productId);
   if (!product) return [];
 
-  return records.filter((svc: ServiceRecord) => {
+  return records.filter((svc: ServiceRecordResolved) => {
     if (!svc.isActive) return false;
 
     switch (svc.level) {
       case 'brand':
-        return svc.brandId === product.brandId;
+        return svc.levelId === product.brandId;
       case 'category':
-        return svc.categoryId === product.categoryId;
+        return svc.levelId === product.categoryId;
       case 'series':
-        return svc.seriesId === product.seriesId;
+        return svc.levelId === product.seriesId;
       case 'product':
-        return svc.productId === productId;
+        return svc.levelId === productId;
       default:
         return false;
     }
@@ -43,7 +99,7 @@ export const isServiceDisabledForProduct = (serviceId: string, productId: string
   const override = overrides.find(
     (o: ServiceProductOverride) => o.serviceId === serviceId && o.productId === productId
   );
-  return override?.isDisabled === true;
+  return override?.isActive === false;
 };
 
 /**
