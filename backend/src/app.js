@@ -75,6 +75,4 @@ const createApp = (logger = testLogger) => {
   return app;
 };
 
-module.exports = {
-  createApp,
-};
+module.exports = createApp;

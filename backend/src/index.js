@@ -1,7 +1,7 @@
 const { initLogger } = require("./utils/logger/logger");
 const { PORT } = require("./config/envConfig");
 const connectDB = require("./config/db");
-const { createApp } = require("./app");
+const createApp = require("./app");
 
 const server = async () => {
   const logger = await initLogger("backend");

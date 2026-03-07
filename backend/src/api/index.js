@@ -1,4 +1,4 @@
-const { createApp } = require("../app");
+const createApp = require("../app");
 const { initLogger } = require("../utils/logger/logger");
 
 const logger = initLogger("backend").catch((err) => {
