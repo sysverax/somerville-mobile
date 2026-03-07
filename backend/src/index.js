@@ -10,6 +10,9 @@ const server = async () => {
   await connectDB(logger);
 
   const app = createApp(logger);
+  app.get("/", (req, res) => {
+    res.send("Hello");
+  });
 
   app.listen(PORT, () => logger.info(`Server started on ${PORT}`));
 };
