@@ -34,10 +34,10 @@ const invalidJsonHandler = (err, req, res, next) => {
   next(err);
 };
 
-const createApp = (logger = testLogger) => {
-  const app = express();
+const app = (logger = testLogger) => {
+  const expressApp = express();
 
-  app.use(
+  expressApp.use(
     cors({
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
@@ -53,30 +53,30 @@ const createApp = (logger = testLogger) => {
   );
 
   const [contextMw, morganMw] = requestContextMiddleware(logger);
-  app.use(contextMw);
-  app.use(morganMw);
-  app.use(express.json());
-  app.use(cookieParser());
+  expressApp.use(contextMw);
+  expressApp.use(morganMw);
+  expressApp.use(express.json());
+  expressApp.use(cookieParser());
 
-  app.get("/", (req, res) => {
+  expressApp.get("/", (req, res) => {
     res.send("Hello");
   });
 
-  app.get("/ping", (req, res) => {
+  expressApp.get("/ping", (req, res) => {
     res.send("pong");
   });
 
-  app.use("/api/auth", authRoutes);
-  app.use("/api/brands", brandRoutes);
-  app.use("/api/categories", categoryRoutes);
-  app.use("/api/series", seriesRoutes);
-  app.use("/api/products", productRoutes);
-  app.use("/api/services", serviceRoutes);
+  expressApp.use("/api/auth", authRoutes);
+  expressApp.use("/api/brands", brandRoutes);
+  expressApp.use("/api/categories", categoryRoutes);
+  expressApp.use("/api/series", seriesRoutes);
+  expressApp.use("/api/products", productRoutes);
+  expressApp.use("/api/services", serviceRoutes);
 
-  app.use(invalidJsonHandler);
-  app.use(errorHandler);
+  expressApp.use(invalidJsonHandler);
+  expressApp.use(errorHandler);
 
-  return app;
+  return expressApp;
 };
 
-module.exports = createApp;
+export default app;

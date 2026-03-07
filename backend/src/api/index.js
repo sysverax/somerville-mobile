@@ -1,10 +1,10 @@
-const createApp = require("../app");
+const app = require("../app");
 const { initLogger } = require("../utils/logger/logger");
 
 const logger = initLogger("backend").catch((err) => {
   console.error("Failed to initialize logger:", err);
   process.exit(1);
 });
-const app = createApp(logger);
+const appInstance = app(logger);
 
-module.exports = app;
+module.exports = appInstance;
