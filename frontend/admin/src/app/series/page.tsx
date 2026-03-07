@@ -17,6 +17,8 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import ImageUpload from '@/components/ImageUpload';
 import TablePagination from '@/components/TablePagination';
+import { computeSeriesVisibility, isParentInactive } from '@/lib/visibility';
+import { VisibilityBadge, HiddenReasonCell, ParentNameCell } from '@/components/VisibilityBadge';
 
 const validateBrand = (value: string): string | undefined => {
   if (!value) return 'Brand is required';
@@ -85,6 +87,8 @@ const SeriesPage = () => {
 
   const brandName = (id: string) => brands.find(b => b.id === id)?.name || id;
   const categoryName = (id: string) => categories.find(c => c.id === id)?.name || id;
+  const getBrand = (id: string) => brands.find(b => b.id === id);
+  const getCategory = (id: string) => categories.find(c => c.id === id);
 
   return (
     <div className="space-y-6">
@@ -121,7 +125,7 @@ const SeriesPage = () => {
                   <h3 className="font-semibold truncate">{s.name}</h3>
                   <p className="text-xs text-muted-foreground truncate">{s.description}</p>
                 </div>
-                <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
+                <VisibilityBadge visibility={computeSeriesVisibility(s, getCategory(s.categoryId), getBrand(s.brandId))} />
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-border/50">
                 <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={s.isActive} onCheckedChange={() => toggleActive(s.id)} /></div>
@@ -143,29 +147,38 @@ const SeriesPage = () => {
                 <TableHead>Brand</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead className="hidden md:table-cell">Description</TableHead>
-                <TableHead className="w-24">Status</TableHead>
+                <TableHead className="w-24">Visibility</TableHead>
+                <TableHead className="w-[150px] hidden lg:table-cell">Hidden Reason</TableHead>
                 <TableHead className="w-20">Active</TableHead>
                 <TableHead className="w-24 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginated.map(s => (
-                <TableRow key={s.id}>
-                  <TableCell><img src={s.image} alt={s.name} className="h-8 w-8 rounded-md object-cover bg-muted" /></TableCell>
-                  <TableCell className="font-medium">{s.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{brandName(s.brandId)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{categoryName(s.categoryId)}</TableCell>
-                  <TableCell className="hidden md:table-cell text-muted-foreground text-sm truncate max-w-[200px]">{s.description}</TableCell>
-                  <TableCell><Badge variant={s.isActive ? 'default' : 'secondary'} className="text-xs">{s.isActive ? 'Active' : 'Inactive'}</Badge></TableCell>
-                  <TableCell><Switch checked={s.isActive} onCheckedChange={() => toggleActive(s.id)} /></TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(s)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {paginated.map(s => {
+                const brand = getBrand(s.brandId);
+                const category = getCategory(s.categoryId);
+                const visibility = computeSeriesVisibility(s, category, brand);
+                const brandInactive = isParentInactive(brand);
+                const categoryInactive = isParentInactive(category);
+                return (
+                  <TableRow key={s.id}>
+                    <TableCell><img src={s.image} alt={s.name} className="h-8 w-8 rounded-md object-cover bg-muted" /></TableCell>
+                    <TableCell className="font-medium">{s.name}</TableCell>
+                    <TableCell className="text-sm"><ParentNameCell name={brandName(s.brandId)} isInactive={brandInactive} /></TableCell>
+                    <TableCell className="text-sm"><ParentNameCell name={categoryName(s.categoryId)} isInactive={categoryInactive} /></TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm truncate max-w-[200px]">{s.description}</TableCell>
+                    <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
+                    <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
+                    <TableCell><Switch checked={s.isActive} onCheckedChange={() => toggleActive(s.id)} /></TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(s)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -191,7 +204,7 @@ const SeriesPage = () => {
             </div>
             <div className="space-y-2 mx-1">
               <Label>Category *</Label>
-              <Select value={form.categoryId} 
+              <Select value={form.categoryId}
                 onValueChange={v => {
                   setForm(f => ({ ...f, categoryId: v }));
                   setTouched(prev => ({ ...prev, categoryId: true }));
@@ -218,7 +231,7 @@ const SeriesPage = () => {
                 }}
               />
               {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
-            </div>            
+            </div>
             <div className="space-y-2 mx-1"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div className="space-y-2">
               <Label>Image *</Label>
