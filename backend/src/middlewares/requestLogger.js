@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require("uuid");
+const crypto = require("crypto");
 const morgan = require("morgan");
 
 function requestContextMiddleware(logger) {
@@ -16,7 +16,7 @@ function requestContextMiddleware(logger) {
   return [
     // Middleware #1: Inject requestId and a child logger
     (req, res, next) => {
-      req.id = req.headers["x-request-id"] || uuidv4();
+      req.id = req.headers["x-request-id"] || crypto.randomUUID();
       // Create a child logger that includes requestId
       req.logger = logger.child({ requestId: req.id });
 
