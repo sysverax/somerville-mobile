@@ -79,4 +79,4 @@ const app = (logger = testLogger) => {
   return expressApp;
 };
 
-export default app;
+module.exports = app;
