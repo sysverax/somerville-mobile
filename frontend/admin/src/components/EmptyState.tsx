@@ -16,7 +16,7 @@ const EmptyState = ({ title, description, compact = false, actionLabel, onAction
             <p className="font-medium text-foreground">{title}</p>
             {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
             {actionLabel && onAction && (
-                <Button onClick={onAction} variant="outline" className="mt-4 gap-2" disabled={actionDisabled}>
+                <Button onClick={onAction} variant="default" className="mt-4 gap-2" disabled={actionDisabled}>
                     <Plus className="h-4 w-4" />
                     {actionLabel}
                 </Button>
