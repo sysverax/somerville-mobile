@@ -1,21 +1,90 @@
-import { ServiceRecord, ServiceProduct } from '@/types';
+import { ServiceDocument, ServiceRecord, ServiceProduct } from '@/types';
 import { mockServices, mockServiceProductOverrides } from '@/mock-data/services';
+import { mockCategories } from '@/mock-data/categories';
+import { mockSeries } from '@/mock-data/series';
 import { mockProducts } from '@/mock-data/products';
 
-let services: ServiceRecord[] = [...mockServices];
-let overrides: ServiceProduct[] = [...mockServiceProductOverrides];
+const categoriesById = new Map(mockCategories.map(c => [c.id, c]));
+const seriesById = new Map(mockSeries.map(s => [s.id, s]));
+const productsById = new Map(mockProducts.map(p => [p.id, p]));
+
+const normalizeServiceRecord = (service: ServiceDocument): ServiceRecord => {
+  let brandId = '';
+  let categoryId: string | undefined;
+  let seriesId: string | undefined;
+  let productId: string | undefined;
+
+  switch (service.level) {
+    case 'brand': {
+      brandId = service.levelId;
+      break;
+    }
+    case 'category': {
+      const category = categoriesById.get(service.levelId);
+      brandId = category?.brandId || '';
+      categoryId = service.levelId;
+      break;
+    }
+    case 'series': {
+      const series = seriesById.get(service.levelId);
+      brandId = series?.brandId || '';
+      categoryId = series?.categoryId;
+      seriesId = service.levelId;
+      break;
+    }
+    case 'product': {
+      const product = productsById.get(service.levelId);
+      brandId = product?.brandId || '';
+      categoryId = product?.categoryId;
+      seriesId = product?.seriesId;
+      productId = service.levelId;
+      break;
+    }
+    default:
+      break;
+  }
+
+  return {
+    ...service,
+    brandId,
+    categoryId,
+    seriesId,
+    productId,
+    parentServiceId: service.parentServiceId ?? null,
+    isVariant: service.isVariant ?? false,
+  };
+};
+
+const inferLevelId = (service: Partial<ServiceRecord>): string => {
+  if (service.levelId) return service.levelId;
+  switch (service.level) {
+    case 'brand':
+      return service.brandId || '';
+    case 'category':
+      return service.categoryId || '';
+    case 'series':
+      return service.seriesId || '';
+    case 'product':
+      return service.productId || '';
+    default:
+      return '';
+  }
+};
+
+let services: ServiceRecord[] = mockServices.map(normalizeServiceRecord);
+let overrides: ServiceProduct[] = mockServiceProductOverrides.map(o => ({ ...o, isActive: o.isActive ?? true }));
 
 // Helper: Get products that inherit a service based on its level
 const getLinkedProductsForService = (service: ServiceRecord): string[] => {
   switch (service.level) {
     case 'brand':
-      return mockProducts.filter(p => p.brandId === service.brandId).map(p => p.id);
+      return mockProducts.filter(p => p.brandId === service.levelId).map(p => p.id);
     case 'category':
-      return mockProducts.filter(p => p.categoryId === service.categoryId).map(p => p.id);
+      return mockProducts.filter(p => p.categoryId === service.levelId).map(p => p.id);
     case 'series':
-      return mockProducts.filter(p => p.seriesId === service.seriesId).map(p => p.id);
+      return mockProducts.filter(p => p.seriesId === service.levelId).map(p => p.id);
     case 'product':
-      return service.productId ? [service.productId] : [];
+      return service.levelId ? [service.levelId] : [];
     default:
       return [];
   }
@@ -23,8 +92,7 @@ const getLinkedProductsForService = (service: ServiceRecord): string[] => {
 
 // Helper: Auto-create product_service records for a service
 const autoPopulateProductServices = (service: ServiceRecord): void => {
-  // Only create for non-variant services or variants with prices
-  if (service.basePrice === 0 && service.estimatedTime === 0) return;
+  if (service.basePrice <= 0 || service.estimatedTime <= 0) return;
 
   const linkedProducts = getLinkedProductsForService(service);
   linkedProducts.forEach(productId => {
@@ -37,6 +105,7 @@ const autoPopulateProductServices = (service: ServiceRecord): void => {
         productId,
         price: service.basePrice,
         estimatedTime: service.estimatedTime,
+        isActive: true,
       };
       overrides.push(productService);
     }
@@ -51,26 +120,50 @@ export const serviceService = {
   getVariants: (parentId: string): ServiceRecord[] => services.filter(s => s.parentServiceId === parentId && s.isVariant),
   hasVariants: (parentId: string): boolean => services.some(s => s.parentServiceId === parentId && s.isVariant),
   create: (data: Omit<ServiceRecord, 'id' | 'createdAt'>): ServiceRecord => {
-    const record: ServiceRecord = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString().split('T')[0] };
+    const levelId = inferLevelId(data);
+    const record = normalizeServiceRecord({
+      id: crypto.randomUUID(),
+      name: data.name,
+      description: data.description,
+      basePrice: data.basePrice,
+      estimatedTime: data.estimatedTime,
+      isActive: data.isActive,
+      level: data.level,
+      levelId,
+      parentServiceId: data.parentServiceId,
+      isVariant: data.isVariant,
+      createdAt: new Date().toISOString().split('T')[0],
+    });
     services = [...services, record];
-    // Auto-create product_service records for all linked products
     autoPopulateProductServices(record);
     return record;
   },
   update: (id: string, data: Partial<ServiceRecord>): ServiceRecord => {
-    services = services.map(s => s.id === id ? { ...s, ...data } : s);
+    services = services.map(s => {
+      if (s.id !== id) return s;
+      const merged: ServiceRecord = { ...s, ...data };
+      const levelId = inferLevelId(merged);
+      return normalizeServiceRecord({
+        id: merged.id,
+        name: merged.name,
+        description: merged.description,
+        basePrice: merged.basePrice,
+        estimatedTime: merged.estimatedTime,
+        isActive: merged.isActive,
+        level: merged.level,
+        levelId,
+        parentServiceId: merged.parentServiceId,
+        isVariant: merged.isVariant,
+        createdAt: merged.createdAt,
+      });
+    });
     return services.find(s => s.id === id)!;
   },
   delete: (id: string): void => {
-    // Also delete child variants and their overrides
-    const children = services.filter(s => s.parentServiceId === id);
-    children.forEach(c => {
-      overrides = overrides.filter(o => o.serviceId !== c.id);
-    });
     overrides = overrides.filter(o => o.serviceId !== id);
-    services = services.filter(s => s.id !== id && s.parentServiceId !== id);
+    services = services.filter(s => s.id !== id);
   },
-  getCount: (): number => services.filter(s => !(s.isVariant === false && serviceService.hasVariants(s.id))).length,
+  getCount: (): number => services.length,
 
   // Product overrides
   getOverrides: (): ServiceProduct[] => [...overrides],
@@ -79,10 +172,10 @@ export const serviceService = {
   upsertOverride: (data: Omit<ServiceProduct, 'id'>): ServiceProduct => {
     const existing = overrides.find(o => o.serviceId === data.serviceId && o.productId === data.productId);
     if (existing) {
-      overrides = overrides.map(o => o.id === existing.id ? { ...o, ...data } : o);
+      overrides = overrides.map(o => o.id === existing.id ? { ...o, ...data, isActive: data.isActive ?? true } : o);
       return overrides.find(o => o.id === existing.id)!;
     }
-    const override: ServiceProduct = { ...data, id: crypto.randomUUID() };
+    const override: ServiceProduct = { ...data, id: crypto.randomUUID(), isActive: data.isActive ?? true };
     overrides = [...overrides, override];
     return override;
   },

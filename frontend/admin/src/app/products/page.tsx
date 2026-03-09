@@ -67,6 +67,7 @@ const ProductsPage = () => {
   const [specKey, setSpecKey] = useState('');
   const [specVal, setSpecVal] = useState('');
   const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [requestError, setRequestError] = useState<string | null>(null);
   const [touched, setTouched] = useState<{ brandId?: boolean; categoryId?: boolean; seriesId?: boolean; name?: boolean; iconImage?: boolean }>({});
 
   // Service overrides dialog
@@ -84,12 +85,12 @@ const ProductsPage = () => {
   const [pageSize, setPageSize] = useState(10);
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const openAdd = () => { setEditing(null); setForm({ seriesId: '', categoryId: '', brandId: '', name: '', description: '', specifications: {}, iconImage: null, galleryImages: [] }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
-  const openEdit = (p: Product) => { setEditing(p); setForm({ seriesId: p.seriesId, categoryId: p.categoryId, brandId: p.brandId, name: p.name, description: p.description, specifications: { ...p.specifications }, iconImage: p.iconImage, galleryImages: [...p.galleryImages] }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
+  const openAdd = () => { setEditing(null); setForm({ seriesId: '', categoryId: '', brandId: '', name: '', description: '', specifications: {}, iconImage: null, galleryImages: [] }); setFormErrors({}); setTouched({}); setRequestError(null); setIsFormOpen(true); };
+  const openEdit = (p: Product) => { setEditing(p); setForm({ seriesId: p.seriesId, categoryId: p.categoryId, brandId: p.brandId, name: p.name, description: p.description, specifications: { ...p.specifications }, iconImage: p.iconImage, galleryImages: [...p.galleryImages] }); setFormErrors({}); setTouched({}); setRequestError(null); setIsFormOpen(true); };
 
-  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
+  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); setRequestError(null); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const brandErr = validateBrand(form.brandId);
     const categoryErr = validateCategory(form.categoryId);
     const seriesErr = validateSeries(form.seriesId);
@@ -100,8 +101,17 @@ const ProductsPage = () => {
       setTouched({ brandId: true, categoryId: true, seriesId: true, name: true, iconImage: true });
       return;
     }
-    if (editing) update(editing.id, form); else create(form);
-    setIsFormOpen(false);
+    setRequestError(null);
+    try {
+      if (editing) {
+        await update(editing.id, form);
+      } else {
+        await create(form);
+      }
+      setIsFormOpen(false);
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : 'Failed to save product');
+    }
   };
   const addSpec = () => { if (specKey.trim() && specVal.trim()) { setForm(f => ({ ...f, specifications: { ...f.specifications, [specKey]: specVal } })); setSpecKey(''); setSpecVal(''); } };
 
@@ -131,7 +141,7 @@ const ProductsPage = () => {
       }
       if (!includeDisabled) {
         const override = overrides.find(o => o.serviceId === s.id && o.productId === p.id);
-        if (override?.isDisabled) return false;
+        if (override && override.isActive === false) return false;
       }
       return true;
     });
@@ -139,7 +149,7 @@ const ProductsPage = () => {
 
   const isServiceDisabledForProduct = (serviceId: string, productId: string): boolean => {
     const override = overrides.find(o => o.serviceId === serviceId && o.productId === productId);
-    return override?.isDisabled === true;
+    return override?.isActive === false;
   };
 
   const groupServicesForProduct = (productId: string) => {
@@ -252,7 +262,7 @@ const ProductsPage = () => {
                   </div>
                 )}
                 <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                  <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={p.isActive} onCheckedChange={() => toggleActive(p.id)} /></div>
+                  <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={p.isActive} onCheckedChange={() => { toggleActive(p.id).catch(() => undefined); }} /></div>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openServiceOverrides(p)} title="Manage service overrides"><Wrench className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -303,7 +313,7 @@ const ProductsPage = () => {
                     <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{productServices.length} service(s)</TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden xl:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
-                    <TableCell><Switch checked={p.isActive} onCheckedChange={() => toggleActive(p.id)} /></TableCell>
+                    <TableCell><Switch checked={p.isActive} onCheckedChange={() => { toggleActive(p.id).catch(() => undefined); }} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openServiceOverrides(p)} title="Service overrides"><Wrench className="h-3.5 w-3.5" /></Button>
@@ -326,6 +336,7 @@ const ProductsPage = () => {
         <DialogContent className="flex flex-col max-h-[90vh]">
           <DialogHeader><DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
+            {requestError && <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{requestError}</div>}
             {/* Brand / Category / Series */}
             <div className="grid grid-cols-3 gap-2 mx-1">
               <div className="space-y-1">
@@ -560,7 +571,7 @@ const ProductsPage = () => {
       {/* Delete confirm */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Product</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete &quot;{deleteTarget?.name}&quot;? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { if (deleteTarget) { remove(deleteTarget.id); setDeleteTarget(null); } }}>Delete</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { if (deleteTarget) { remove(deleteTarget.id).catch(() => undefined); setDeleteTarget(null); } }}>Delete</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

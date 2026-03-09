@@ -55,6 +55,7 @@ const SeriesPage = () => {
   const [deleteTarget, setDeleteTarget] = useState<Series | null>(null);
   const [form, setForm] = useState({ categoryId: '', brandId: '', name: '', image: null as string | null, description: '' });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [requestError, setRequestError] = useState<string | null>(null);
   const [touched, setTouched] = useState<{ brandId?: boolean; categoryId?: boolean; name?: boolean; image?: boolean }>({});
 
   // Pagination
@@ -66,12 +67,12 @@ const SeriesPage = () => {
   const filtered = seriesList.filter(s => (!applied.brandId || s.brandId === applied.brandId) && (!applied.categoryId || s.categoryId === applied.categoryId));
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const openAdd = () => { setEditing(null); setForm({ categoryId: applied.categoryId, brandId: applied.brandId, name: '', image: null, description: '' }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
-  const openEdit = (s: Series) => { setEditing(s); setForm({ categoryId: s.categoryId, brandId: s.brandId, name: s.name, image: s.image, description: s.description }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
+  const openAdd = () => { setEditing(null); setForm({ categoryId: applied.categoryId, brandId: applied.brandId, name: '', image: null, description: '' }); setFormErrors({}); setTouched({}); setRequestError(null); setIsFormOpen(true); };
+  const openEdit = (s: Series) => { setEditing(s); setForm({ categoryId: s.categoryId, brandId: s.brandId, name: s.name, image: s.image, description: s.description }); setFormErrors({}); setTouched({}); setRequestError(null); setIsFormOpen(true); };
 
-  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
+  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); setRequestError(null); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const brandErr = validateBrand(form.brandId);
     const categoryErr = validateCategory(form.categoryId);
     const nameErr = validateName(form.name);
@@ -81,8 +82,17 @@ const SeriesPage = () => {
       setTouched({ brandId: true, categoryId: true, name: true, image: true });
       return;
     }
-    if (editing) update(editing.id, form); else create(form);
-    setIsFormOpen(false);
+    setRequestError(null);
+    try {
+      if (editing) {
+        await update(editing.id, form);
+      } else {
+        await create(form);
+      }
+      setIsFormOpen(false);
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : 'Failed to save series');
+    }
   };
 
   const brandName = (id: string) => brands.find(b => b.id === id)?.name || id;
@@ -128,7 +138,7 @@ const SeriesPage = () => {
                 <VisibilityBadge visibility={computeSeriesVisibility(s, getCategory(s.categoryId), getBrand(s.brandId))} />
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={s.isActive} onCheckedChange={() => toggleActive(s.id)} /></div>
+                <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={s.isActive} onCheckedChange={() => { toggleActive(s.id).catch(() => undefined); }} /></div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}><Pencil className="h-3.5 w-3.5" /></Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(s)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
@@ -169,7 +179,7 @@ const SeriesPage = () => {
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm truncate max-w-[200px]">{s.description}</TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
-                    <TableCell><Switch checked={s.isActive} onCheckedChange={() => toggleActive(s.id)} /></TableCell>
+                    <TableCell><Switch checked={s.isActive} onCheckedChange={() => { toggleActive(s.id).catch(() => undefined); }} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -190,6 +200,7 @@ const SeriesPage = () => {
         <DialogContent className="flex flex-col max-h-[90vh]">
           <DialogHeader><DialogTitle>{editing ? 'Edit Series' : 'Add Series'}</DialogTitle></DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
+            {requestError && <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{requestError}</div>}
             <div className="space-y-2 mx-1">
               <Label>Brand *</Label>
               <Select value={form.brandId} onValueChange={v => {
@@ -253,7 +264,7 @@ const SeriesPage = () => {
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Series</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete &quot;{deleteTarget?.name}&quot;? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { if (deleteTarget) { remove(deleteTarget.id); setDeleteTarget(null); } }}>Delete</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { if (deleteTarget) { remove(deleteTarget.id).catch(() => undefined); setDeleteTarget(null); } }}>Delete</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

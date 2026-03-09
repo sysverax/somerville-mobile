@@ -1,0 +1,107 @@
+const mongoose = require("mongoose");
+const Booking = require("../models/booking");
+
+const createBookingRepo = async (bookingData) => {
+  return Booking.create(bookingData);
+};
+
+const getAllBookingsRepo = async (filters, page, limit) => {
+  const skip = (page - 1) * limit;
+
+  const matchStage = {};
+
+  if (filters.date) {
+    const startOfDay = new Date(filters.date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(filters.date);
+    endOfDay.setHours(23, 59, 59, 999);
+    matchStage.scheduleDateTime = { $gte: startOfDay, $lte: endOfDay };
+  }
+
+  const pipeline = [
+    {
+      $lookup: {
+        from: "product_services",
+        localField: "productServiceId",
+        foreignField: "_id",
+        as: "productService",
+      },
+    },
+    { $unwind: "$productService" },
+    {
+      $lookup: {
+        from: "products",
+        localField: "productService.productId",
+        foreignField: "_id",
+        as: "product",
+      },
+    },
+    { $unwind: "$product" },
+    {
+      $lookup: {
+        from: "series",
+        localField: "product.seriesId",
+        foreignField: "_id",
+        as: "series",
+      },
+    },
+    { $unwind: "$series" },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "series.categoryId",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    { $unwind: "$category" },
+    {
+      $lookup: {
+        from: "brands",
+        localField: "category.brandId",
+        foreignField: "_id",
+        as: "brand",
+      },
+    },
+    { $unwind: "$brand" },
+    {
+        $lookup: {
+          from: "services",
+          localField: "productService.serviceId",
+          foreignField: "_id",
+          as: "serviceDetails",
+        },
+      },
+      { $unwind: "$serviceDetails" },
+  ];
+
+  const filterMatch = { ...matchStage };
+  if (filters.brandId) filterMatch["brand._id"] = new mongoose.Types.ObjectId(filters.brandId);
+  if (filters.categoryId) filterMatch["category._id"] = new mongoose.Types.ObjectId(filters.categoryId);
+  if (filters.seriesId) filterMatch["series._id"] = new mongoose.Types.ObjectId(filters.seriesId);
+  if (filters.productId) filterMatch["product._id"] = new mongoose.Types.ObjectId(filters.productId);
+
+  pipeline.push({ $match: filterMatch });
+
+  pipeline.push({
+    $facet: {
+      metadata: [{ $count: "total" }],
+      data: [
+        { $sort: { scheduleDateTime: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+      ],
+    },
+  });
+
+  const result = await Booking.aggregate(pipeline);
+  const bookings = result[0].data;
+  const total = result[0].metadata[0]?.total || 0;
+
+  return { bookings, total };
+};
+
+module.exports = {
+  createBookingRepo,
+  getAllBookingsRepo,
+};

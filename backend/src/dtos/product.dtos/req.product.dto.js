@@ -89,6 +89,7 @@ class CreateProductRequestDTO {
 class UpdateProductRequestDTO {
   constructor(params, body, files) {
     this.id = params.id;
+    this.seriesId = body?.seriesId !== undefined ? body.seriesId : undefined;
     this.name =
       body?.name !== undefined
         ? typeof body.name === "string"
@@ -102,7 +103,6 @@ class UpdateProductRequestDTO {
           : body.description
         : undefined;
     this.isActive = body?.isActive !== undefined ? body.isActive : undefined;
-    this.seriesId = body?.seriesId !== undefined ? body.seriesId : undefined;
 
     if (files) {
       this.iconImageFile = files?.iconImage ? files.iconImage[0] : null;
@@ -122,6 +122,14 @@ class UpdateProductRequestDTO {
         "Invalid product id format",
         "Provided product id is not a valid MongoDB ObjectId.",
         "Provide a valid product id and try again.",
+      );
+    }
+
+    if (this.seriesId !== undefined) {
+      throw new appError.BadRequestError(
+        "Series ID cannot be updated",
+        "The series association of a product cannot be changed after creation.",
+        "Remove the 'seriesId' field from the request.",
       );
     }
 
@@ -155,23 +163,6 @@ class UpdateProductRequestDTO {
       }
     }
 
-    if (this.seriesId !== undefined) {
-      if (!this.seriesId) {
-        throw new appError.BadRequestError(
-          "Invalid series id",
-          "The 'seriesId' field must not be empty when provided.",
-          "Provide a valid series ID and try again.",
-        );
-      }
-      if (!mongoose.Types.ObjectId.isValid(this.seriesId)) {
-        throw new appError.BadRequestError(
-          "Invalid series id format",
-          "Provided series id is not a valid MongoDB ObjectId.",
-          "Provide a valid series id and try again.",
-        );
-      }
-    }
-
     if (this.iconImageFile) {
       if (!validators.isValidImageType(this.iconImageFile.mimetype)) {
         throw new appError.BadRequestError(
@@ -197,7 +188,6 @@ class UpdateProductRequestDTO {
     if (this.name !== undefined) payload.name = this.name;
     if (this.description !== undefined) payload.description = this.description;
     if (this.isActive !== undefined) payload.isActive = this.isActive;
-    if (this.seriesId !== undefined) payload.seriesId = this.seriesId;
     if (this.iconImageFile) payload.iconImageFile = this.iconImageFile;
     return payload;
   }

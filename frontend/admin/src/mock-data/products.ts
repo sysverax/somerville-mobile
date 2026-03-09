@@ -1,4 +1,4 @@
-import { Product } from '@/types';
+import { ProductDocument } from '@/types';
 
 // export const mockProducts: Product[] = [
 //   // Apple > iPhone > iPhone 15 Series
@@ -82,7 +82,7 @@ import { Product } from '@/types';
 
 const P = '/mock-images/default/placeholder.png';
 
-export const mockProducts: Product[] = [
+const legacyProducts = [
   // Apple > iPhone > iPhone 15 Series
   { id: 'p1', seriesId: 's1', categoryId: 'c1', brandId: 'b1', name: 'iPhone 15', description: 'A16 Bionic chip, Dynamic Island', specifications: { Chip: 'A16 Bionic', Display: '6.1" Super Retina XDR', Camera: '48MP Main' }, iconImage: '/mock-images/categories/iphone.png', galleryImages: ['/mock-images/categories/iphone.png'], isActive: true, createdAt: '2024-01-18' },
   { id: 'p2', seriesId: 's1', categoryId: 'c1', brandId: 'b1', name: 'iPhone 15 Plus', description: 'A16 Bionic chip, larger display', specifications: { Chip: 'A16 Bionic', Display: '6.7" Super Retina XDR', Camera: '48MP Main' }, iconImage: '/mock-images/categories/iphone.png', galleryImages: ['/mock-images/categories/iphone.png'], isActive: true, createdAt: '2024-01-18' },
@@ -159,3 +159,9 @@ export const mockProducts: Product[] = [
   { id: 'p50', seriesId: 's24', categoryId: 'c15', brandId: 'b5', name: 'OnePlus Nord 3', description: 'Dimensity 9000, mid-range', specifications: { Chip: 'Dimensity 9000', Display: '6.74" AMOLED', Camera: '50MP Main' }, iconImage: '/mock-images/categories/oneplus-nord.png', galleryImages: ['/mock-images/categories/oneplus-nord.png'], isActive: true, createdAt: '2024-03-01' },
   { id: 'p51', seriesId: 's24', categoryId: 'c15', brandId: 'b5', name: 'OnePlus Nord CE 3', description: 'Snapdragon 782G', specifications: { Chip: 'Snapdragon 782G', Display: '6.72" AMOLED', Camera: '50MP Main' }, iconImage: '/mock-images/categories/oneplus-nord.png', galleryImages: ['/mock-images/categories/oneplus-nord.png'], isActive: true, createdAt: '2024-03-01' },
 ];
+
+export const mockProducts: ProductDocument[] = legacyProducts.map(({ brandId, categoryId, specifications, galleryImages, iconImage, ...product }) => ({
+  ...product,
+  imageUrl: iconImage,
+  updatedAt: product.createdAt,
+}));

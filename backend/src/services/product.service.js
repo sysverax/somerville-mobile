@@ -8,6 +8,8 @@ const productRepo = require("../repositories/product.repo");
 const productResponseDto = require("../dtos/product.dtos/res.product.dto");
 const { uploadFileToS3, deleteImageFromS3 } = require("../utils/aws/s3Utils");
 const { randomUUID } = require("crypto");
+const serviceRepo = require("../repositories/service.repo");
+const productServiceRepo = require("../repositories/productService.repo");
 
 const createProductService = async (createProductRequestDto, logger) => {
   const series = await seriesRepo.getSeriesByIdRepo(
@@ -52,6 +54,75 @@ const createProductService = async (createProductRequestDto, logger) => {
     productId: product._id.toString(),
   });
 
+  try {
+    const seriesId = createProductRequestDto.seriesId;
+
+    const categoryId = series.categoryId?._id
+      ? series.categoryId._id.toString()
+      : series.categoryId?.toString();
+
+    const brandId = series.categoryId?.brandId?._id
+      ? series.categoryId.brandId._id.toString()
+      : series.categoryId?.brandId?.toString();
+
+    const parentConditions = [
+      { level: "series", levelId: seriesId },
+    ];
+    if (categoryId) parentConditions.push({ level: "category", levelId: categoryId });
+    if (brandId) parentConditions.push({ level: "brand", levelId: brandId });
+
+    const parentServices = await serviceRepo.getServicesByConditionsRepo({
+      $or: parentConditions,
+      isVariant: false,
+    });
+
+    if (parentServices.length > 0) {
+      const productId = product._id.toString();
+      const productServiceDocs = [];
+
+      for (const svc of parentServices) {
+        if (svc.isParent) {
+          const variants = await serviceRepo.getVariantsByParentServiceIdRepo(
+            svc._id.toString(),
+          );
+          for (const variant of variants) {
+            productServiceDocs.push({
+              serviceId: variant._id,
+              productId: new mongoose.Types.ObjectId(productId),
+              price: variant.basePrice,
+              estimatedTime: variant.estimatedTime,
+              isActive: true,
+              isDefault: true,
+            });
+          }
+        } else {
+          productServiceDocs.push({
+            serviceId: svc._id,
+            productId: new mongoose.Types.ObjectId(productId),
+            price: svc.basePrice,
+            estimatedTime: svc.estimatedTime,
+            isActive: true,
+            isDefault: true,
+          });
+        }
+      }
+
+      if (productServiceDocs.length > 0) {
+        await productServiceRepo.createManyProductServicesRepo(productServiceDocs);
+
+        logger.info("Inherited parent services for new product", {
+          productId,
+          inheritedServiceCount: productServiceDocs.length,
+        });
+      }
+    }
+  } catch (err) {
+    logger.error("Failed to inherit parent services for new product", {
+      productId: product._id.toString(),
+      error: err,
+    });
+  }
+
   return new productResponseDto.CreateProductResponseDTO(product);
 };
 
@@ -65,19 +136,7 @@ const updateProductService = async (updatePayload, logger) => {
     );
   }
 
-  if (updatePayload.seriesId) {
-    const series = await seriesRepo.getSeriesByIdRepo(updatePayload.seriesId);
-    if (!series) {
-      throw new appError.NotFoundError(
-        "Series not found",
-        "No series exists for the provided series id.",
-        "Check the series id and try again.",
-      );
-    }
-  }
-
-  const targetSeriesId =
-    updatePayload.seriesId || existingProduct.seriesId._id.toString();
+  const targetSeriesId = existingProduct.seriesId._id.toString();
 
   if (updatePayload.name) {
     const productWithSameName = await productRepo.getProductByNameRepo(
@@ -102,10 +161,6 @@ const updateProductService = async (updatePayload, logger) => {
       folder: `products/${existingProduct.name}-${randomUUID()}`,
     });
     updatePayload.imageUrl = uploadedIcon.url;
-  }
-
-  if (updatePayload.seriesId) {
-    updatePayload.seriesId = new mongoose.Types.ObjectId(updatePayload.seriesId);
   }
 
   const updatedProduct = await productRepo.updateProductRepo(
@@ -243,17 +298,45 @@ const deleteProductService = async (id, logger) => {
     );
   }
 
+  const serviceConditions = [
+    { level: "product", levelId: id }
+  ];
+  const services = await serviceRepo.getServicesByConditionsRepo({ $or: serviceConditions, isVariant: false });
+  const serviceIds = services.map(s => s._id.toString());
+
   if (product.imageUrl) {
-    await deleteImageFromS3(product.imageUrl).catch((error) => {
-      logger?.error("Error deleting product image", { error });
-    });
+    await deleteImageFromS3(product.imageUrl).catch(err => logger?.error("Error deleting product image from S3 against Product deletion", { error: err }));
   }
 
-  await productRepo.deleteProductRepo(id);
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  logger?.info("Product deleted successfully", {
-    productId: product._id.toString(),
-  });
+  try {
+    if (serviceIds.length > 0) {
+      await productServiceRepo.deleteProductServicesByServiceIdsRepo(serviceIds, session);
+      await serviceRepo.deleteVariantsByParentIdsRepo(serviceIds, session);
+      await serviceRepo.deleteServicesByIdsRepo(serviceIds, session);
+    }
+    
+    await productServiceRepo.deleteProductServicesByProductIdsRepo([id], session);
+    await productRepo.deleteProductRepo(id, session);
+
+    await session.commitTransaction();
+    logger?.info("Product and all associated entities deleted successfully (transaction committed)", {
+      productId: id,
+      servicesCount: serviceIds.length
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    logger?.error("Product deletion transaction failed. Rolled back.", { productId: id, error });
+    throw new appError.InternalServerError(
+      "Deletion Failed",
+      "An error occurred while deleting the product and its hierarchy. No data was deleted.",
+      "Please try again."
+    );
+  } finally {
+    session.endSession();
+  }
 };
 
 module.exports = {

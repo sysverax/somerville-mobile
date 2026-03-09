@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
-const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
 interface ImageUploadProps {
   value: string | null;
@@ -22,11 +22,11 @@ const ImageUpload = ({ value, onChange, size = 120, className }: ImageUploadProp
   const handleFile = (file: File) => {
     setError('');
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('Invalid file format. Use PNG, JPG, or WEBP.');
+      setError('Invalid file format. Use PNG, JPG, or WEBP');
       return;
     }
     if (file.size > MAX_SIZE) {
-      setError('File size exceeds 2MB.');
+      setError('File size exceeds 5MB');
       return;
     }
     const reader = new FileReader();

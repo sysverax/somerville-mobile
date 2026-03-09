@@ -1,18 +1,27 @@
 export type AssignmentLevel = 'brand' | 'category' | 'series' | 'product';
 
-export interface ServiceRecord {
+// Mirrors the backend Service model shape.
+export interface ServiceDocument {
   id: string;
   name: string;
   description: string;
+  basePrice: number;
+  estimatedTime: number;
+  isActive: boolean;
   level: AssignmentLevel;
+  levelId: string;
+  parentServiceId?: string | null;
+  isVariant?: boolean;
+  isParent?: boolean;
+  createdAt: string;
+}
+
+// UI-friendly shape used by pages/services after resolving levelId hierarchy.
+export interface ServiceRecord extends ServiceDocument {
   brandId: string;
   categoryId?: string;
   seriesId?: string;
   productId?: string;
-  basePrice: number;
-  estimatedTime: number;
-  isActive: boolean;
-  createdAt: string;
   parentServiceId?: string | null;
   isVariant: boolean;
 }
@@ -23,5 +32,5 @@ export interface ServiceProduct {
   productId: string;
   price: number;
   estimatedTime: number;
-  isDisabled?: boolean;
+  isActive?: boolean;
 }

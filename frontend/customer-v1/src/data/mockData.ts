@@ -113,7 +113,7 @@ export const brands: Brand[] = rawBrands
   .map(b => ({
     id: b.id,
     name: b.name,
-    logo: b.iconImage,
+    logo: b.iconImageUrl || '/mock-images/default/placeholder.png',
     description: b.description,
     isActive: b.isActive,
   }));
@@ -125,7 +125,7 @@ export const categories: Category[] = rawCategories
     brandId: c.brandId,
     name: c.name,
     description: c.description,
-    image: c.image,
+    image: c.imageUrl || '/mock-images/default/placeholder.png',
   }));
 
 export const series: Series[] = seriesList
@@ -135,7 +135,7 @@ export const series: Series[] = seriesList
     categoryId: s.categoryId,
     name: s.name,
     description: s.description,
-    banner: s.image,
+    banner: s.imageUrl || '/mock-images/default/placeholder.png',
     releaseYear: 2024,
   }));
 
@@ -213,8 +213,8 @@ export const products: Product[] = rawProducts
       seriesId: p.seriesId,
       name: p.name,
       description: p.description,
-      specifications: p.specifications,
-      images: [p.iconImage, ...p.galleryImages.filter((img: string) => img !== p.iconImage)],
+      specifications: {},
+      images: p.imageUrl ? [p.imageUrl] : ['/mock-images/default/placeholder.png'],
       price: price || 0,
       stock: 1, // Products are available if they exist
       sku: p.id.toUpperCase(),

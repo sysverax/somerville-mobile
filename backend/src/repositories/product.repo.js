@@ -206,8 +206,21 @@ const getAllProductsRepo = async (
   return { products, totalProducts };
 };
 
-const deleteProductRepo = async (id) => {
-  return Product.findByIdAndDelete(id);
+const deleteProductRepo = async (id, session = null) => {
+  return Product.findByIdAndDelete(id, { session });
+};
+
+const getProductsBySeriesIdsRepo = async (seriesIds) => {
+  return Product.find({
+    seriesId: { $in: seriesIds.map((id) => new mongoose.Types.ObjectId(id)) },
+  }).lean();
+};
+
+const deleteProductsBySeriesIdsRepo = async (seriesIds, session = null) => {
+  return Product.deleteMany(
+    { seriesId: { $in: seriesIds.map((id) => new mongoose.Types.ObjectId(id)) } },
+    { session }
+  );
 };
 
 module.exports = {
@@ -218,4 +231,6 @@ module.exports = {
   updateProductStatusRepo,
   getAllProductsRepo,
   deleteProductRepo,
+  getProductsBySeriesIdsRepo,
+  deleteProductsBySeriesIdsRepo,
 };

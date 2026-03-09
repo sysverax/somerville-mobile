@@ -1,29 +1,40 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Brand } from '@/types';
 import { brandService } from '@/services/brand.service';
 
 export const useBrands = () => {
-  const [brands, setBrands] = useState<Brand[]>(brandService.getAll());
-  const refresh = useCallback(() => setBrands(brandService.getAll()), []);
+  const [brands, setBrands] = useState<Brand[]>([]);
 
-  const create = useCallback((data: Omit<Brand, 'id' | 'isActive' | 'createdAt'>) => {
-    brandService.create(data);
-    refresh();
+  const refresh = useCallback(async () => {
+    const allBrands = await brandService.getAll();
+    setBrands(allBrands);
+  }, []);
+
+  useEffect(() => {
+    refresh().catch(() => setBrands([]));
   }, [refresh]);
 
-  const update = useCallback((id: string, data: Partial<Brand>) => {
-    brandService.update(id, data);
-    refresh();
+  const create = useCallback(async (data: { name: string; description: string; iconImage: string | null; bannerImage?: string | null }) => {
+    await brandService.create(data);
+    await refresh();
   }, [refresh]);
 
-  const remove = useCallback((id: string) => {
-    brandService.delete(id);
-    refresh();
+  const update = useCallback(async (id: string, data: Partial<{ name: string; description: string; iconImage: string | null; bannerImage?: string | null; isActive: boolean }>) => {
+    await brandService.update(id, data);
+    await refresh();
   }, [refresh]);
 
-  const toggleActive = useCallback((id: string) => {
+  const remove = useCallback(async (id: string) => {
+    await brandService.delete(id);
+    await refresh();
+  }, [refresh]);
+
+  const toggleActive = useCallback(async (id: string) => {
     const brand = brandService.getById(id);
-    if (brand) { brandService.update(id, { isActive: !brand.isActive }); refresh(); }
+    if (brand) {
+      await brandService.update(id, { isActive: !brand.isActive });
+      await refresh();
+    }
   }, [refresh]);
 
   return { brands, create, update, remove, toggleActive, refresh, count: brands.length };

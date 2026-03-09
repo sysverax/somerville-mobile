@@ -1,52 +1,39 @@
-import { ServiceRecord, ServiceProduct } from '@/types';
+import { ServiceDocument, ServiceProduct } from '@/types';
 
-export const mockServices: ServiceRecord[] = [
-  // ── Brand-level services ──
-  // Apple: Screen Replacement (parent + variants)
-  { id: 'svc1', name: 'Screen Replacement', description: 'Fix cracked or damaged screens', level: 'brand', brandId: 'b1', basePrice: 0, estimatedTime: 0, isActive: true, createdAt: '2024-01-20', parentServiceId: null, isVariant: false },
-  { id: 'svc1v1', name: 'Original Screen', description: 'OEM original screen replacement', level: 'brand', brandId: 'b1', basePrice: 200, estimatedTime: 60, isActive: true, createdAt: '2024-01-20', parentServiceId: 'svc1', isVariant: true },
-  { id: 'svc1v2', name: 'OEM Screen', description: 'OEM-compatible screen replacement', level: 'brand', brandId: 'b1', basePrice: 150, estimatedTime: 60, isActive: true, createdAt: '2024-01-20', parentServiceId: 'svc1', isVariant: true },
-  { id: 'svc1v3', name: 'Copy Screen', description: 'Aftermarket copy screen replacement', level: 'brand', brandId: 'b1', basePrice: 80, estimatedTime: 50, isActive: true, createdAt: '2024-01-20', parentServiceId: 'svc1', isVariant: true },
-  { id: 'svc1v4', name: 'Refurbished Screen', description: 'Refurbished screen replacement', level: 'brand', brandId: 'b1', basePrice: 100, estimatedTime: 55, isActive: true, createdAt: '2024-01-20', parentServiceId: 'svc1', isVariant: true },
+export const mockServices: ServiceDocument[] = [
+  // Brand-level services
+  { id: 'svc1', name: 'Screen Replacement', description: 'Replace damaged or broken screens', level: 'brand', levelId: 'b1', basePrice: 0, estimatedTime: 0, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-01-20' },
+  { id: 'svc1v1', name: 'Original Screen', description: 'OEM original screen replacement', level: 'brand', levelId: 'b1', basePrice: 200, estimatedTime: 60, isActive: true, parentServiceId: 'svc1', isVariant: true, isParent: false, createdAt: '2024-01-20' },
+  { id: 'svc1v2', name: 'OEM Screen', description: 'OEM-compatible screen replacement', level: 'brand', levelId: 'b1', basePrice: 150, estimatedTime: 60, isActive: true, parentServiceId: 'svc1', isVariant: true, isParent: false, createdAt: '2024-01-20' },
+  { id: 'svc1v3', name: 'Copy Screen', description: 'Aftermarket copy screen replacement', level: 'brand', levelId: 'b1', basePrice: 80, estimatedTime: 50, isActive: true, parentServiceId: 'svc1', isVariant: true, isParent: false, createdAt: '2024-01-20' },
+  { id: 'svc1v4', name: 'Refurbished Screen', description: 'Refurbished screen replacement', level: 'brand', levelId: 'b1', basePrice: 100, estimatedTime: 55, isActive: true, parentServiceId: 'svc1', isVariant: true, isParent: false, createdAt: '2024-01-20' },
+  { id: 'svc2', name: 'Battery Replacement', description: 'Replace worn-out battery', level: 'brand', levelId: 'b1', basePrice: 80, estimatedTime: 45, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-01-21' },
+  { id: 'svc3', name: 'Full Diagnostic', description: 'Complete device health check', level: 'brand', levelId: 'b2', basePrice: 50, estimatedTime: 30, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-01-22' },
+  { id: 'svc4', name: 'Software Reset', description: 'Factory reset and software reinstall', level: 'brand', levelId: 'b3', basePrice: 30, estimatedTime: 20, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-02-12' },
+  { id: 'svc5', name: 'Screen Replacement', description: 'Replace damaged or broken screens', level: 'brand', levelId: 'b2', basePrice: 0, estimatedTime: 0, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-01-22' },
+  { id: 'svc5v1', name: 'Original Screen', description: 'OEM original screen replacement', level: 'brand', levelId: 'b2', basePrice: 180, estimatedTime: 60, isActive: true, parentServiceId: 'svc5', isVariant: true, isParent: false, createdAt: '2024-01-22' },
+  { id: 'svc5v2', name: 'Copy Screen', description: 'Aftermarket copy screen', level: 'brand', levelId: 'b2', basePrice: 90, estimatedTime: 50, isActive: true, parentServiceId: 'svc5', isVariant: true, isParent: false, createdAt: '2024-01-22' },
+  { id: 'svc6', name: 'Battery Replacement', description: 'Replace worn-out battery', level: 'brand', levelId: 'b5', basePrice: 60, estimatedTime: 40, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-03-02' },
+  { id: 'svc7', name: 'Console Cleaning', description: 'Deep clean console internals', level: 'brand', levelId: 'b4', basePrice: 45, estimatedTime: 30, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-02-15' },
 
-  // Apple: Battery Replacement (no variants)
-  { id: 'svc2', name: 'Battery Replacement', description: 'Replace worn-out battery', level: 'brand', brandId: 'b1', basePrice: 80, estimatedTime: 45, isActive: true, createdAt: '2024-01-21', parentServiceId: null, isVariant: false },
+  // Category-level services
+  { id: 'svc8', name: 'Charging Port Repair', description: 'Fix charging port issues', level: 'category', levelId: 'c1', basePrice: 90, estimatedTime: 45, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-01-23' },
+  { id: 'svc9', name: 'Keyboard Replacement', description: 'Replace MacBook keyboard', level: 'category', levelId: 'c3', basePrice: 250, estimatedTime: 120, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-01-24' },
+  { id: 'svc10', name: 'Band Replacement', description: 'Replace watch band and lugs', level: 'category', levelId: 'c4', basePrice: 35, estimatedTime: 15, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-01-25' },
+  { id: 'svc11', name: 'Fold Screen Repair', description: 'Fix foldable display crease or crack', level: 'category', levelId: 'c6', basePrice: 350, estimatedTime: 120, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-01-26' },
+  { id: 'svc12', name: 'Controller Repair', description: 'Fix console controller drift or buttons', level: 'category', levelId: 'c12', basePrice: 40, estimatedTime: 30, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-02-16' },
+  { id: 'svc13', name: 'DualSense Repair', description: 'Fix PS5 DualSense controller issues', level: 'category', levelId: 'c13', basePrice: 45, estimatedTime: 35, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-02-16' },
 
-  // Samsung: Full Diagnostic (no variants)
-  { id: 'svc3', name: 'Full Diagnostic', description: 'Complete device health check', level: 'brand', brandId: 'b2', basePrice: 50, estimatedTime: 30, isActive: true, createdAt: '2024-01-22', parentServiceId: null, isVariant: false },
+  // Series-level services
+  { id: 'svc14', name: 'Back Glass Replacement', description: 'Replace cracked back glass panel', level: 'series', levelId: 's1', basePrice: 120, estimatedTime: 50, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-02-01' },
+  { id: 'svc15', name: 'S Pen Calibration', description: 'Calibrate and repair S Pen', level: 'series', levelId: 's10', basePrice: 25, estimatedTime: 15, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-02-02' },
+  { id: 'svc16', name: 'Hinge Repair', description: 'Fix folding hinge mechanism', level: 'series', levelId: 's12', basePrice: 280, estimatedTime: 90, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-02-03' },
 
-  // Google: Software Reset (no variants)
-  { id: 'svc4', name: 'Software Reset', description: 'Factory reset and software reinstall', level: 'brand', brandId: 'b3', basePrice: 30, estimatedTime: 20, isActive: true, createdAt: '2024-02-12', parentServiceId: null, isVariant: false },
-
-  // Samsung: Screen Replacement (parent + variants – only Original & Copy)
-  { id: 'svc5', name: 'Screen Replacement', description: 'Fix cracked or damaged screens', level: 'brand', brandId: 'b2', basePrice: 0, estimatedTime: 0, isActive: true, createdAt: '2024-01-22', parentServiceId: null, isVariant: false },
-  { id: 'svc5v1', name: 'Original Screen', description: 'OEM original screen replacement', level: 'brand', brandId: 'b2', basePrice: 180, estimatedTime: 60, isActive: true, createdAt: '2024-01-22', parentServiceId: 'svc5', isVariant: true },
-  { id: 'svc5v2', name: 'Copy Screen', description: 'Aftermarket copy screen', level: 'brand', brandId: 'b2', basePrice: 90, estimatedTime: 50, isActive: true, createdAt: '2024-01-22', parentServiceId: 'svc5', isVariant: true },
-
-  // OnePlus: Battery Replacement (no variants)
-  { id: 'svc6', name: 'Battery Replacement', description: 'Replace worn-out battery', level: 'brand', brandId: 'b5', basePrice: 60, estimatedTime: 40, isActive: true, createdAt: '2024-03-02', parentServiceId: null, isVariant: false },
-
-  // Gaming: Console Cleaning (no variants)
-  { id: 'svc7', name: 'Console Cleaning', description: 'Deep clean console internals', level: 'brand', brandId: 'b4', basePrice: 45, estimatedTime: 30, isActive: true, createdAt: '2024-02-15', parentServiceId: null, isVariant: false },
-
-  // ── Category-level services ──
-  { id: 'svc8', name: 'Charging Port Repair', description: 'Fix charging port issues', level: 'category', brandId: 'b1', categoryId: 'c1', basePrice: 90, estimatedTime: 45, isActive: true, createdAt: '2024-01-23', parentServiceId: null, isVariant: false },
-  { id: 'svc9', name: 'Keyboard Replacement', description: 'Replace MacBook keyboard', level: 'category', brandId: 'b1', categoryId: 'c3', basePrice: 250, estimatedTime: 120, isActive: true, createdAt: '2024-01-24', parentServiceId: null, isVariant: false },
-  { id: 'svc10', name: 'Band Replacement', description: 'Replace watch band and lugs', level: 'category', brandId: 'b1', categoryId: 'c4', basePrice: 35, estimatedTime: 15, isActive: true, createdAt: '2024-01-25', parentServiceId: null, isVariant: false },
-  { id: 'svc11', name: 'Fold Screen Repair', description: 'Fix foldable display crease or crack', level: 'category', brandId: 'b2', categoryId: 'c6', basePrice: 350, estimatedTime: 120, isActive: true, createdAt: '2024-01-26', parentServiceId: null, isVariant: false },
-  { id: 'svc12', name: 'Controller Repair', description: 'Fix console controller drift or buttons', level: 'category', brandId: 'b4', categoryId: 'c12', basePrice: 40, estimatedTime: 30, isActive: true, createdAt: '2024-02-16', parentServiceId: null, isVariant: false },
-  { id: 'svc13', name: 'DualSense Repair', description: 'Fix PS5 DualSense controller issues', level: 'category', brandId: 'b4', categoryId: 'c13', basePrice: 45, estimatedTime: 35, isActive: true, createdAt: '2024-02-16', parentServiceId: null, isVariant: false },
-
-  // ── Series-level services ──
-  { id: 'svc14', name: 'Back Glass Replacement', description: 'Replace cracked back glass panel', level: 'series', brandId: 'b1', categoryId: 'c1', seriesId: 's1', basePrice: 120, estimatedTime: 50, isActive: true, createdAt: '2024-02-01', parentServiceId: null, isVariant: false },
-  { id: 'svc15', name: 'S Pen Calibration', description: 'Calibrate and repair S Pen', level: 'series', brandId: 'b2', categoryId: 'c5', seriesId: 's10', basePrice: 25, estimatedTime: 15, isActive: true, createdAt: '2024-02-02', parentServiceId: null, isVariant: false },
-  { id: 'svc16', name: 'Hinge Repair', description: 'Fix folding hinge mechanism', level: 'series', brandId: 'b2', categoryId: 'c6', seriesId: 's12', basePrice: 280, estimatedTime: 90, isActive: true, createdAt: '2024-02-03', parentServiceId: null, isVariant: false },
-
-  // ── Product-level services ──
-  { id: 'svc17', name: 'Camera Lens Repair', description: 'Fix or replace camera lens', level: 'product', brandId: 'b1', categoryId: 'c1', seriesId: 's1', productId: 'p3', basePrice: 200, estimatedTime: 90, isActive: true, createdAt: '2024-02-05', parentServiceId: null, isVariant: false },
-  { id: 'svc18', name: 'Speaker Replacement', description: 'Replace faulty speakers', level: 'product', brandId: 'b2', categoryId: 'c5', seriesId: 's10', productId: 'p24', basePrice: 70, estimatedTime: 40, isActive: true, createdAt: '2024-02-10', parentServiceId: null, isVariant: false },
-  { id: 'svc19', name: 'HDMI Port Repair', description: 'Fix HDMI port on console', level: 'product', brandId: 'b4', categoryId: 'c12', seriesId: 's20', productId: 'p42', basePrice: 85, estimatedTime: 60, isActive: true, createdAt: '2024-02-17', parentServiceId: null, isVariant: false },
-  { id: 'svc20', name: 'Disc Drive Replacement', description: 'Replace PS5 disc drive', level: 'product', brandId: 'b4', categoryId: 'c13', seriesId: 's21', productId: 'p44', basePrice: 120, estimatedTime: 75, isActive: true, createdAt: '2024-02-18', parentServiceId: null, isVariant: false },
+  // Product-level services
+  { id: 'svc17', name: 'Camera Lens Repair', description: 'Fix or replace camera lens', level: 'product', levelId: 'p3', basePrice: 200, estimatedTime: 90, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-02-05' },
+  { id: 'svc18', name: 'Speaker Replacement', description: 'Replace faulty speakers', level: 'product', levelId: 'p24', basePrice: 70, estimatedTime: 40, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-02-10' },
+  { id: 'svc19', name: 'HDMI Port Repair', description: 'Fix HDMI port on console', level: 'product', levelId: 'p42', basePrice: 85, estimatedTime: 60, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-02-17' },
+  { id: 'svc20', name: 'Disc Drive Replacement', description: 'Replace PS5 disc drive', level: 'product', levelId: 'p44', basePrice: 120, estimatedTime: 75, isActive: true, parentServiceId: null, isVariant: false, isParent: true, createdAt: '2024-02-18' },
 ];
 
 export const mockServiceProductOverrides: ServiceProduct[] = [
@@ -112,7 +99,7 @@ export const mockServiceProductOverrides: ServiceProduct[] = [
   // Full Diagnostic (svc3) for Samsung products
   { id: 'sp39', serviceId: 'svc3', productId: 'p22', price: 50, estimatedTime: 30 },
   { id: 'sp40', serviceId: 'svc3', productId: 'p23', price: 50, estimatedTime: 30 },
-  { id: 'sp41', serviceId: 'svc3', productId: 'p24', price: 50, estimatedTime: 30, isDisabled: true }, // Disabled example
+  { id: 'sp41', serviceId: 'svc3', productId: 'p24', price: 50, estimatedTime: 30, isActive: false }, // Inactive override example
   { id: 'sp42', serviceId: 'svc3', productId: 'p25', price: 45, estimatedTime: 30 },
   { id: 'sp43', serviceId: 'svc3', productId: 'p28', price: 70, estimatedTime: 45 }, // Fold - more complex
   { id: 'sp44', serviceId: 'svc3', productId: 'p30', price: 55, estimatedTime: 35 }, // Tab

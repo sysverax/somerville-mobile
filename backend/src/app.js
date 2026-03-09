@@ -13,6 +13,8 @@ const categoryRoutes = require("./routes/category.route");
 const seriesRoutes = require("./routes/series.route");
 const productRoutes = require("./routes/product.route");
 const serviceRoutes = require("./routes/service.route");
+const productServiceRoutes = require("./routes/productService.route");
+const bookingRoutes = require("./routes/booking.route");
 
 const testLogger = {
   info: () => {},
@@ -72,6 +74,8 @@ const app = (logger = testLogger) => {
   expressApp.use("/api/series", seriesRoutes);
   expressApp.use("/api/products", productRoutes);
   expressApp.use("/api/services", serviceRoutes);
+  expressApp.use("/api/product-services", productServiceRoutes);
+  expressApp.use("/api/bookings", bookingRoutes);
 
   expressApp.use(invalidJsonHandler);
   expressApp.use(errorHandler);

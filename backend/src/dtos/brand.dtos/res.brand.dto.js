@@ -23,9 +23,10 @@ class UpdateBrandResponseDTO extends BrandResponseDTO {
   }
 }
 
-class UpdateBrandStatusResponseDTO extends BrandResponseDTO {
+class UpdateBrandStatusResponseDTO {
   constructor(brand) {
-    super(brand);
+    this.id = brand._id?.toString() || brand.id || null;
+    this.isActive = Boolean(brand.isActive);
   }
 }
 

@@ -1,6 +1,6 @@
-import { Category } from '@/src/types';
+import { CategoryDocument } from '@/src/types';
 
-export const categories: Category[] = [
+const legacyCategories = [
   // Apple
   { id: 'c1', brandId: 'b1', name: 'iPhone', image: '/mock-images/categories/iphone.jpg', description: 'Apple iPhones', isActive: true, createdAt: '2024-01-16' },
   { id: 'c2', brandId: 'b1', name: 'iPad', image: '/mock-images/categories/ipad.png', description: 'Apple iPads', isActive: true, createdAt: '2024-01-16' },
@@ -22,3 +22,9 @@ export const categories: Category[] = [
   { id: 'c14', brandId: 'b5', name: 'OnePlus Number Series', image: '/mock-images/categories/oneplus-number.png', description: 'OnePlus flagship phones', isActive: true, createdAt: '2024-03-01' },
   { id: 'c15', brandId: 'b5', name: 'OnePlus Nord', image: '/mock-images/categories/oneplus-nord.png', description: 'OnePlus Nord mid-range phones', isActive: true, createdAt: '2024-03-01' },
 ];
+
+export const categories: CategoryDocument[] = legacyCategories.map(({ image, ...category }) => ({
+  ...category,
+  imageUrl: image,
+  updatedAt: category.createdAt,
+}));

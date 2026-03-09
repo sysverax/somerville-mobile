@@ -5,6 +5,11 @@ const { USER_ROLES } = require("../utils/constants/user.constants");
 const brandRepo = require("../repositories/brand.repo");
 const { uploadFileToS3, deleteImageFromS3 } = require("../utils/aws/s3Utils");
 const brandResponseDto = require("../dtos/brand.dtos/res.brand.dto");
+const categoryRepo = require("../repositories/category.repo");
+const seriesRepo = require("../repositories/series.repo");
+const productRepo = require("../repositories/product.repo");
+const serviceRepo = require("../repositories/service.repo");
+const productServiceRepo = require("../repositories/productService.repo");
 
 const createBrandService = async (createBrandRequestDto, logger) => {
   const existingBrand = await brandRepo.getBrandByNameRepo(
@@ -183,16 +188,88 @@ const deleteBrandService = async (id, logger) => {
     );
   }
 
-  await Promise.all([
-    deleteImageFromS3(brand.iconImageUrl),
-    deleteImageFromS3(brand.bannerImageUrl),
-  ]);
+  const categories = await categoryRepo.getCategoriesByBrandIdRepo(id);
+  const categoryIds = categories.map(c => c._id.toString());
+  
+  let series = [];
+  let seriesIds = [];
+  if (categoryIds.length > 0) {
+    series = await seriesRepo.getSeriesByCategoryIdsRepo(categoryIds);
+    seriesIds = series.map(s => s._id.toString());
+  }
 
-  await brandRepo.deleteBrandRepo(id);
+  let products = [];
+  let productIds = [];
+  if (seriesIds.length > 0) {
+    products = await productRepo.getProductsBySeriesIdsRepo(seriesIds);
+    productIds = products.map(p => p._id.toString());
+  }
 
-  logger?.info("Brand deleted successfully", {
-    brandId: brand._id.toString(),
-  });
+  const serviceConditions = [
+    { level: "brand", levelId: id }
+  ];
+  if (categoryIds.length > 0) serviceConditions.push({ level: "category", levelId: { $in: categoryIds } });
+  if (seriesIds.length > 0) serviceConditions.push({ level: "series", levelId: { $in: seriesIds } });
+  if (productIds.length > 0) serviceConditions.push({ level: "product", levelId: { $in: productIds } });
+
+  const services = await serviceRepo.getServicesByConditionsRepo({ $or: serviceConditions, isVariant: false });
+  const serviceIds = services.map(s => s._id.toString());
+
+  const imagesToDelete = [brand.iconImageUrl, brand.bannerImageUrl];
+  categories.forEach(c => c.imageUrl && imagesToDelete.push(c.imageUrl));
+  series.forEach(s => s.imageUrl && imagesToDelete.push(s.imageUrl));
+  products.forEach(p => p.imageUrl && imagesToDelete.push(p.imageUrl));
+
+  const imageDeletions = imagesToDelete
+    .filter(url => url)
+    .map(url => deleteImageFromS3(url).catch(err => logger?.error("Error deleting image from S3 against Brand deletion", { url, error: err })));
+  
+  await Promise.allSettled(imageDeletions);
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    if (serviceIds.length > 0) {
+      await productServiceRepo.deleteProductServicesByServiceIdsRepo(serviceIds, session);
+      await serviceRepo.deleteVariantsByParentIdsRepo(serviceIds, session);
+      await serviceRepo.deleteServicesByIdsRepo(serviceIds, session);
+    }
+    
+    if (productIds.length > 0) {
+      await productServiceRepo.deleteProductServicesByProductIdsRepo(productIds, session);
+      await productRepo.deleteProductsBySeriesIdsRepo(seriesIds, session);
+    }
+
+    if (seriesIds.length > 0) {
+      await seriesRepo.deleteSeriesByCategoryIdsRepo(categoryIds, session);
+    }
+
+    if (categoryIds.length > 0) {
+      await categoryRepo.deleteCategoriesByBrandIdRepo(id, session);
+    }
+
+    await brandRepo.deleteBrandRepo(id, session);
+
+    await session.commitTransaction();
+    logger?.info("Brand and all associated entities deleted successfully (transaction committed)", {
+      brandId: id,
+      categoriesCount: categoryIds.length,
+      seriesCount: seriesIds.length,
+      productsCount: productIds.length,
+      servicesCount: serviceIds.length
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    logger?.error("Brand deletion transaction failed. Rolled back.", { brandId: id, error });
+    throw new appError.InternalServerError(
+      "Deletion Failed",
+      "An error occurred while deleting the brand and its hierarchy. No data was deleted.",
+      "Please try again."
+    );
+  } finally {
+    session.endSession();
+  }
 };
 
 module.exports = {

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import logo from '@/assets/logo.jpeg';
 import { Button } from '@/components/ui/button';
@@ -14,10 +15,12 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [attempts, setAttempts] = useState(0);
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({});
 
   if (isAuthenticated) { navigate('/dashboard', { replace: true }); return null; }
@@ -44,8 +47,9 @@ const LoginPage = () => {
     setErrors(prev => ({ ...prev, password: validatePassword(password) }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setTouched({ email: true, password: true });
     const emailErr = validateEmail(email);
     const passwordErr = validatePassword(password);
@@ -55,16 +59,23 @@ const LoginPage = () => {
     }
 
     if (attempts >= 5) {
-      setErrors({ general: 'Too many failed attempts. Please try again later.' });
+      toast({ title: 'Too many failed attempts. Please try again later', variant: 'destructive' });
       return;
     }
 
-    if (login(email, password)) {
-      navigate('/dashboard');
-    } else {
-      setAttempts(prev => prev + 1);
-      setPassword('');
-      setErrors({ general: 'Invalid email or password' });
+    setIsSubmitting(true);
+    try {
+      const ok = await login(email, password);
+      if (ok) {
+        toast({ title: 'Signed in successfully', variant: 'success' });
+        navigate('/dashboard');
+      } else {
+        setAttempts(prev => prev + 1);
+        setPassword('');
+        toast({ title: 'Invalid email or password', variant: 'destructive' });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -79,7 +90,6 @@ const LoginPage = () => {
           </div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
-          {errors.general && <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">{errors.general}</div>}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -123,7 +133,7 @@ const LoginPage = () => {
             </div>
             {touched.password && errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
           </div>
-          <Button type="submit" className="w-full" disabled={attempts >= 5}>Sign In</Button>
+          <Button type="submit" className="w-full" disabled={attempts >= 5 || isSubmitting}>{isSubmitting ? 'Signing In...' : 'Sign In'}</Button>
         </form>
       </div>
     </div>

@@ -331,7 +331,7 @@ export const getStorefrontServicesByProduct = (productId: string): StorefrontSer
   }).filter(svc => {
     const source = applicableServices.find(s => s.id === svc.serviceId);
     if (!source) return false;
-    return !getAllServiceProductOverrides().some(o => o.serviceId === source.id && o.productId === productId && o.isDisabled);
+    return !getAllServiceProductOverrides().some(o => o.serviceId === source.id && o.productId === productId && o.isActive === false);
   });
 };
 

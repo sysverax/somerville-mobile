@@ -145,8 +145,8 @@ const getAllSeriesRepo = async (page, limit, userRole, categoryId, brandId) => {
   return { series, totalSeries };
 };
 
-const deleteSeriesRepo = async (id) => {
-  return Series.findByIdAndDelete(id);
+const deleteSeriesRepo = async (id, session = null) => {
+  return Series.findByIdAndDelete(id, { session });
 };
 
 const getSeriesByCategoryIdRepo = async (categoryId) => {
@@ -155,10 +155,24 @@ const getSeriesByCategoryIdRepo = async (categoryId) => {
   }).lean();
 };
 
-const deleteSeriesByCategoryIdRepo = async (categoryId) => {
-  return Series.deleteMany({
-    categoryId: new mongoose.Types.ObjectId(categoryId),
-  });
+const deleteSeriesByCategoryIdRepo = async (categoryId, session = null) => {
+  return Series.deleteMany(
+    { categoryId: new mongoose.Types.ObjectId(categoryId) },
+    { session }
+  );
+};
+
+const getSeriesByCategoryIdsRepo = async (categoryIds) => {
+  return Series.find({
+    categoryId: { $in: categoryIds.map((id) => new mongoose.Types.ObjectId(id)) },
+  }).lean();
+};
+
+const deleteSeriesByCategoryIdsRepo = async (categoryIds, session = null) => {
+  return Series.deleteMany(
+    { categoryId: { $in: categoryIds.map((id) => new mongoose.Types.ObjectId(id)) } },
+    { session }
+  );
 };
 
 module.exports = {
@@ -171,4 +185,6 @@ module.exports = {
   deleteSeriesRepo,
   getSeriesByCategoryIdRepo,
   deleteSeriesByCategoryIdRepo,
+  getSeriesByCategoryIdsRepo,
+  deleteSeriesByCategoryIdsRepo,
 };
