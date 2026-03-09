@@ -35,21 +35,38 @@ class SeriesResponseDTO {
   }
 }
 
-class CreateSeriesResponseDTO extends SeriesResponseDTO {
+class SimpleSeriesResponseDTO {
+  constructor(series) {
+    this.id = series._id?.toString() || series.id || null;
+    this.name = series.name;
+    this.description = series.description || "";
+    this.imageUrl = series.imageUrl || null;
+    this.isActive = Boolean(series.isActive);
+    this.categoryId =
+      series.categoryId?._id?.toString() ||
+      series.categoryId?.toString() ||
+      null;
+    this.createdAt = series.createdAt || null;
+    this.updatedAt = series.updatedAt || null;
+  }
+}
+
+class CreateSeriesResponseDTO extends SimpleSeriesResponseDTO {
   constructor(series) {
     super(series);
   }
 }
 
-class UpdateSeriesResponseDTO extends SeriesResponseDTO {
+class UpdateSeriesResponseDTO extends SimpleSeriesResponseDTO {
   constructor(series) {
     super(series);
   }
 }
 
-class UpdateSeriesStatusResponseDTO extends SeriesResponseDTO {
+class UpdateSeriesStatusResponseDTO {
   constructor(series) {
-    super(series);
+    this.id = series._id?.toString() || series.id || null;
+    this.isActive = Boolean(series.isActive);
   }
 }
 

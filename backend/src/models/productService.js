@@ -24,6 +24,10 @@ const productServiceSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isDefault: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,

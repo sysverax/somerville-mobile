@@ -34,6 +34,19 @@ const serviceSchema = new mongoose.Schema(
       required: true,
       refPath: "level",
     },
+    isParent: {
+      type: Boolean,
+      default: false,
+    },
+    parentServiceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Service",
+      default: null,
+    },
+    isVariant: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

@@ -7,6 +7,9 @@ const seriesRepo = require("../repositories/series.repo");
 const seriesResponseDto = require("../dtos/series.dtos/res.series.dto");
 const { uploadFileToS3, deleteImageFromS3 } = require("../utils/aws/s3Utils");
 const { randomUUID } = require("crypto");
+const productRepo = require("../repositories/product.repo");
+const serviceRepo = require("../repositories/service.repo");
+const productServiceRepo = require("../repositories/productService.repo");
 
 const createSeriesService = async (createSeriesRequestDto, logger) => {
   const category = await categoryRepo.getCategoryByIdRepo(
@@ -64,20 +67,7 @@ const updateSeriesService = async (updatePayload, logger) => {
     );
   }
 
-  let resolvedCategory = null;
-
-  if (updatePayload.categoryId) {
-    resolvedCategory = await categoryRepo.getCategoryByIdRepo(updatePayload.categoryId);
-    if (!resolvedCategory) {
-      throw new appError.NotFoundError(
-        "Category not found",
-        "No category exists for the provided category id.",
-        "Check the category id and try again.",
-      );
-    }
-  }
-
-  const targetCategoryId = updatePayload.categoryId || existingSeries.categoryId._id.toString();
+  const targetCategoryId = existingSeries.categoryId._id.toString();
 
   if (updatePayload.name) {
     const seriesWithSameName = await seriesRepo.getSeriesByNameRepo(
@@ -102,10 +92,6 @@ const updateSeriesService = async (updatePayload, logger) => {
       folder: `series/${existingSeries.name}-${randomUUID()}`,
     });
     updatePayload.imageUrl = uploadedIcon.url;
-  }
-
-  if (updatePayload.categoryId) {
-    updatePayload.categoryId = new mongoose.Types.ObjectId(updatePayload.categoryId);
   }
 
   const updatedSeries = await seriesRepo.updateSeriesRepo(
@@ -224,13 +210,60 @@ const deleteSeriesService = async (id, logger) => {
     );
   }
 
-  await Promise.all([deleteImageFromS3(series.imageUrl)]);
+  const products = await productRepo.getProductsBySeriesIdsRepo([id]);
+  const productIds = products.map(p => p._id.toString());
 
-  await seriesRepo.deleteSeriesRepo(id);
+  const serviceConditions = [
+    { level: "series", levelId: id }
+  ];
+  if (productIds.length > 0) serviceConditions.push({ level: "product", levelId: { $in: productIds } });
 
-  logger?.info("Series deleted successfully", {
-    seriesId: series._id.toString(),
-  });
+  const services = await serviceRepo.getServicesByConditionsRepo({ $or: serviceConditions, isVariant: false });
+  const serviceIds = services.map(s => s._id.toString());
+
+  const imagesToDelete = [series.imageUrl];
+  products.forEach(p => p.imageUrl && imagesToDelete.push(p.imageUrl));
+
+  const imageDeletions = imagesToDelete
+    .filter(url => url)
+    .map(url => deleteImageFromS3(url).catch(err => logger?.error("Error deleting image from S3 against Series deletion", { url, error: err })));
+  
+  await Promise.allSettled(imageDeletions);
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    if (serviceIds.length > 0) {
+      await productServiceRepo.deleteProductServicesByServiceIdsRepo(serviceIds, session);
+      await serviceRepo.deleteVariantsByParentIdsRepo(serviceIds, session);
+      await serviceRepo.deleteServicesByIdsRepo(serviceIds, session);
+    }
+
+    if (productIds.length > 0) {
+      await productServiceRepo.deleteProductServicesByProductIdsRepo(productIds, session);
+      await productRepo.deleteProductsBySeriesIdsRepo([id], session);
+    }
+
+    await seriesRepo.deleteSeriesRepo(id, session);
+
+    await session.commitTransaction();
+    logger?.info("Series and all associated entities deleted successfully", {
+      seriesId: id,
+      productsCount: productIds.length,
+      servicesCount: serviceIds.length,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    logger?.error("Series deletion transaction failed. Rolled back.", { seriesId: id, error });
+    throw new appError.InternalServerError(
+      "Deletion Failed",
+      "An error occurred while deleting the series and its hierarchy. No data was deleted.",
+      "Please try again."
+    );
+  } finally {
+    session.endSession();
+  }
 };
 
 module.exports = {

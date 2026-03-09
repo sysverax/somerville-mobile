@@ -53,8 +53,8 @@ const updateBrandStatusRepo = async (id, isActive) => {
   );
 };
 
-const deleteBrandRepo = async (id) => {
-  return Brand.findByIdAndDelete(id);
+const deleteBrandRepo = async (id, session = null) => {
+  return Brand.findByIdAndDelete(id, { session });
 };
 
 module.exports = {

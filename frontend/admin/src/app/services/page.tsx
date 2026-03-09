@@ -625,9 +625,9 @@ const ServicesPage = () => {
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Level</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assigned To</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Base Price</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Est. Time</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden xl:table-cell">Variants</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden xl:table-cell">Linked Products</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Est. Time</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Variants</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Linked Products</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Active</th>
                         <th className="text-right py-3 px-4 font-medium text-muted-foreground">Action</th>
@@ -657,13 +657,13 @@ const ServicesPage = () => {
                               <td className="py-3 px-4"><Badge variant="outline" className="capitalize">{s.level}</Badge></td>
                               <td className="py-3 px-4">{getAssignedTo(s)}</td>
                               <td className="py-3 px-4">{variantCount > 0 ? '—' : `$${s.basePrice}`}</td>
-                              <td className="py-3 px-4 hidden md:table-cell">{variantCount > 0 ? '—' : `${s.estimatedTime} min`}</td>
-                              <td className="py-3 px-4 hidden xl:table-cell">{variantCount || '—'}</td>
-                              <td className="py-3 px-4 hidden xl:table-cell">{getLinkedProductCount(s)}</td>
+                              <td className="py-3 px-4">{variantCount > 0 ? '—' : `${s.estimatedTime} min`}</td>
+                              <td className="py-3 px-4">{variantCount || '—'}</td>
+                              <td className="py-3 px-4">{getLinkedProductCount(s)}</td>
                               <td className="py-3 px-4">
                                 <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
                               </td>
-                              <td className="py-3 px-4">                                  
+                              <td className="py-3 px-4" onClick={e => e.stopPropagation()}>                                  
                                 <Switch checked={s.isActive} onCheckedChange={() => setDeactivateTarget(s)} />
                               </td>
                               <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
@@ -697,9 +697,9 @@ const ServicesPage = () => {
                                 <td className="py-2 px-4" onClick={e => e.stopPropagation()}>
                                   <Switch checked={v.isActive} onCheckedChange={() => updateService(v.id, { isActive: !v.isActive })} />
                                 </td>
-                                <td className="py-2 px-4 text-right" onClick={e => e.stopPropagation()}>
+                                <td className="py-2 px-4 text-right cursor-default" onClick={e => e.stopPropagation()}>
                                   <div className="flex justify-end gap-1">
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetail(v)}>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-40 pointer-events-none" disabled>
                                       <Pencil className="h-3 w-3" />
                                     </Button>
                                   </div>

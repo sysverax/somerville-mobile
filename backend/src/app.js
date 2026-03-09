@@ -12,6 +12,9 @@ const brandRoutes = require("./routes/brand.route");
 const categoryRoutes = require("./routes/category.route");
 const seriesRoutes = require("./routes/series.route");
 const productRoutes = require("./routes/product.route");
+const serviceRoutes = require("./routes/service.route");
+const productServiceRoutes = require("./routes/productService.route");
+const bookingRoutes = require("./routes/booking.route");
 
 const testLogger = {
   info: () => {},
@@ -66,6 +69,9 @@ const createApp = (logger = testLogger) => {
   app.use("/api/categories", categoryRoutes);
   app.use("/api/series", seriesRoutes);
   app.use("/api/products", productRoutes);
+  app.use("/api/services", serviceRoutes);
+  app.use("/api/product-services", productServiceRoutes);
+  app.use("/api/bookings", bookingRoutes);
 
   app.use(invalidJsonHandler);
   app.use(errorHandler);

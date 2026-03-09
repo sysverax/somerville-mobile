@@ -97,8 +97,19 @@ const getAllCategoriesRepo = async (page, limit, userRole, brandId) => {
   return { categories, totalCategories };
 };
 
-const deleteCategoryRepo = async (id) => {
-  return Category.findByIdAndDelete(id);
+const deleteCategoryRepo = async (id, session = null) => {
+  return Category.findByIdAndDelete(id, { session });
+};
+
+const getCategoriesByBrandIdRepo = async (brandId) => {
+  return Category.find({ brandId: new mongoose.Types.ObjectId(brandId) }).lean();
+};
+
+const deleteCategoriesByBrandIdRepo = async (brandId, session = null) => {
+  return Category.deleteMany(
+    { brandId: new mongoose.Types.ObjectId(brandId) },
+    { session }
+  );
 };
 
 module.exports = {
@@ -109,4 +120,6 @@ module.exports = {
   updateCategoryStatusRepo,
   getAllCategoriesRepo,
   deleteCategoryRepo,
+  getCategoriesByBrandIdRepo,
+  deleteCategoriesByBrandIdRepo,
 };
