@@ -17,6 +17,7 @@ import ImageUpload from '@/components/ImageUpload';
 import TablePagination from '@/components/TablePagination';
 import { computeBrandVisibility } from '@/lib/visibility';
 import { VisibilityBadge, HiddenReasonCell } from '@/components/VisibilityBadge';
+import EmptyState from '@/components/EmptyState';
 
 const validateName = (value: string): string | undefined => {
   if (!value.trim()) return 'Brand name is required';
@@ -101,7 +102,17 @@ const BrandsPage = () => {
 
       {view === 'card' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {paginated.map(brand => (
+          {paginated.length === 0 ? (
+            <div className="col-span-full rounded-xl border border-dashed border-border bg-card">
+              <EmptyState
+                title="No brands found"
+                description={brands.length > 0 ? 'Try adjusting filters or pagination.' : 'Click "Add Brand" to create your first brand.'}
+                actionLabel="Add Brand"
+                onAction={openAdd}
+                actionDisabled={count >= 7 || isLoading}
+              />
+            </div>
+          ) : paginated.map(brand => (
             <div key={brand.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <img src={brand.iconImage} alt={brand.name} className="h-12 w-12 rounded-lg object-cover bg-muted" />
@@ -122,8 +133,8 @@ const BrandsPage = () => {
                   }} disabled={isLoading} />
                 </div>
                 <div className="flex gap-1">
-                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
-                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(brand)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(brand)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                 </div>
               </div>
             </div>
@@ -144,7 +155,19 @@ const BrandsPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginated.map(brand => {
+              {paginated.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-0">
+                    <EmptyState
+                      title="No brands found"
+                      description={brands.length > 0 ? 'Try adjusting filters or pagination.' : 'Click "Add Brand" to create your first brand.'}
+                      actionLabel="Add Brand"
+                      onAction={openAdd}
+                      actionDisabled={count >= 7 || isLoading}
+                    />
+                  </TableCell>
+                </TableRow>
+              ) : paginated.map(brand => {
                 const visibility = computeBrandVisibility(brand);
                 return (
                   <TableRow key={brand.id}>
@@ -161,8 +184,8 @@ const BrandsPage = () => {
                     }} disabled={isLoading} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
-                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(brand)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(brand)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -220,7 +243,7 @@ const BrandsPage = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={async (e) => {
                 e.preventDefault();
                 if (deleteTarget) {

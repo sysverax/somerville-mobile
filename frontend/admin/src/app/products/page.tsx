@@ -22,6 +22,7 @@ import ImageUpload from '@/components/ImageUpload';
 import TablePagination from '@/components/TablePagination';
 import { computeProductVisibility, isParentInactive } from '@/lib/visibility';
 import { VisibilityBadge, HiddenReasonCell, ParentNameCell } from '@/components/VisibilityBadge';
+import EmptyState from '@/components/EmptyState';
 
 const validateBrand = (value: string): string | undefined => {
   if (!value) return 'Brand is required';
@@ -236,8 +237,13 @@ const ProductsPage = () => {
       {view === 'card' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {paginated.length === 0 ? (
-            <div className="col-span-full text-center py-12">
-              <p className="text-muted-foreground">No products found. {filtered.length === 0 && products.length > 0 ? 'Try adjusting your filters.' : 'Click "Add Product" to create one.'}</p>
+            <div className="col-span-full rounded-xl border border-dashed border-border bg-card">
+              <EmptyState
+                title="No products found"
+                description={filtered.length === 0 && products.length > 0 ? 'Try adjusting your filters.' : 'Click "Add Product" to create one.'}
+                actionLabel="Add Product"
+                onAction={openAdd}
+              />
             </div>
           ) : paginated.map(p => {
             const productServices = getServicesForProduct(p);
@@ -292,8 +298,13 @@ const ProductsPage = () => {
             <TableBody>
               {paginated.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                    No products found. {filtered.length === 0 && products.length > 0 ? 'Try adjusting your filters.' : 'Click "Add Product" to create one.'}
+                  <TableCell colSpan={9} className="py-0">
+                    <EmptyState
+                      title="No products found"
+                      description={filtered.length === 0 && products.length > 0 ? 'Try adjusting your filters.' : 'Click "Add Product" to create one.'}
+                      actionLabel="Add Product"
+                      onAction={openAdd}
+                    />
                   </TableCell>
                 </TableRow>
               ) : paginated.map(p => {

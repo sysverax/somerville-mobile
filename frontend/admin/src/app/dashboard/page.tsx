@@ -7,6 +7,7 @@ import { serviceService } from '@/services/service.service';
 import { bookingService } from '@/services/booking.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Smartphone, FolderTree, Layers, Package, Wrench, Calendar } from 'lucide-react';
+import EmptyState from '@/components/EmptyState';
 
 const stats = [
   { label: 'Brands', icon: Smartphone, path: '/brands', getValue: () => `${brandService.getCount()} / 5` },
@@ -52,7 +53,13 @@ const DashboardPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {recentBookings.map(b => (
+                {recentBookings.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-0">
+                      <EmptyState title="No recent bookings" description="New bookings will appear here once customers place them." compact />
+                    </td>
+                  </tr>
+                ) : recentBookings.map(b => (
                   <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
                     onClick={() => navigate('/bookings', { state: { bookingId: b.id } })}                  >
                     <td className="py-2.5 px-3">{b.customerName}</td>

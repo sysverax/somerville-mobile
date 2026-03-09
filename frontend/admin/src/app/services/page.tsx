@@ -17,6 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Pencil, Search, ChevronUp, ChevronDown, Power, RotateCcw, Wrench, Package, Trash2, ChevronRight } from 'lucide-react';
 import TablePagination from '@/components/TablePagination';
+import EmptyState from '@/components/EmptyState';
 
 const LEVELS: AssignmentLevel[] = ['brand', 'category', 'series', 'product'];
 
@@ -359,7 +360,7 @@ const ServicesPage = () => {
 
     if (nameErr || brandErr || categoryErr || seriesErr || productErr || basePriceErr || estimatedTimeErr || hasVariantErrs || hasNoVariants) {
       setFormErrors({ name: nameErr, brandId: brandErr, categoryId: categoryErr, seriesId: seriesErr, productId: productErr, basePrice: basePriceErr, estimatedTime: estimatedTimeErr, variants: variantsErr });
-      setVariantErrors(variantErrs); 
+      setVariantErrors(variantErrs);
       setTouched({ name: true, brandId: true, categoryId: true, seriesId: true, productId: true, basePrice: true, estimatedTime: true });
       scrollToFirstError();
       return;
@@ -610,111 +611,112 @@ const ServicesPage = () => {
 
           {/* Table */}
           <div className="rounded-lg border border-border bg-card overflow-hidden">
-            {paginated.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No services found. {filtered.length === 0 && services.length > 0 ? 'Try adjusting your filters.' : 'Click "Add Service" to create one.'}</p>
-              </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/30">
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Service Name</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Description</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Level</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assigned To</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Base Price</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Est. Time</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Variants</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Linked Products</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Active</th>
-                        <th className="text-right py-3 px-4 font-medium text-muted-foreground">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginated.length === 0 && (
-                        <tr><td colSpan={10} className="py-12 text-center text-muted-foreground">No services found.</td></tr>
-                      )}
-                      {paginated.map(s => {
-                        const variants = getVariants(s.id);
-                        const isExpanded = expandedParents.has(s.id);
-                        const variantCount = variants.length;
-                        return (
-                          <>
-                            <tr key={s.id} className="border-b border-border/50 hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => variantCount > 0 ? toggleExpanded(s.id) : openDetail(s)}>
-                              <td className="py-3 px-4 font-medium text-foreground">
-                                <div className="flex items-center gap-2">
-                                  {variantCount > 0 && (
-                                    <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                                  )}
-                                  {s.name}
-                                  {variantCount > 0 && <Badge variant="secondary" className="text-xs whitespace-nowrap">{variantCount} variants</Badge>}
-                                </div>
-                              </td>
-                              <td className="py-3 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate">{s.description}</td>
-                              <td className="py-3 px-4"><Badge variant="outline" className="capitalize">{s.level}</Badge></td>
-                              <td className="py-3 px-4">{getAssignedTo(s)}</td>
-                              <td className="py-3 px-4">{variantCount > 0 ? '—' : `$${s.basePrice}`}</td>
-                              <td className="py-3 px-4">{variantCount > 0 ? '—' : `${s.estimatedTime} min`}</td>
-                              <td className="py-3 px-4">{variantCount || '—'}</td>
-                              <td className="py-3 px-4">{getLinkedProductCount(s)}</td>
-                              <td className="py-3 px-4">
-                                <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
-                              </td>
-                              <td className="py-3 px-4" onClick={e => e.stopPropagation()}>                                  
-                                <Switch checked={s.isActive} onCheckedChange={() => setDeactivateTarget(s)} />
-                              </td>
-                              <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
-                                <div className="flex justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                            {/* Variant rows */}
-                            {isExpanded && variants.map(v => (
-                              <tr key={v.id} className="border-b border-border/50 bg-muted/10 hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => openDetail(v)}>
-                                <td className="py-2 px-4 pl-12 font-medium text-foreground text-sm">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">└</span>
-                                    {v.name}
-                                    <Badge variant="outline" className="text-xs">Variant</Badge>
-                                  </div>
-                                </td>
-                                <td className="py-2 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate text-sm">{v.description}</td>
-                                <td className="py-2 px-4"><Badge variant="outline" className="capitalize text-xs">{v.level}</Badge></td>
-                                <td className="py-2 px-4 text-sm">{getAssignedTo(v)}</td>
-                                <td className="py-2 px-4 text-sm">${v.basePrice}</td>
-                                <td className="py-2 px-4 hidden md:table-cell text-sm">{v.estimatedTime} min</td>
-                                <td className="py-2 px-4 hidden xl:table-cell text-sm">—</td>
-                                <td className="py-2 px-4 hidden xl:table-cell text-sm">{getLinkedProductCount(v)}</td>
-                                <td className="py-2 px-4">
-                                  <Badge variant={v.isActive ? 'default' : 'secondary'} className="text-xs">{v.isActive ? 'Active' : 'Inactive'}</Badge>
-                                </td>
-                                <td className="py-2 px-4" onClick={e => e.stopPropagation()}>
-                                  <Switch checked={v.isActive} onCheckedChange={() => updateService(v.id, { isActive: !v.isActive })} />
-                                </td>
-                                <td className="py-2 px-4 text-right cursor-default" onClick={e => e.stopPropagation()}>
-                                  <div className="flex justify-end gap-1">
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-40 pointer-events-none" disabled>
-                                      <Pencil className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
-              </>
-            )}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Service Name</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Description</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Level</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assigned To</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Base Price</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Est. Time</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Variants</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Linked Products</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Active</th>
+                    <th className="text-right py-3 px-4 font-medium text-muted-foreground">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.length === 0 && (
+                    <tr>
+                      <td colSpan={11} className="py-0">
+                        <EmptyState
+                          title="No services found"
+                          description={filtered.length === 0 && services.length > 0 ? 'Try adjusting your filters.' : 'Click "Add Service" to create one.'}
+                          actionLabel="Add Service"
+                          onAction={openAdd}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  {paginated.map(s => {
+                    const variants = getVariants(s.id);
+                    const isExpanded = expandedParents.has(s.id);
+                    const variantCount = variants.length;
+                    return (
+                      <>
+                        <tr key={s.id} className="border-b border-border/50 hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => variantCount > 0 ? toggleExpanded(s.id) : openDetail(s)}>
+                          <td className="py-3 px-4 font-medium text-foreground">
+                            <div className="flex items-center gap-2">
+                              {variantCount > 0 && (
+                                <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                              )}
+                              {s.name}
+                              {variantCount > 0 && <Badge variant="secondary" className="text-xs whitespace-nowrap">{variantCount} variants</Badge>}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate">{s.description}</td>
+                          <td className="py-3 px-4"><Badge variant="outline" className="capitalize">{s.level}</Badge></td>
+                          <td className="py-3 px-4">{getAssignedTo(s)}</td>
+                          <td className="py-3 px-4">{variantCount > 0 ? '—' : `$${s.basePrice}`}</td>
+                          <td className="py-3 px-4">{variantCount > 0 ? '—' : `${s.estimatedTime} min`}</td>
+                          <td className="py-3 px-4">{variantCount || '—'}</td>
+                          <td className="py-3 px-4">{getLinkedProductCount(s)}</td>
+                          <td className="py-3 px-4">
+                            <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
+                          </td>
+                          <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
+                            <Switch checked={s.isActive} onCheckedChange={() => setDeactivateTarget(s)} />
+                          </td>
+                          <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                        {/* Variant rows */}
+                        {isExpanded && variants.map(v => (
+                          <tr key={v.id} className="border-b border-border/50 bg-muted/10 hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => openDetail(v)}>
+                            <td className="py-2 px-4 pl-12 font-medium text-foreground text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">└</span>
+                                {v.name}
+                                <Badge variant="outline" className="text-xs">Variant</Badge>
+                              </div>
+                            </td>
+                            <td className="py-2 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate text-sm">{v.description}</td>
+                            <td className="py-2 px-4"><Badge variant="outline" className="capitalize text-xs">{v.level}</Badge></td>
+                            <td className="py-2 px-4 text-sm">{getAssignedTo(v)}</td>
+                            <td className="py-2 px-4 text-sm">${v.basePrice}</td>
+                            <td className="py-2 px-4 hidden md:table-cell text-sm">{v.estimatedTime} min</td>
+                            <td className="py-2 px-4 hidden xl:table-cell text-sm">—</td>
+                            <td className="py-2 px-4 hidden xl:table-cell text-sm">{getLinkedProductCount(v)}</td>
+                            <td className="py-2 px-4">
+                              <Badge variant={v.isActive ? 'default' : 'secondary'} className="text-xs">{v.isActive ? 'Active' : 'Inactive'}</Badge>
+                            </td>
+                            <td className="py-2 px-4" onClick={e => e.stopPropagation()}>
+                              <Switch checked={v.isActive} onCheckedChange={() => updateService(v.id, { isActive: !v.isActive })} />
+                            </td>
+                            <td className="py-2 px-4 text-right cursor-default" onClick={e => e.stopPropagation()}>
+                              <div className="flex justify-end gap-1">
+                                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-40 pointer-events-none" disabled>
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
           </div>
         </TabsContent>
 
@@ -988,15 +990,15 @@ const ServicesPage = () => {
               <Tabs defaultValue="details" className="w-full">
                 {detailView.isVariant && (
                   <div className="-mb-4">    </div>
-              )}
+                )}
                 {!detailView.isVariant && (
                   <TabsList className="w-full">
                     <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
                     {hasVars && <TabsTrigger value="variants" className="flex-1">Variants ({variants.length})</TabsTrigger>}
-                      <TabsTrigger value="overrides" className="flex-1">
-                        Product Overrides ({getLinkedProducts(detailView).length})
-                      </TabsTrigger>
-                  </TabsList>    
+                    <TabsTrigger value="overrides" className="flex-1">
+                      Product Overrides ({getLinkedProducts(detailView).length})
+                    </TabsTrigger>
+                  </TabsList>
                 )}
                 <TabsContent value="details" className="space-y-4 mt-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -1220,7 +1222,7 @@ const ServicesPage = () => {
                             if (variantErrors[index]?.name)
                               setVariantErrors(prev => ({ ...prev, [index]: { ...prev[index], name: undefined } }));
                           }}
-                        />              
+                        />
                         {variantErrors[index]?.name && <p className="text-xs text-destructive">{variantErrors[index].name}</p>}
                         <Input placeholder="Description (optional)" value={vi.description} onChange={e => updateVariantItem(index, 'description', e.target.value)} />
                       </div>

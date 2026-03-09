@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import TablePagination from '@/components/TablePagination';
+import EmptyState from '@/components/EmptyState';
 
 const BookingsPage = () => {
   const { bookings } = useBookings();
@@ -58,10 +59,10 @@ const BookingsPage = () => {
           <Label className="text-xs">Date</Label>
           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
             <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className={cn(
-                  "w-full sm:w-[160px] justify-start text-left font-normal h-10 px-2", 
+                  "w-full sm:w-[160px] justify-start text-left font-normal h-10 px-2",
                   !filters.date && "text-muted-foreground"
                 )}
               >
@@ -74,11 +75,11 @@ const BookingsPage = () => {
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarComponent
                 mode="single"
-                selected={selectedDate}    
-                defaultMonth={selectedDate} 
+                selected={selectedDate}
+                defaultMonth={selectedDate}
                 onSelect={(day) => {
                   setFilters(f => ({ ...f, date: day ? format(day, 'yyyy-MM-dd') : '' }));
-                  setIsCalendarOpen(false);  
+                  setIsCalendarOpen(false);
                 }}
                 initialFocus
               />
@@ -116,17 +117,17 @@ const BookingsPage = () => {
                 <td className="py-3 px-4">{b.timeSlot}</td>
                 <td className="py-3 px-4">{b.customerName}</td>
                 <td className="py-3 px-4 hidden md:table-cell">
-                  <a 
-                  href={`https://mail.google.com/mail/?view=cm&to=${b.customerEmail}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline"
-                  onClick={e => e.stopPropagation()}
-                >
-                  {b.customerEmail}
-                </a>
+                  <a
+                    href={`https://mail.google.com/mail/?view=cm&to=${b.customerEmail}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {b.customerEmail}
+                  </a>
                 </td>
-                <td className="py-3 px-4 hidden lg:table-cell"> <a 
+                <td className="py-3 px-4 hidden lg:table-cell"> <a
                   href={`tel:${b.customerPhone}`}
                   className="hover:underline"
                   onClick={e => e.stopPropagation()}
@@ -138,7 +139,13 @@ const BookingsPage = () => {
                 <td className="py-3 px-4">{b.createdAt}</td>
               </tr>
             ))}
-            {filtered.length === 0 && <tr><td colSpan={8} className="py-8 text-center text-muted-foreground">No bookings found</td></tr>}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={8} className="py-0">
+                  <EmptyState title="No bookings found" description="New bookings will appear here once customers place them." />
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
