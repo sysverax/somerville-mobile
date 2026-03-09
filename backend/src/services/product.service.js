@@ -54,6 +54,75 @@ const createProductService = async (createProductRequestDto, logger) => {
     productId: product._id.toString(),
   });
 
+  try {
+    const seriesId = createProductRequestDto.seriesId;
+
+    const categoryId = series.categoryId?._id
+      ? series.categoryId._id.toString()
+      : series.categoryId?.toString();
+
+    const brandId = series.categoryId?.brandId?._id
+      ? series.categoryId.brandId._id.toString()
+      : series.categoryId?.brandId?.toString();
+
+    const parentConditions = [
+      { level: "series", levelId: seriesId },
+    ];
+    if (categoryId) parentConditions.push({ level: "category", levelId: categoryId });
+    if (brandId) parentConditions.push({ level: "brand", levelId: brandId });
+
+    const parentServices = await serviceRepo.getServicesByConditionsRepo({
+      $or: parentConditions,
+      isVariant: false,
+    });
+
+    if (parentServices.length > 0) {
+      const productId = product._id.toString();
+      const productServiceDocs = [];
+
+      for (const svc of parentServices) {
+        if (svc.isParent) {
+          const variants = await serviceRepo.getVariantsByParentServiceIdRepo(
+            svc._id.toString(),
+          );
+          for (const variant of variants) {
+            productServiceDocs.push({
+              serviceId: variant._id,
+              productId: new mongoose.Types.ObjectId(productId),
+              price: variant.basePrice,
+              estimatedTime: variant.estimatedTime,
+              isActive: true,
+              isDefault: true,
+            });
+          }
+        } else {
+          productServiceDocs.push({
+            serviceId: svc._id,
+            productId: new mongoose.Types.ObjectId(productId),
+            price: svc.basePrice,
+            estimatedTime: svc.estimatedTime,
+            isActive: true,
+            isDefault: true,
+          });
+        }
+      }
+
+      if (productServiceDocs.length > 0) {
+        await productServiceRepo.createManyProductServicesRepo(productServiceDocs);
+
+        logger.info("Inherited parent services for new product", {
+          productId,
+          inheritedServiceCount: productServiceDocs.length,
+        });
+      }
+    }
+  } catch (err) {
+    logger.error("Failed to inherit parent services for new product", {
+      productId: product._id.toString(),
+      error: err,
+    });
+  }
+
   return new productResponseDto.CreateProductResponseDTO(product);
 };
 
