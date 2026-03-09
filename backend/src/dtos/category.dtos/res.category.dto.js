@@ -23,21 +23,36 @@ class CategoryResponseDTO {
   }
 }
 
-class CreateCategoryResponseDTO extends CategoryResponseDTO {
+class SimpleCategoryResponseDTO {
+  constructor(category) {
+    this.id = category._id?.toString() || category.id || null;
+    this.name = category.name;
+    this.description = category.description || "";
+    this.imageUrl = category.imageUrl || null;
+    this.isActive = Boolean(category.isActive);
+    this.brandId =
+      category.brandId?._id?.toString() || category.brandId?.toString() || null;
+    this.createdAt = category.createdAt || null;
+    this.updatedAt = category.updatedAt || null;
+  }
+}
+
+class CreateCategoryResponseDTO extends SimpleCategoryResponseDTO {
   constructor(category) {
     super(category);
   }
 }
 
-class UpdateCategoryResponseDTO extends CategoryResponseDTO {
+class UpdateCategoryResponseDTO extends SimpleCategoryResponseDTO {
   constructor(category) {
     super(category);
   }
 }
 
-class UpdateCategoryStatusResponseDTO extends CategoryResponseDTO {
+class UpdateCategoryStatusResponseDTO {
   constructor(category) {
-    super(category);
+    this.id = category._id?.toString() || category.id || null;
+    this.isActive = Boolean(category.isActive);
   }
 }
 

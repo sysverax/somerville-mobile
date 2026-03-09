@@ -81,6 +81,7 @@ class CreateSeriesRequestDTO {
 class UpdateSeriesRequestDTO {
   constructor(params, body, files) {
     this.id = params.id;
+    this.categoryId = body?.categoryId !== undefined ? body.categoryId : undefined;
     this.name =
       body?.name !== undefined
         ? typeof body.name === "string"
@@ -93,7 +94,6 @@ class UpdateSeriesRequestDTO {
           ? body.description.trim()
           : body.description
         : undefined;
-    this.categoryId = body?.categoryId !== undefined ? body.categoryId : undefined;
     this.isActive = body?.isActive !== undefined ? body.isActive : undefined;
     if (files) {
       this.iconImageFile = files?.iconImage ? files.iconImage[0] : null;
@@ -136,23 +136,6 @@ class UpdateSeriesRequestDTO {
       }
     }
 
-    if (this.categoryId !== undefined) {
-      if (!this.categoryId) {
-        throw new appError.BadRequestError(
-          "Invalid Category ID",
-          "The 'categoryId' field must not be empty when provided.",
-          "Provide a valid category ID and try again.",
-        );
-      }
-      if (!mongoose.Types.ObjectId.isValid(this.categoryId)) {
-        throw new appError.BadRequestError(
-          "Invalid Category ID format",
-          "Category ID must be a valid MongoDB ObjectId.",
-          "Please provide a valid category ID.",
-        );
-      }
-    }
-
     if (this.isActive !== undefined) {
       if (typeof this.isActive !== "boolean") {
         throw new appError.BadRequestError(
@@ -161,6 +144,14 @@ class UpdateSeriesRequestDTO {
           "Provide a valid status value and try again.",
         );
       }
+    }
+
+    if (this.categoryId !== undefined) {
+      throw new appError.BadRequestError(
+        "Category ID cannot be updated",
+        "The category association of a series cannot be changed after creation.",
+        "Remove the 'categoryId' field from the request.",
+      );
     }
 
     if (this.iconImageFile) {
@@ -186,7 +177,6 @@ class UpdateSeriesRequestDTO {
     payload.id = this.id;
     if (this.name !== undefined) payload.name = this.name;
     if (this.description !== undefined) payload.description = this.description;
-    if (this.categoryId !== undefined) payload.categoryId = this.categoryId;
     if (this.isActive !== undefined) payload.isActive = this.isActive;
     if (this.iconImageFile) payload.iconImageFile = this.iconImageFile;
     return payload;

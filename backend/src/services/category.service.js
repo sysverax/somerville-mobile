@@ -6,6 +6,10 @@ const categoryRepo = require("../repositories/category.repo");
 const categoryResponseDto = require("../dtos/category.dtos/res.category.dto");
 const { uploadFileToS3, deleteImageFromS3 } = require("../utils/aws/s3Utils");
 const { randomUUID } = require("crypto");
+const seriesRepo = require("../repositories/series.repo");
+const productRepo = require("../repositories/product.repo");
+const serviceRepo = require("../repositories/service.repo");
+const productServiceRepo = require("../repositories/productService.repo");
 
 const brandRepo = require("../repositories/brand.repo");
 
@@ -67,18 +71,7 @@ const updateCategoryService = async (updatePayload, logger) => {
     );
   }
 
-  if (updatePayload.brandId) {
-    const brand = await brandRepo.getBrandByIdRepo(updatePayload.brandId);
-    if (!brand) {
-      throw new appError.NotFoundError(
-        "Brand not found",
-        "No brand exists for the provided brand id.",
-        "Check the brand id and try again.",
-      );
-    }
-  }
-
-  const targetBrandId = updatePayload.brandId || existingCategory.brandId._id.toString();
+  const targetBrandId = existingCategory.brandId._id.toString();
 
   if (updatePayload.name) {
     const categoryWithSameName = await categoryRepo.getCategoryByNameRepo(
@@ -103,10 +96,6 @@ const updateCategoryService = async (updatePayload, logger) => {
       folder: `categories/${existingCategory.name}-${randomUUID()}`,
     });
     updatePayload.imageUrl = uploadedIcon.url;
-  }
-
-  if (updatePayload.brandId) {
-    updatePayload.brandId = new mongoose.Types.ObjectId(updatePayload.brandId);
   }
 
   const updatedCategory = await categoryRepo.updateCategoryRepo(
@@ -222,45 +211,74 @@ const deleteCategoryService = async (id, logger) => {
     );
   }
 
-  // Delete all associated series and their images
-  const seriesRepo = require("../repositories/series.repo");
-  const associatedSeries = await seriesRepo.getSeriesByCategoryIdRepo(id);
+  const series = await seriesRepo.getSeriesByCategoryIdRepo(id);
+  const seriesIds = series.map(s => s._id.toString());
 
-  if (associatedSeries.length > 0) {
-    const seriesImageDeletions = associatedSeries
-      .filter((s) => s.imageUrl)
-      .map((s) =>
-        deleteImageFromS3(s.imageUrl).catch((err) => {
-          logger?.error("Error deleting series image", {
-            seriesId: s._id.toString(),
-            error: err,
-          });
-        }),
-      );
-
-    await Promise.all(seriesImageDeletions);
-    await seriesRepo.deleteSeriesByCategoryIdRepo(id);
-
-    logger?.info("Associated series deleted", {
-      categoryId: id,
-      count: associatedSeries.length,
-    });
+  let products = [];
+  let productIds = [];
+  if (seriesIds.length > 0) {
+    products = await productRepo.getProductsBySeriesIdsRepo(seriesIds);
+    productIds = products.map(p => p._id.toString());
   }
 
-  // Delete category image
-  if (category.imageUrl) {
-    try {
-      await deleteImageFromS3(category.imageUrl);
-    } catch (error) {
-      logger?.error("Error deleting category image", { error });
+  const serviceConditions = [
+    { level: "category", levelId: id }
+  ];
+  if (seriesIds.length > 0) serviceConditions.push({ level: "series", levelId: { $in: seriesIds } });
+  if (productIds.length > 0) serviceConditions.push({ level: "product", levelId: { $in: productIds } });
+
+  const services = await serviceRepo.getServicesByConditionsRepo({ $or: serviceConditions, isVariant: false });
+  const serviceIds = services.map(s => s._id.toString());
+
+  const imagesToDelete = [category.imageUrl];
+  series.forEach(s => s.imageUrl && imagesToDelete.push(s.imageUrl));
+  products.forEach(p => p.imageUrl && imagesToDelete.push(p.imageUrl));
+
+  const imageDeletions = imagesToDelete
+    .filter(url => url)
+    .map(url => deleteImageFromS3(url).catch(err => logger?.error("Error deleting image from S3 against Category deletion", { url, error: err })));
+  
+  await Promise.allSettled(imageDeletions);
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    if (serviceIds.length > 0) {
+      await productServiceRepo.deleteProductServicesByServiceIdsRepo(serviceIds, session);
+      await serviceRepo.deleteVariantsByParentIdsRepo(serviceIds, session);
+      await serviceRepo.deleteServicesByIdsRepo(serviceIds, session);
     }
+    
+    if (productIds.length > 0) {
+      await productServiceRepo.deleteProductServicesByProductIdsRepo(productIds, session);
+      await productRepo.deleteProductsBySeriesIdsRepo(seriesIds, session);
+    }
+
+    if (seriesIds.length > 0) {
+      await seriesRepo.deleteSeriesByCategoryIdsRepo([id], session); 
+    }
+
+    await categoryRepo.deleteCategoryRepo(id, session);
+
+    await session.commitTransaction();
+    logger?.info("Category and all associated entities deleted successfully (transaction committed)", {
+      categoryId: id,
+      seriesCount: seriesIds.length,
+      productsCount: productIds.length,
+      servicesCount: serviceIds.length
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    logger?.error("Category deletion transaction failed. Rolled back.", { categoryId: id, error });
+    throw new appError.InternalServerError(
+      "Deletion Failed",
+      "An error occurred while deleting the category and its hierarchy. No data was deleted.",
+      "Please try again."
+    );
+  } finally {
+    session.endSession();
   }
-
-  await categoryRepo.deleteCategoryRepo(id);
-
-  logger?.info("Category deleted successfully", {
-    categoryId: category._id.toString(),
-  });
 };
 
 module.exports = {

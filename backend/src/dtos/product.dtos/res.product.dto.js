@@ -48,21 +48,39 @@ class ProductResponseDTO {
   }
 }
 
-class CreateProductResponseDTO extends ProductResponseDTO {
+class SimpleProductResponseDTO {
+  constructor(product) {
+    this.id = product._id?.toString() || product.id || null;
+    this.name = product.name;
+    this.description = product.description || "";
+    this.imageUrl = product.imageUrl || null;
+    this.isActive = Boolean(product.isActive);
+    this.seriesId =
+      product.seriesId?._id?.toString() ||
+      product.seriesId?.id ||
+      product.seriesId?.toString() ||
+      null;
+    this.createdAt = product.createdAt || null;
+    this.updatedAt = product.updatedAt || null;
+  }
+}
+
+class CreateProductResponseDTO extends SimpleProductResponseDTO {
   constructor(product) {
     super(product);
   }
 }
 
-class UpdateProductResponseDTO extends ProductResponseDTO {
+class UpdateProductResponseDTO extends SimpleProductResponseDTO {
   constructor(product) {
     super(product);
   }
 }
 
-class UpdateProductStatusResponseDTO extends ProductResponseDTO {
+class UpdateProductStatusResponseDTO {
   constructor(product) {
-    super(product);
+    this.id = product._id?.toString() || product.id || null;
+    this.isActive = Boolean(product.isActive);
   }
 }
 

@@ -8,6 +8,8 @@ const productRepo = require("../repositories/product.repo");
 const productResponseDto = require("../dtos/product.dtos/res.product.dto");
 const { uploadFileToS3, deleteImageFromS3 } = require("../utils/aws/s3Utils");
 const { randomUUID } = require("crypto");
+const serviceRepo = require("../repositories/service.repo");
+const productServiceRepo = require("../repositories/productService.repo");
 
 const createProductService = async (createProductRequestDto, logger) => {
   const series = await seriesRepo.getSeriesByIdRepo(
@@ -65,19 +67,7 @@ const updateProductService = async (updatePayload, logger) => {
     );
   }
 
-  if (updatePayload.seriesId) {
-    const series = await seriesRepo.getSeriesByIdRepo(updatePayload.seriesId);
-    if (!series) {
-      throw new appError.NotFoundError(
-        "Series not found",
-        "No series exists for the provided series id.",
-        "Check the series id and try again.",
-      );
-    }
-  }
-
-  const targetSeriesId =
-    updatePayload.seriesId || existingProduct.seriesId._id.toString();
+  const targetSeriesId = existingProduct.seriesId._id.toString();
 
   if (updatePayload.name) {
     const productWithSameName = await productRepo.getProductByNameRepo(
@@ -102,10 +92,6 @@ const updateProductService = async (updatePayload, logger) => {
       folder: `products/${existingProduct.name}-${randomUUID()}`,
     });
     updatePayload.imageUrl = uploadedIcon.url;
-  }
-
-  if (updatePayload.seriesId) {
-    updatePayload.seriesId = new mongoose.Types.ObjectId(updatePayload.seriesId);
   }
 
   const updatedProduct = await productRepo.updateProductRepo(
@@ -243,17 +229,45 @@ const deleteProductService = async (id, logger) => {
     );
   }
 
+  const serviceConditions = [
+    { level: "product", levelId: id }
+  ];
+  const services = await serviceRepo.getServicesByConditionsRepo({ $or: serviceConditions, isVariant: false });
+  const serviceIds = services.map(s => s._id.toString());
+
   if (product.imageUrl) {
-    await deleteImageFromS3(product.imageUrl).catch((error) => {
-      logger?.error("Error deleting product image", { error });
-    });
+    await deleteImageFromS3(product.imageUrl).catch(err => logger?.error("Error deleting product image from S3 against Product deletion", { error: err }));
   }
 
-  await productRepo.deleteProductRepo(id);
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  logger?.info("Product deleted successfully", {
-    productId: product._id.toString(),
-  });
+  try {
+    if (serviceIds.length > 0) {
+      await productServiceRepo.deleteProductServicesByServiceIdsRepo(serviceIds, session);
+      await serviceRepo.deleteVariantsByParentIdsRepo(serviceIds, session);
+      await serviceRepo.deleteServicesByIdsRepo(serviceIds, session);
+    }
+    
+    await productServiceRepo.deleteProductServicesByProductIdsRepo([id], session);
+    await productRepo.deleteProductRepo(id, session);
+
+    await session.commitTransaction();
+    logger?.info("Product and all associated entities deleted successfully (transaction committed)", {
+      productId: id,
+      servicesCount: serviceIds.length
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    logger?.error("Product deletion transaction failed. Rolled back.", { productId: id, error });
+    throw new appError.InternalServerError(
+      "Deletion Failed",
+      "An error occurred while deleting the product and its hierarchy. No data was deleted.",
+      "Please try again."
+    );
+  } finally {
+    session.endSession();
+  }
 };
 
 module.exports = {
