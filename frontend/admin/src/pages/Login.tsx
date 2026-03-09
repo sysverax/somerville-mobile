@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import logo from '@/assets/logo.jpeg';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ const LoginPage = () => {
   const [attempts, setAttempts] = useState(0);
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({});
 
   if (isAuthenticated) { navigate('/dashboard', { replace: true }); return null; }
@@ -57,7 +59,7 @@ const LoginPage = () => {
     }
 
     if (attempts >= 5) {
-      setErrors({ general: 'Too many failed attempts. Please try again later.' });
+      toast({ title: 'Too many failed attempts. Please try again later', variant: 'destructive' });
       return;
     }
 
@@ -65,11 +67,12 @@ const LoginPage = () => {
     try {
       const ok = await login(email, password);
       if (ok) {
+        toast({ title: 'Signed in successfully', variant: 'success' });
         navigate('/dashboard');
       } else {
         setAttempts(prev => prev + 1);
         setPassword('');
-        setErrors({ general: 'Invalid email or password' });
+        toast({ title: 'Invalid email or password', variant: 'destructive' });
       }
     } finally {
       setIsSubmitting(false);
@@ -87,7 +90,6 @@ const LoginPage = () => {
           </div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
-          {errors.general && <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">{errors.general}</div>}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
