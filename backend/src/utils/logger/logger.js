@@ -9,8 +9,10 @@ const { combine, timestamp, errors, printf, json, splat, metadata } = format;
 
 const LOG_DIR = path.join(__dirname, "../../../logs");
 const DEFAULT_LEVEL = NODE_ENV === "dev" ? "debug" : "info";
+const IS_SERVERLESS = !!process.env.VERCEL;
 
 async function ensureLogDir() {
+  if (IS_SERVERLESS) return;
   try {
     await fs.mkdir(LOG_DIR, { recursive: true });
   } catch (err) {}
@@ -45,41 +47,48 @@ async function initLogger(serviceName = "backend") {
     format: buildFormat(),
 
     transports: [
-      // Console output for both dev and prod environments
       new transports.Console(),
-
-      // Daily rotating file (main structured logs)
-      new DailyRotateFile({
-        dirname: LOG_DIR,
-        filename: `${serviceName}-%DATE%.log`,
-        datePattern: "YYYY-MM-DD",
-        zippedArchive: true,
-        maxSize: "20m",
-        maxFiles: "14d", // retain logs for 14 days
-        level: "info",
-      }),
+      ...(!IS_SERVERLESS
+        ? [
+            new DailyRotateFile({
+              dirname: LOG_DIR,
+              filename: `${serviceName}-%DATE%.log`,
+              datePattern: "YYYY-MM-DD",
+              zippedArchive: true,
+              maxSize: "20m",
+              maxFiles: "14d",
+              level: "info",
+            }),
+          ]
+        : []),
     ],
 
-    // Dedicated exception handler for unexpected errors
     exceptionHandlers: [
-      new DailyRotateFile({
-        dirname: LOG_DIR,
-        filename: `${serviceName}-exceptions-%DATE%.log`,
-        datePattern: "YYYY-MM-DD",
-        maxFiles: "30d",
-      }),
       new transports.Console(),
+      ...(!IS_SERVERLESS
+        ? [
+            new DailyRotateFile({
+              dirname: LOG_DIR,
+              filename: `${serviceName}-exceptions-%DATE%.log`,
+              datePattern: "YYYY-MM-DD",
+              maxFiles: "30d",
+            }),
+          ]
+        : []),
     ],
 
-    // Handle unhandled promise rejections
     rejectionHandlers: [
-      new DailyRotateFile({
-        dirname: LOG_DIR,
-        filename: `${serviceName}-rejections-%DATE%.log`,
-        datePattern: "YYYY-MM-DD",
-        maxFiles: "30d",
-      }),
       new transports.Console(),
+      ...(!IS_SERVERLESS
+        ? [
+            new DailyRotateFile({
+              dirname: LOG_DIR,
+              filename: `${serviceName}-rejections-%DATE%.log`,
+              datePattern: "YYYY-MM-DD",
+              maxFiles: "30d",
+            }),
+          ]
+        : []),
     ],
 
     // Don’t crash process on unhandled exceptions — allow process manager to restart
