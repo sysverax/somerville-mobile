@@ -17,6 +17,7 @@ import ImageUpload from '@/components/ImageUpload';
 import TablePagination from '@/components/TablePagination';
 import { computeBrandVisibility } from '@/lib/visibility';
 import { VisibilityBadge, HiddenReasonCell } from '@/components/VisibilityBadge';
+import EmptyState from '@/components/EmptyState';
 
 const validateName = (value: string): string | undefined => {
   if (!value.trim()) return 'Brand name is required';
@@ -134,8 +135,8 @@ const BrandsPage = () => {
                   }} disabled={isLoading} />
                 </div>
                 <div className="flex gap-1">
-                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
-                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(brand)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(brand)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                 </div>
               </div>
             </div>
@@ -191,8 +192,8 @@ const BrandsPage = () => {
                     }} disabled={isLoading} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
-                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(brand)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(brand)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -250,7 +251,7 @@ const BrandsPage = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={async (e) => {
                 e.preventDefault();
                 if (deleteTarget) {

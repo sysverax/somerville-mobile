@@ -20,6 +20,7 @@ import ImageUpload from '@/components/ImageUpload';
 import TablePagination from '@/components/TablePagination';
 import { computeSeriesVisibility, isParentInactive } from '@/lib/visibility';
 import { VisibilityBadge, HiddenReasonCell, ParentNameCell } from '@/components/VisibilityBadge';
+import EmptyState from '@/components/EmptyState';
 
 const validateBrand = (value: string): string | undefined => {
   if (!value) return 'Brand is required';
@@ -145,6 +146,15 @@ const SeriesPage = () => {
             <div className="col-span-full flex flex-col items-center justify-center py-16">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
+          ) : paginated.length === 0 ? (
+            <div className="col-span-full rounded-xl border border-dashed border-border bg-card">
+              <EmptyState
+                title="No series found"
+                description={filtered.length > 0 ? 'Try changing page size or page number.' : 'Click "Add Series" to create your first series.'}
+                actionLabel="Add Series"
+                onAction={openAdd}
+              />
+            </div>
           ) : paginated.map(s => (
             <div key={s.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
               <div className="flex items-center gap-3">
@@ -191,6 +201,17 @@ const SeriesPage = () => {
                 <TableRow>
                   <TableCell colSpan={9} className="h-64 text-center">
                     <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                  </TableCell>
+                </TableRow>
+              ) : paginated.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="py-0">
+                    <EmptyState
+                      title="No series found"
+                      description={filtered.length > 0 ? 'Try changing page size or page number.' : 'Click "Add Series" to create your first series.'}
+                      actionLabel="Add Series"
+                      onAction={openAdd}
+                    />
                   </TableCell>
                 </TableRow>
               ) : paginated.map(s => {
