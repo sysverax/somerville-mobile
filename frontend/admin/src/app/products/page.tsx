@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { useProducts } from '@/hooks/useProducts';
 import { useBrands } from '@/hooks/useBrands';
 import { useCategories } from '@/hooks/useCategories';
@@ -15,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Wrench, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, Wrench, ChevronRight, Loader2, Package } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import ImageUpload from '@/components/ImageUpload';
@@ -54,8 +55,10 @@ const ProductsPage = () => {
   const { brands } = useBrands();
   const { categories } = useCategories();
   const { seriesList } = useSeriesData();
-  const { products, create, update, remove, toggleActive } = useProducts();
+  const { products, create, update, remove, toggleActive, isLoading: initialLoading } = useProducts();
   const { services, getOverridesByProduct, upsertOverride, hasVariants, overrides, toggleServiceForProduct } = useServices();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const [view, setView] = useState<ViewMode>('table');
   const [filters, setFilters] = useState({ brandId: 'all', categoryId: 'all', seriesId: 'all' });
@@ -67,7 +70,6 @@ const ProductsPage = () => {
   const [specKey, setSpecKey] = useState('');
   const [specVal, setSpecVal] = useState('');
   const [formErrors, setFormErrors] = useState<FormErrors>({});
-  const [requestError, setRequestError] = useState<string | null>(null);
   const [touched, setTouched] = useState<{ brandId?: boolean; categoryId?: boolean; seriesId?: boolean; name?: boolean; iconImage?: boolean }>({});
 
   // Service overrides dialog
@@ -85,10 +87,10 @@ const ProductsPage = () => {
   const [pageSize, setPageSize] = useState(10);
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const openAdd = () => { setEditing(null); setForm({ seriesId: '', categoryId: '', brandId: '', name: '', description: '', specifications: {}, iconImage: null, galleryImages: [] }); setFormErrors({}); setTouched({}); setRequestError(null); setIsFormOpen(true); };
-  const openEdit = (p: Product) => { setEditing(p); setForm({ seriesId: p.seriesId, categoryId: p.categoryId, brandId: p.brandId, name: p.name, description: p.description, specifications: { ...p.specifications }, iconImage: p.iconImage, galleryImages: [...p.galleryImages] }); setFormErrors({}); setTouched({}); setRequestError(null); setIsFormOpen(true); };
+  const openAdd = () => { setEditing(null); setForm({ seriesId: '', categoryId: '', brandId: '', name: '', description: '', specifications: {}, iconImage: null, galleryImages: [] }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
+  const openEdit = (p: Product) => { setEditing(p); setForm({ seriesId: p.seriesId, categoryId: p.categoryId, brandId: p.brandId, name: p.name, description: p.description, specifications: { ...p.specifications }, iconImage: p.iconImage, galleryImages: [...p.galleryImages] }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
 
-  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); setRequestError(null); };
+  const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
 
   const handleSave = async () => {
     const brandErr = validateBrand(form.brandId);
@@ -101,16 +103,22 @@ const ProductsPage = () => {
       setTouched({ brandId: true, categoryId: true, seriesId: true, name: true, iconImage: true });
       return;
     }
-    setRequestError(null);
+    setIsLoading(true);
     try {
       if (editing) {
-        await update(editing.id, form);
+        const { brandId, categoryId, seriesId, ...updateData } = form;
+        await update(editing.id, updateData);
+        toast({ title: 'Product updated successfully', variant: 'success' });
       } else {
         await create(form);
+        toast({ title: 'Product created successfully', variant: 'success' });
       }
       setIsFormOpen(false);
     } catch (error) {
-      setRequestError(error instanceof Error ? error.message : 'Failed to save product');
+      const message = error instanceof Error ? error.message : 'Failed to save product';
+      toast({ title: message, variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
     }
   };
   const addSpec = () => { if (specKey.trim() && specVal.trim()) { setForm(f => ({ ...f, specifications: { ...f.specifications, [specKey]: specVal } })); setSpecKey(''); setSpecVal(''); } };
@@ -193,10 +201,19 @@ const ProductsPage = () => {
     setOverrideEdits(edits);
   };
 
-  const saveServiceOverride = (serviceId: string, productId: string) => {
+  const saveServiceOverride = async (serviceId: string, productId: string) => {
     const edit = overrideEdits[serviceId];
     if (edit) {
-      upsertOverride({ serviceId, productId, price: Number(edit.price), estimatedTime: Number(edit.time) });
+      setIsLoading(true);
+      try {
+        await upsertOverride({ serviceId, productId, price: Number(edit.price), estimatedTime: Number(edit.time) });
+        toast({ title: 'Service override saved', variant: 'success' });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to save override';
+        toast({ title: message, variant: 'destructive' });
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -220,23 +237,48 @@ const ProductsPage = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1"><Label className="text-xs">Brand</Label>
-          <Select value={filters.brandId} onValueChange={v => setFilters(f => ({ ...f, brandId: v, categoryId: 'all', seriesId: 'all' }))}><SelectTrigger className="w-[160px]"><SelectValue placeholder="All" /></SelectTrigger><SelectContent><SelectItem value="all">All Brands</SelectItem>{brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></div>
+          <Select value={filters.brandId} onValueChange={v => setFilters(f => ({ ...f, brandId: v, categoryId: 'all', seriesId: 'all' }))}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="All" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Brands</SelectItem>
+              {brands.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No brands found</div>}
+              {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+            </SelectContent>
+          </Select></div>
         <div className="space-y-1"><Label className="text-xs">Category</Label>
-          <Select value={filters.categoryId} onValueChange={v => setFilters(f => ({ ...f, categoryId: v, seriesId: 'all' }))}><SelectTrigger className="w-[160px]"><SelectValue placeholder="All" /></SelectTrigger><SelectContent><SelectItem value="all">All Categories</SelectItem>{filteredCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+          <Select value={filters.categoryId} onValueChange={v => setFilters(f => ({ ...f, categoryId: v, seriesId: 'all' }))}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="All" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {filteredCats.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No categories found</div>}
+              {filteredCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select></div>
         <div className="space-y-1"><Label className="text-xs">Series</Label>
-          <Select value={filters.seriesId} onValueChange={v => setFilters(f => ({ ...f, seriesId: v }))}><SelectTrigger className="w-[160px]"><SelectValue placeholder="All" /></SelectTrigger><SelectContent><SelectItem value="all">All Series</SelectItem>{filteredSeries.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
+          <Select value={filters.seriesId} onValueChange={v => setFilters(f => ({ ...f, seriesId: v }))}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="All" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Series</SelectItem>
+              {filteredSeries.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No series found</div>}
+              {filteredSeries.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select></div>
         {hasChanges && <Button onClick={() => { setApplied({ ...filters }); setPage(1); }}>Apply</Button>}
         {(applied.brandId !== 'all' || applied.categoryId !== 'all' || applied.seriesId !== 'all') && (
           <Button variant="outline" onClick={() => { const empty = { brandId: 'all', categoryId: 'all', seriesId: 'all' }; setFilters(empty); setApplied(empty); setPage(1); }}>Clear</Button>
         )}
         <ViewToggle view={view} onChange={setView} />
-        <div className="ml-auto"><Button onClick={openAdd} className="gap-2"><Plus className="h-4 w-4" /> Add Product</Button></div>
+        <div className="ml-auto"><Button onClick={openAdd} disabled={isLoading} className="gap-2"><Plus className="h-4 w-4" /> Add Product</Button></div>
       </div>
 
       {view === 'card' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {paginated.length === 0 ? (
-            <div className="col-span-full text-center py-12">
+          {initialLoading ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : paginated.length === 0 ? (
+           <div className="col-span-full text-center py-12">
               <p className="text-muted-foreground">No products found. {filtered.length === 0 && products.length > 0 ? 'Try adjusting your filters.' : 'Click "Add Product" to create one.'}</p>
             </div>
           ) : paginated.map(p => {
@@ -262,11 +304,16 @@ const ProductsPage = () => {
                   </div>
                 )}
                 <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                  <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={p.isActive} onCheckedChange={() => { toggleActive(p.id).catch(() => undefined); }} /></div>
+                  <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={p.isActive} onCheckedChange={() => {
+                    toggleActive(p.id).catch((error) => {
+                      const message = error instanceof Error ? error.message : 'Failed to update product status';
+                      toast({ title: message, variant: 'destructive' });
+                    });
+                  }} disabled={isLoading} /></div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openServiceOverrides(p)} title="Manage service overrides"><Wrench className="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(p)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openServiceOverrides(p)} disabled={isLoading} title="Manage service overrides"><Wrench className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(p)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                   </div>
                 </div>
               </div>
@@ -290,7 +337,13 @@ const ProductsPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginated.length === 0 ? (
+              {initialLoading ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-64 text-center">
+                    <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                  </TableCell>
+                </TableRow>
+                  ) : paginated.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                     No products found. {filtered.length === 0 && products.length > 0 ? 'Try adjusting your filters.' : 'Click "Add Product" to create one.'}
@@ -313,12 +366,17 @@ const ProductsPage = () => {
                     <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{productServices.length} service(s)</TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden xl:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
-                    <TableCell><Switch checked={p.isActive} onCheckedChange={() => { toggleActive(p.id).catch(() => undefined); }} /></TableCell>
+                    <TableCell><Switch checked={p.isActive} onCheckedChange={() => {
+                      toggleActive(p.id).catch((error) => {
+                        const message = error instanceof Error ? error.message : 'Failed to update product status';
+                        toast({ title: message, variant: 'destructive' });
+                      });
+                    }} disabled={isLoading} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openServiceOverrides(p)} title="Service overrides"><Wrench className="h-3.5 w-3.5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}><Pencil className="h-3.5 w-3.5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(p)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openServiceOverrides(p)} disabled={isLoading} title="Service overrides"><Wrench className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(p)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -336,7 +394,6 @@ const ProductsPage = () => {
         <DialogContent className="flex flex-col max-h-[90vh]">
           <DialogHeader><DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
-            {requestError && <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{requestError}</div>}
             {/* Brand / Category / Series */}
             <div className="grid grid-cols-3 gap-2 mx-1">
               <div className="space-y-1">
@@ -349,8 +406,11 @@ const ProductsPage = () => {
                     setFormErrors(prev => ({ ...prev, brandId: validateBrand(v), categoryId: undefined, seriesId: undefined }));
                   }}
                 >
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+                  <SelectTrigger disabled={!!editing}><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    {brands.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No brands found</div>}
+                    {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
                 {formErrors.brandId && <p className="text-xs text-destructive">{formErrors.brandId}</p>}
               </div>
@@ -358,7 +418,7 @@ const ProductsPage = () => {
                 <Label className="text-xs">Category *</Label>
                 <Select
                   value={form.categoryId}
-                  disabled={!form.brandId}
+                  disabled={!form.brandId || !!editing}
                   onValueChange={v => {
                     setForm(f => ({ ...f, categoryId: v, seriesId: '' }));
                     setTouched(prev => ({ ...prev, categoryId: true }));
@@ -366,7 +426,12 @@ const ProductsPage = () => {
                   }}
                 >
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{categories.filter(c => c.brandId === form.brandId).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {categories.filter(c => c.brandId === form.brandId).length === 0 && (
+                      <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No categories found</div>
+                    )}
+                    {categories.filter(c => c.brandId === form.brandId).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
                 {formErrors.categoryId && <p className="text-xs text-destructive">{formErrors.categoryId}</p>}
               </div>
@@ -374,7 +439,7 @@ const ProductsPage = () => {
                 <Label className="text-xs">Series *</Label>
                 <Select
                   value={form.seriesId}
-                  disabled={!form.categoryId}
+                  disabled={!form.categoryId || !!editing}
                   onValueChange={v => {
                     setForm(f => ({ ...f, seriesId: v }));
                     setTouched(prev => ({ ...prev, seriesId: true }));
@@ -382,7 +447,12 @@ const ProductsPage = () => {
                   }}
                 >
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>{seriesList.filter(s => s.categoryId === form.categoryId).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {seriesList.filter(s => s.categoryId === form.categoryId).length === 0 && (
+                      <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No series found</div>
+                    )}
+                    {seriesList.filter(s => s.categoryId === form.categoryId).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
                 {formErrors.seriesId && <p className="text-xs text-destructive">{formErrors.seriesId}</p>}
               </div>
@@ -447,8 +517,11 @@ const ProductsPage = () => {
 
           </div>
           <DialogFooter>
-            <Button variant="secondary" onClick={handleClose}>Cancel</Button>
-            <Button onClick={handleSave}>{editing ? 'Save' : 'Add Product'}</Button>
+            <Button variant="secondary" onClick={handleClose} disabled={isLoading}>Cancel</Button>
+            <Button onClick={handleSave} disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {editing ? 'Save Changes' : 'Add Product'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -543,9 +616,10 @@ const ProductsPage = () => {
                                       <Button
                                         size="sm"
                                         variant="secondary"
-                                        disabled={!edit}
+                                        disabled={!edit || isLoading}
                                         onClick={() => saveServiceOverride(svc.id, serviceProduct.id)}
                                       >
+                                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         Save
                                       </Button>
                                     </div>
@@ -571,7 +645,32 @@ const ProductsPage = () => {
       {/* Delete confirm */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Product</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete &quot;{deleteTarget?.name}&quot;? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { if (deleteTarget) { remove(deleteTarget.id).catch(() => undefined); setDeleteTarget(null); } }}>Delete</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async (e) => {
+                e.preventDefault();
+                if (deleteTarget) {
+                  setIsLoading(true);
+                  try {
+                    await remove(deleteTarget.id);
+                    toast({ title: 'Product deleted successfully', variant: 'success' });
+                    setDeleteTarget(null);
+                  } catch (error) {
+                    const message = error instanceof Error ? error.message : 'Failed to delete product';
+                    toast({ title: message, variant: 'destructive' });
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }
+              }}
+              disabled={isLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

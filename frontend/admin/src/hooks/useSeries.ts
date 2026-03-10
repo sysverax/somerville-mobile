@@ -4,13 +4,22 @@ import { seriesService } from '@/services/series.service';
 
 export const useSeriesData = () => {
   const [seriesList, setSeriesList] = useState<Series[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const refresh = useCallback(async () => {
-    const allSeries = await seriesService.getAll();
-    setSeriesList(allSeries);
+    try {
+      const allSeries = await seriesService.getAll();
+      setSeriesList(allSeries);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    refresh().catch(() => setSeriesList([]));
+    refresh().catch(() => {
+      setSeriesList([]);
+      setIsLoading(false);
+    });
   }, [refresh]);
 
   const create = useCallback(async (data: { categoryId: string; brandId: string; name: string; image: string | null; description: string }) => {
@@ -36,5 +45,5 @@ export const useSeriesData = () => {
     }
   }, [refresh]);
 
-  return { seriesList, create, update, remove, toggleActive, refresh, count: seriesList.length };
+  return { seriesList, create, update, remove, toggleActive, refresh, count: seriesList.length, isLoading };
 };

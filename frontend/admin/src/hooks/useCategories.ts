@@ -4,13 +4,22 @@ import { categoryService } from '@/services/category.service';
 
 export const useCategories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const refresh = useCallback(async () => {
-    const allCategories = await categoryService.getAll();
-    setCategories(allCategories);
+    try {
+      const allCategories = await categoryService.getAll();
+      setCategories(allCategories);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    refresh().catch(() => setCategories([]));
+    refresh().catch(() => {
+      setCategories([]);
+      setIsLoading(false);
+    });
   }, [refresh]);
 
   const create = useCallback(async (data: { brandId: string; name: string; image: string | null; description: string }) => {
@@ -36,5 +45,5 @@ export const useCategories = () => {
     }
   }, [refresh]);
 
-  return { categories, create, update, remove, toggleActive, refresh, count: categories.length };
+  return { categories, create, update, remove, toggleActive, refresh, count: categories.length, isLoading };
 };

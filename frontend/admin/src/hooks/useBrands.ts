@@ -4,14 +4,22 @@ import { brandService } from '@/services/brand.service';
 
 export const useBrands = () => {
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const allBrands = await brandService.getAll();
-    setBrands(allBrands);
+    try {
+      const allBrands = await brandService.getAll();
+      setBrands(allBrands);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    refresh().catch(() => setBrands([]));
+    refresh().catch(() => {
+      setBrands([]);
+      setIsLoading(false);
+    });
   }, [refresh]);
 
   const create = useCallback(async (data: { name: string; description: string; iconImage: string | null; bannerImage?: string | null }) => {
@@ -37,5 +45,5 @@ export const useBrands = () => {
     }
   }, [refresh]);
 
-  return { brands, create, update, remove, toggleActive, refresh, count: brands.length };
+  return { brands, create, update, remove, toggleActive, refresh, count: brands.length, isLoading };
 };

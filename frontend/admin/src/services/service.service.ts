@@ -27,15 +27,18 @@ const normalizeServiceRecord = (service: ServiceDocument): ServiceRecord => {
     }
     case 'series': {
       const series = seriesById.get(service.levelId);
-      brandId = series?.brandId || '';
+      const category = series ? categoriesById.get(series.categoryId) : undefined;
+      brandId = category?.brandId || '';
       categoryId = series?.categoryId;
       seriesId = service.levelId;
       break;
     }
     case 'product': {
       const product = productsById.get(service.levelId);
-      brandId = product?.brandId || '';
-      categoryId = product?.categoryId;
+      const series = product ? seriesById.get(product.seriesId) : undefined;
+      const category = series ? categoriesById.get(series.categoryId) : undefined;
+      brandId = category?.brandId || '';
+      categoryId = series?.categoryId;
       seriesId = product?.seriesId;
       productId = service.levelId;
       break;
@@ -78,9 +81,16 @@ let overrides: ServiceProduct[] = mockServiceProductOverrides.map(o => ({ ...o, 
 const getLinkedProductsForService = (service: ServiceRecord): string[] => {
   switch (service.level) {
     case 'brand':
-      return mockProducts.filter(p => p.brandId === service.levelId).map(p => p.id);
+      return mockProducts.filter(p => {
+        const series = seriesById.get(p.seriesId);
+        const category = series ? categoriesById.get(series.categoryId) : undefined;
+        return category?.brandId === service.levelId;
+      }).map(p => p.id);
     case 'category':
-      return mockProducts.filter(p => p.categoryId === service.levelId).map(p => p.id);
+      return mockProducts.filter(p => {
+        const series = seriesById.get(p.seriesId);
+        return series?.categoryId === service.levelId;
+      }).map(p => p.id);
     case 'series':
       return mockProducts.filter(p => p.seriesId === service.levelId).map(p => p.id);
     case 'product':
@@ -119,7 +129,7 @@ export const serviceService = {
   getParentServices: (): ServiceRecord[] => services.filter(s => !s.isVariant),
   getVariants: (parentId: string): ServiceRecord[] => services.filter(s => s.parentServiceId === parentId && s.isVariant),
   hasVariants: (parentId: string): boolean => services.some(s => s.parentServiceId === parentId && s.isVariant),
-  create: (data: Omit<ServiceRecord, 'id' | 'createdAt'>): ServiceRecord => {
+  create: (data: Omit<ServiceRecord, 'id' | 'createdAt' | 'levelId'> & { levelId?: string }): ServiceRecord => {
     const levelId = inferLevelId(data);
     const record = normalizeServiceRecord({
       id: crypto.randomUUID(),

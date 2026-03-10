@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Tags } from 'lucide-react';
 import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import ImageUpload from '@/components/ImageUpload';
 import TablePagination from '@/components/TablePagination';
@@ -31,7 +31,7 @@ const validateIcon = (value: string | null): string | undefined => {
 type FormErrors = { name?: string; iconImage?: string };
 
 const BrandsPage = () => {
-  const { brands, create, update, remove, toggleActive, count } = useBrands();
+  const { brands, create, update, remove, toggleActive, count, isLoading: initialLoading } = useBrands();
   const { toast } = useToast();
   const [view, setView] = useState<ViewMode>('table');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -101,7 +101,19 @@ const BrandsPage = () => {
 
       {view === 'card' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {paginated.map(brand => (
+          {initialLoading ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : paginated.length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-16 rounded-xl border border-dashed border-border bg-muted/30">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Tags className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-medium">No brands found</p>
+              <p className="text-sm text-muted-foreground mt-1 text-center px-4">Add your first brand to get started.</p>
+            </div>
+          ) : paginated.map(brand => (
             <div key={brand.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <img src={brand.iconImage} alt={brand.name} className="h-12 w-12 rounded-lg object-cover bg-muted" />
@@ -144,7 +156,25 @@ const BrandsPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginated.map(brand => {
+              {initialLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-64 text-center">
+                    <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+                  </TableCell>
+                </TableRow>
+              ) : paginated.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-64 text-center py-12">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                        <Tags className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <p className="text-muted-foreground font-medium">No brands found</p>
+                      <p className="text-sm text-muted-foreground mt-1">Add your first brand to get started.</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : paginated.map(brand => {
                 const visibility = computeBrandVisibility(brand);
                 return (
                   <TableRow key={brand.id}>
@@ -228,7 +258,7 @@ const BrandsPage = () => {
                   setIsLoading(true);
                   try {
                     await remove(deleteTarget.id);
-                    toast({ title: 'Brand deleted successfully.', variant: 'success' });
+                    toast({ title: 'Brand deleted successfully', variant: 'success' });
                     setDeleteTarget(null);
                   } catch (error) {
                     const message = error instanceof Error ? error.message : 'Failed to delete brand';

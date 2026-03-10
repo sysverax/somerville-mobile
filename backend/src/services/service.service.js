@@ -25,7 +25,7 @@ const createServiceService = async (createServiceRequestDto, logger) => {
   );
   if (existingService) {
     throw new appError.ConflictError(
-      "Service already exists",
+      "Service with this name already exists",
       "A service with this name already exists at the specified level.",
       "Use a different service name.",
     );
@@ -197,7 +197,7 @@ const updateServiceService = async (updateServiceRequestDto, logger) => {
     
     if (duplicateService && duplicateService._id.toString() !== updateServiceRequestDto.id) {
       throw new appError.ConflictError(
-        "Service already exists",
+        "Service with this name already exists",
         "A service with this name already exists at the specified level.",
         "Use a different service name.",
       );
