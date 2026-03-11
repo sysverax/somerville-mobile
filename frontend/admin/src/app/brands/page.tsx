@@ -18,6 +18,7 @@ import TablePagination from '@/components/TablePagination';
 import { computeBrandVisibility } from '@/lib/visibility';
 import { VisibilityBadge, HiddenReasonCell } from '@/components/VisibilityBadge';
 import EmptyState from '@/components/EmptyState';
+import { TruncatedText } from '@/components/ui/truncated-text';
 
 const validateName = (value: string): string | undefined => {
   if (!value.trim()) return 'Brand name is required';
@@ -26,6 +27,17 @@ const validateName = (value: string): string | undefined => {
 
 const validateIcon = (value: string | null): string | undefined => {
   if (!value) return 'Icon image is required';
+  
+  if (value.startsWith('data:')) {
+    const mimeMatch = value.match(/^data:([^;]+);base64,/);
+    if (mimeMatch) {
+      const mimeType = mimeMatch[1];
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+      if (!allowedTypes.includes(mimeType)) {
+        return 'Unsupported format. Use JPG, PNG, WEBP, or SVG.';
+      }
+    }
+  }
   return undefined;
 };
 
@@ -64,8 +76,15 @@ const BrandsPage = () => {
     setIsLoading(true);
     try {
       if (editing) {
-        await update(editing.id, form);
-        toast({ title: 'Brand updated successfully', variant: 'success' });
+        const updateData: any = {};
+        if (form.name !== editing.name) updateData.name = form.name;
+        if (form.description !== editing.description) updateData.description = form.description;
+        if (form.iconImage !== editing.iconImage) updateData.iconImage = form.iconImage;
+        
+        if (Object.keys(updateData).length > 0) {
+          await update(editing.id, updateData);
+          toast({ title: 'Brand updated successfully', variant: 'success' });
+        }
       } else {
         await create(form);
         toast({ title: 'Brand created successfully', variant: 'success' });
@@ -107,12 +126,14 @@ const BrandsPage = () => {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : paginated.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center py-16 rounded-xl border border-dashed border-border bg-muted/30">
-              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                <Tags className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <p className="text-muted-foreground font-medium">No brands found</p>
-              <p className="text-sm text-muted-foreground mt-1 text-center px-4">Add your first brand to get started.</p>
+               <div className="col-span-full rounded-xl border border-dashed border-border bg-card">
+              <EmptyState
+                title="No brands found"
+                description={brands.length > 0 ? 'Try adjusting filters or pagination.' : 'Click "Add Brand" to create your first brand.'}
+                actionLabel="Add Brand"
+                onAction={openAdd}
+                actionDisabled={count >= 7 || isLoading}
+              />
             </div>
           ) : paginated.map(brand => (
             <div key={brand.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
@@ -164,15 +185,15 @@ const BrandsPage = () => {
                   </TableCell>
                 </TableRow>
               ) : paginated.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-64 text-center py-12">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                        <Tags className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                      <p className="text-muted-foreground font-medium">No brands found</p>
-                      <p className="text-sm text-muted-foreground mt-1">Add your first brand to get started.</p>
-                    </div>
+                 <TableRow>
+                  <TableCell colSpan={7} className="py-0">
+                    <EmptyState
+                      title="No brands found"
+                      description={brands.length > 0 ? 'Try adjusting filters or pagination.' : 'Click "Add Brand" to create your first brand.'}
+                      actionLabel="Add Brand"
+                      onAction={openAdd}
+                      actionDisabled={count >= 7 || isLoading}
+                    />
                   </TableCell>
                 </TableRow>
               ) : paginated.map(brand => {
@@ -181,7 +202,7 @@ const BrandsPage = () => {
                   <TableRow key={brand.id}>
                     <TableCell><img src={brand.iconImage} alt={brand.name} className="h-8 w-8 rounded-md object-cover bg-muted" /></TableCell>
                     <TableCell className="font-medium">{brand.name}</TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm truncate max-w-[200px]">{brand.description}</TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px]"><TruncatedText text={brand.description} /></TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
                     <TableCell><Switch checked={brand.isActive} onCheckedChange={() => {
@@ -205,7 +226,7 @@ const BrandsPage = () => {
       )}
 
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
-        <DialogContent>
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader><DialogTitle>{editing ? 'Edit Brand' : 'Add Brand'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Brand Name *</Label><Input value={form.name}

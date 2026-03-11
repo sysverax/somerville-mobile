@@ -49,9 +49,11 @@ const updateSeriesController = async (req, res, next) => {
     req.logger.info("Update series request received", {
       seriesId: req.params.id,
     });
+    const body =
+      typeof req.body?.body === "string" ? JSON.parse(req.body.body) : req.body;
     const updateSeriesDto = new seriesRequestDto.UpdateSeriesRequestDTO(
       req.params,
-      req.body,
+      body,
       req.files,
     );
     updateSeriesDto.validate();

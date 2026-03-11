@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSeriesData } from '@/hooks/useSeries';
-import { useBrands } from '@/hooks/useBrands';
-import { useCategories } from '@/hooks/useCategories';
+import { useFilterOptions } from '@/hooks/useFilterOptions';
 import { Series } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +20,7 @@ import TablePagination from '@/components/TablePagination';
 import { computeSeriesVisibility, isParentInactive } from '@/lib/visibility';
 import { VisibilityBadge, HiddenReasonCell, ParentNameCell } from '@/components/VisibilityBadge';
 import EmptyState from '@/components/EmptyState';
+import { TruncatedText } from '@/components/ui/truncated-text';
 
 const validateBrand = (value: string): string | undefined => {
   if (!value) return 'Brand is required';
@@ -39,21 +39,31 @@ const validateName = (value: string): string | undefined => {
 
 const validateImage = (value: string | null): string | undefined => {
   if (!value) return 'Image is required';
+  if (value.startsWith('data:')) {
+    const mimeMatch = value.match(/^data:([^;]+);base64,/);
+    if (mimeMatch) {
+      const mimeType = mimeMatch[1];
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+      if (!allowedTypes.includes(mimeType)) {
+        return 'Unsupported format. Use JPG, PNG, WEBP, or SVG.';
+      }
+    }
+  }
   return undefined;
 };
 
 type FormErrors = { brandId?: string; categoryId?: string; name?: string; image?: string };
 
 const SeriesPage = () => {
-  const { brands } = useBrands();
-  const { categories } = useCategories();
-  const { seriesList, create, update, remove, toggleActive, isLoading: initialLoading } = useSeriesData();
+  const { brands, categories, isLoading: optionsLoading } = useFilterOptions();
+  const { seriesList, create, update, remove, toggleActive, isLoading: seriesLoading, refresh } = useSeriesData();
+  const initialLoading = seriesLoading || optionsLoading;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<ViewMode>('table');
 
-  const [filters, setFilters] = useState({ brandId: '', categoryId: '' });
-  const [applied, setApplied] = useState({ brandId: '', categoryId: '' });
+  const [filters, setFilters] = useState({ brandId: 'all', categoryId: 'all' });
+  const [applied, setApplied] = useState({ brandId: 'all', categoryId: 'all' });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editing, setEditing] = useState<Series | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Series | null>(null);
@@ -65,12 +75,12 @@ const SeriesPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const filteredCats = filters.brandId ? categories.filter(c => c.brandId === filters.brandId) : categories;
+  const filteredCats = (filters.brandId !== 'all' || applied.brandId !== 'all') ? categories.filter(c => c.brandId === (filters.brandId !== 'all' ? filters.brandId : applied.brandId)) : categories;
   const hasChanges = JSON.stringify(filters) !== JSON.stringify(applied);
-  const filtered = seriesList.filter(s => (!applied.brandId || s.brandId === applied.brandId) && (!applied.categoryId || s.categoryId === applied.categoryId));
+  const filtered = seriesList;
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const openAdd = () => { setEditing(null); setForm({ categoryId: applied.categoryId, brandId: applied.brandId, name: '', image: null, description: '' }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
+  const openAdd = () => { setEditing(null); setForm({ categoryId: applied.categoryId !== 'all' ? applied.categoryId : '', brandId: applied.brandId !== 'all' ? applied.brandId : '', name: '', image: null, description: '' }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
   const openEdit = (s: Series) => { setEditing(s); setForm({ categoryId: s.categoryId, brandId: s.brandId, name: s.name, image: s.image, description: s.description }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
 
   const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
@@ -88,14 +98,21 @@ const SeriesPage = () => {
     setIsLoading(true);
     try {
       if (editing) {
-        const { brandId, categoryId, ...updateData } = form;
-        await update(editing.id, updateData);
-        toast({ title: 'Series updated successfully', variant: 'success' });
+        const updateData: any = {};
+        if (form.name !== editing.name) updateData.name = form.name;
+        if (form.description !== editing.description) updateData.description = form.description;
+        if (form.image !== editing.image) updateData.image = form.image;
+        
+        if (Object.keys(updateData).length > 0) {
+          await update(editing.id, updateData);
+          toast({ title: 'Series updated successfully', variant: 'success' });
+        }
       } else {
         await create(form);
         toast({ title: 'Series created successfully', variant: 'success' });
       }
       setIsFormOpen(false);
+      await refresh({ brandId: applied.brandId !== 'all' ? applied.brandId : undefined, categoryId: applied.categoryId !== 'all' ? applied.categoryId : undefined });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save series';
       toast({ title: message, variant: 'destructive' });
@@ -117,6 +134,7 @@ const SeriesPage = () => {
           <Select value={filters.brandId} onValueChange={v => { setFilters(f => ({ ...f, brandId: v, categoryId: '' })); setPage(1); }}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Brands" /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Brands</SelectItem>
               {brands.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No brands found</div>}
               {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
             </SelectContent>
@@ -124,17 +142,18 @@ const SeriesPage = () => {
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Category</Label>
-          <Select value={filters.categoryId} onValueChange={v => { setFilters(f => ({ ...f, categoryId: v })); setPage(1); }} disabled={!filters.brandId}>
+          <Select value={filters.categoryId} onValueChange={v => { setFilters(f => ({ ...f, categoryId: v })); setPage(1); }} disabled={!filters.brandId || filters.brandId === 'all'}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Categories" /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
               {filteredCats.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No categories found</div>}
               {filteredCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
-        {hasChanges && <Button onClick={() => { setApplied({ ...filters }); setPage(1); }}>Apply</Button>}
-        {(applied.brandId || applied.categoryId) && (
-          <Button variant="outline" onClick={() => { const empty = { brandId: '', categoryId: '' }; setFilters(empty); setApplied(empty); setPage(1); }}>Clear</Button>
+        {hasChanges && <Button onClick={() => { setApplied({ ...filters }); setPage(1); refresh({ brandId: filters.brandId !== 'all' ? filters.brandId : undefined, categoryId: filters.categoryId !== 'all' ? filters.categoryId : undefined }); }}>Apply</Button>}
+        {(applied.brandId !== 'all' || applied.categoryId !== 'all') && (
+          <Button variant="outline" onClick={() => { const empty = { brandId: 'all', categoryId: 'all' }; setFilters(empty); setApplied(empty); setPage(1); refresh({}); }}>Clear</Button>
         )}
         <ViewToggle view={view} onChange={setView} />
         <div className="ml-auto"><Button onClick={openAdd} disabled={isLoading} className="gap-2"><Plus className="h-4 w-4" /> Add Series</Button></div>
@@ -226,7 +245,7 @@ const SeriesPage = () => {
                     <TableCell className="font-medium">{s.name}</TableCell>
                     <TableCell className="text-sm"><ParentNameCell name={brandName(s.brandId)} isInactive={brandInactive} /></TableCell>
                     <TableCell className="text-sm"><ParentNameCell name={categoryName(s.categoryId)} isInactive={categoryInactive} /></TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm truncate max-w-[200px]">{s.description}</TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px]"><TruncatedText text={s.description} /></TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
                     <TableCell><Switch checked={s.isActive} onCheckedChange={() => {
@@ -252,7 +271,7 @@ const SeriesPage = () => {
       <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
-        <DialogContent className="flex flex-col max-h-[90vh]">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="flex flex-col max-h-[90vh]">
           <DialogHeader><DialogTitle>{editing ? 'Edit Series' : 'Add Series'}</DialogTitle></DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
             <div className="space-y-2 mx-1">

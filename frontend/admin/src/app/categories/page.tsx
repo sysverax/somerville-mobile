@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCategories } from '@/hooks/useCategories';
-import { useBrands } from '@/hooks/useBrands';
+import { useFilterOptions } from '@/hooks/useFilterOptions';
 import { Category } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import TablePagination from '@/components/TablePagination';
 import { computeCategoryVisibility, isParentInactive } from '@/lib/visibility';
 import { VisibilityBadge, HiddenReasonCell, ParentNameCell } from '@/components/VisibilityBadge';
 import EmptyState from '@/components/EmptyState';
+import { TruncatedText } from '@/components/ui/truncated-text';
 
 const validateBrand = (value: string): string | undefined => {
   if (!value) return 'Brand is required';
@@ -33,18 +34,29 @@ const validateName = (value: string): string | undefined => {
 
 const validateImage = (value: string | null): string | undefined => {
   if (!value) return 'Image is required';
+  if (value.startsWith('data:')) {
+    const mimeMatch = value.match(/^data:([^;]+);base64,/);
+    if (mimeMatch) {
+      const mimeType = mimeMatch[1];
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+      if (!allowedTypes.includes(mimeType)) {
+        return 'Unsupported format. Use JPG, PNG, WEBP, or SVG.';
+      }
+    }
+  }
   return undefined;
 };
 
 type FormErrors = { brandId?: string; name?: string; image?: string };
 
 const CategoriesPage = () => {
-  const { brands } = useBrands();
-  const { categories, create, update, remove, toggleActive, isLoading: initialLoading } = useCategories();
+  const { brands, isLoading: optionsLoading } = useFilterOptions();
+  const { categories, create, update, remove, toggleActive, isLoading: categoriesLoading, refresh } = useCategories();
+  const initialLoading = categoriesLoading || optionsLoading;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [view, setView] = useState<ViewMode>('table');
-  const [selectedBrand, setSelectedBrand] = useState('');
+  const [selectedBrand, setSelectedBrand] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
@@ -56,10 +68,10 @@ const CategoriesPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const filtered = selectedBrand ? categories.filter(c => c.brandId === selectedBrand) : categories;
+  const filtered = categories; 
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const openAdd = () => { setEditing(null); setForm({ brandId: selectedBrand, name: '', image: null, description: '' }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
+  const openAdd = () => { setEditing(null); setForm({ brandId: selectedBrand !== 'all' ? selectedBrand : '', name: '', image: null, description: '' }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
   const openEdit = (c: Category) => { setEditing(c); setForm({ brandId: c.brandId, name: c.name, image: c.image, description: c.description }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
 
   const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
@@ -76,14 +88,21 @@ const CategoriesPage = () => {
     setIsLoading(true);
     try {
       if (editing) {
-        const { brandId, ...updateData } = form;
-        await update(editing.id, updateData);
-        toast({ title: 'Category updated successfully', variant: 'success' });
+        const updateData: any = {};
+        if (form.name !== editing.name) updateData.name = form.name;
+        if (form.description !== editing.description) updateData.description = form.description;
+        if (form.image !== editing.image) updateData.image = form.image;
+        
+        if (Object.keys(updateData).length > 0) {
+          await update(editing.id, updateData);
+          toast({ title: 'Category updated successfully', variant: 'success' });
+        }
       } else {
         await create(form);
         toast({ title: 'Category created successfully', variant: 'success' });
       }
       setIsFormOpen(false);
+      await refresh({ brandId: selectedBrand !== 'all' ? selectedBrand : undefined }); 
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save category';
       toast({ title: message, variant: 'destructive' });
@@ -99,14 +118,25 @@ const CategoriesPage = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-end gap-3">
-          <Select value={selectedBrand} onValueChange={v => { setSelectedBrand(v); setPage(1); }}>
+          <Select value={selectedBrand} onValueChange={v => { 
+            setSelectedBrand(v); 
+            setPage(1); 
+             refresh({ brandId: v !== 'all' ? v : undefined });
+          }}>
             <SelectTrigger className="w-[200px]"><SelectValue placeholder="Filter by Brand" /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Brands</SelectItem>
               {brands.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No brands found</div>}
               {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          {selectedBrand && <Button variant="outline" onClick={() => { setSelectedBrand(''); setPage(1); }}>Clear</Button>}
+          {selectedBrand && selectedBrand !== 'all' && (
+            <Button variant="outline" onClick={() => { 
+               setSelectedBrand('all'); 
+               setPage(1); 
+               refresh({});
+            }}>Clear</Button>
+          )}
           <ViewToggle view={view} onChange={setView} />
         </div>
         <Button onClick={openAdd} disabled={isLoading} className="gap-2"><Plus className="h-4 w-4" /> Add Category</Button>
@@ -194,7 +224,7 @@ const CategoriesPage = () => {
                     <TableCell><img src={cat.image} alt={cat.name} className="h-8 w-8 rounded-md object-cover bg-muted" /></TableCell>
                     <TableCell className="font-medium">{cat.name}</TableCell>
                     <TableCell className="text-sm"><ParentNameCell name={brandName(cat.brandId)} isInactive={brandInactive} /></TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm truncate max-w-[200px]">{cat.description}</TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px]"><TruncatedText text={cat.description} /></TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
                     <TableCell><Switch checked={cat.isActive} onCheckedChange={() => {
@@ -220,7 +250,7 @@ const CategoriesPage = () => {
       <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
-        <DialogContent>
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader><DialogTitle>{editing ? 'Edit Category' : 'Add Category'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">

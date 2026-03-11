@@ -6,10 +6,14 @@ export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (filters?: { brandId?: string; categoryId?: string; seriesId?: string; page?: number; limit?: number }) => {
+    setIsLoading(true);
     try {
-      const allProducts = await productService.getAll();
+      const allProducts = await productService.getAll(filters);
       setProducts(allProducts);
+    } catch (error) {
+      console.error('Failed to refresh products:', error);
+      setProducts([]);
     } finally {
       setIsLoading(false);
     }

@@ -6,10 +6,14 @@ export const useSeriesData = () => {
   const [seriesList, setSeriesList] = useState<Series[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (filters?: { brandId?: string; categoryId?: string; page?: number; limit?: number }) => {
+    setIsLoading(true);
     try {
-      const allSeries = await seriesService.getAll();
+      const allSeries = await seriesService.getAll(filters);
       setSeriesList(allSeries);
+    } catch (error) {
+      console.error('Failed to refresh series:', error);
+      setSeriesList([]);
     } finally {
       setIsLoading(false);
     }

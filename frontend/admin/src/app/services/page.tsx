@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Search, ChevronUp, ChevronDown, Power, RotateCcw, Wrench, Package, Trash2, ChevronRight, Inbox, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Search, ChevronUp, ChevronDown, Power, RotateCcw, Wrench, Package, Trash2, ChevronRight, Loader2 } from 'lucide-react';
 import TablePagination from '@/components/TablePagination';
 import EmptyState from '@/components/EmptyState';
 
@@ -605,7 +605,12 @@ const ServicesPage = () => {
 
           {/* Table */}
           <div className="rounded-lg border border-border bg-card overflow-hidden">
-            <div className="overflow-x-auto">
+            {initialLoading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
@@ -641,7 +646,7 @@ const ServicesPage = () => {
                     const variantCount = variants.length;
                     return (
                       <>
-                        <tr key={s.id} className="border-b border-border/50 hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => variantCount > 0 ? toggleExpanded(s.id) : openDetail(s)}>
+                        <tr key={s.id} className={`border-b border-border/50 hover:bg-muted/20 transition-colors ${variantCount > 0 ? 'cursor-pointer' : ''}`} onClick={() => variantCount > 0 && toggleExpanded(s.id)}>
                           <td className="py-3 px-4 font-medium text-foreground">
                             <div className="flex items-center gap-2">
                               {variantCount > 0 && (
@@ -674,7 +679,7 @@ const ServicesPage = () => {
                         </tr>
                         {/* Variant rows */}
                         {isExpanded && variants.map(v => (
-                          <tr key={v.id} className="border-b border-border/50 bg-muted/10 hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => openDetail(v)}>
+                          <tr key={v.id} className="border-b border-border/50 bg-muted/10 hover:bg-muted/20 transition-colors">
                             <td className="py-2 px-4 pl-12 font-medium text-foreground text-sm">
                               <div className="flex items-center gap-2">
                                 <span className="text-muted-foreground">└</span>
@@ -710,6 +715,7 @@ const ServicesPage = () => {
                 </tbody>
               </table>
             </div>
+            )}
             <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
           </div>
         </TabsContent>
@@ -973,130 +979,7 @@ const ServicesPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Detail View Dialog */}
-      <Dialog open={!!detailView} onOpenChange={() => setDetailView(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Service Detail</DialogTitle></DialogHeader>
-          {detailView && (() => {
-            const variants = getVariants(detailView.id);
-            const hasVars = variants.length > 0;
-            return (
-              <Tabs defaultValue="details" className="w-full">
-                {detailView.isVariant && (
-                  <div className="-mb-4">    </div>
-                )}
-                {!detailView.isVariant && (
-                  <TabsList className="w-full">
-                    <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
-                    {hasVars && <TabsTrigger value="variants" className="flex-1">Variants ({variants.length})</TabsTrigger>}
-                    <TabsTrigger value="overrides" className="flex-1">
-                      Product Overrides ({getLinkedProducts(detailView).length})
-                    </TabsTrigger>
-                  </TabsList>
-                )}
-                <TabsContent value="details" className="space-y-4 mt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><Label className="text-muted-foreground text-xs">Name</Label><p className="font-medium">{detailView.name}</p></div>
-                    <div><Label className="text-muted-foreground text-xs">Status</Label><div><Badge variant={detailView.isActive ? 'default' : 'secondary'}>{detailView.isActive ? 'Active' : 'Inactive'}</Badge></div></div>
-                  </div>
-                  <div><Label className="text-muted-foreground text-xs">Description</Label><p className="text-sm">{detailView.description || '—'}</p></div>
-                  {detailView.isVariant && detailView.parentServiceId && (
-                    <div><Label className="text-muted-foreground text-xs">Parent Service</Label><p className="text-sm">{services.find(s => s.id === detailView.parentServiceId)?.name || '—'}</p></div>
-                  )}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div><Label className="text-muted-foreground text-xs">Level</Label><p className="capitalize">{detailView.level}</p></div>
-                    <div><Label className="text-muted-foreground text-xs">Assigned To</Label><p>{getAssignedTo(detailView)}</p></div>
-                    <div><Label className="text-muted-foreground text-xs">Linked Products</Label><p>{getLinkedProductCount(detailView)}</p></div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div><Label className="text-muted-foreground text-xs">Base Price</Label><p>{hasVars ? '—' : `$${detailView.basePrice}`}</p></div>
-                    <div><Label className="text-muted-foreground text-xs">Est. Time</Label><p>{hasVars ? '—' : `${detailView.estimatedTime} min`}</p></div>
-                    <div><Label className="text-muted-foreground text-xs">Created</Label><p>{detailView.createdAt}</p></div>
-                  </div>
-                  {detailView.level !== 'brand' && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div><Label className="text-muted-foreground text-xs">Brand</Label><p>{brandName(detailView.brandId)}</p></div>
-                      {detailView.categoryId && <div><Label className="text-muted-foreground text-xs">Category</Label><p>{categoryName(detailView.categoryId)}</p></div>}
-                      {detailView.seriesId && <div><Label className="text-muted-foreground text-xs">Series</Label><p>{seriesName(detailView.seriesId)}</p></div>}
-                      {detailView.productId && <div><Label className="text-muted-foreground text-xs">Product</Label><p>{productName(detailView.productId)}</p></div>}
-                    </div>
-                  )}
-                </TabsContent>
 
-                {hasVars && (
-                  <TabsContent value="variants" className="mt-4">
-                    <div className="space-y-3">
-                      <p className="text-sm text-muted-foreground">Variants of this service:</p>
-                      {variants.map(v => (
-                        <div key={v.id} className="rounded-lg border border-border p-3">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium text-sm">{v.name}</p>
-                              <p className="text-xs text-muted-foreground">{v.description}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-medium">${v.basePrice}</p>
-                              <p className="text-xs text-muted-foreground">{v.estimatedTime} min</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </TabsContent>
-                )}
-
-                {!detailView.isVariant && (
-                  <TabsContent value="overrides" className="mt-4">
-                    {detailView.level === 'product' ? (
-                      <p className="text-sm text-muted-foreground py-4">This service is already assigned at the product level. No overrides needed.</p>
-                    ) : hasVars ? (
-                      <p className="text-sm text-muted-foreground py-4">This service has variants. Overrides are managed at the variant level. Use the "By Product" or "By Service" tabs.</p>
-                    ) : (
-                      <div className="space-y-3">
-                        <p className="text-sm text-muted-foreground">Customize price and estimated time for individual products.</p>
-                        <div className="space-y-2">
-                          {getLinkedProducts(detailView).map(p => {
-                            const edit = overrideEdits[p.id];
-                            return (
-                              <div key={p.id} className="rounded-lg border border-border p-3 space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="font-medium text-sm">{p.name}</p>
-                                    <p className="text-xs text-muted-foreground">{seriesName(p.seriesId)} · {categoryName(p.categoryId)}</p>
-                                  </div>
-                                </div>
-                                <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">Price ($)</Label>
-                                    <Input type="number" min={0} step={0.01} placeholder={String(detailView.basePrice)} value={edit?.price ?? ''}
-                                      onChange={e => setOverrideEdits(prev => ({ ...prev, [p.id]: { price: Number(e.target.value), time: prev[p.id]?.time ?? detailView.estimatedTime } }))} />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">Time (min)</Label>
-                                    <Input type="number" min={1} placeholder={String(detailView.estimatedTime)} value={edit?.time ?? ''}
-                                      onChange={e => setOverrideEdits(prev => ({ ...prev, [p.id]: { price: prev[p.id]?.price ?? detailView.basePrice, time: Number(e.target.value) } }))} />
-                                  </div>
-                                  <Button size="sm" variant="secondary" disabled={!edit} onClick={() => saveOverride(detailView.id, p.id)}>Save</Button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </TabsContent>
-                )}
-              </Tabs>
-            );
-          })()}
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setDetailView(null)}>Close</Button>
-            {detailView && !detailView.isVariant && (
-              <Button onClick={() => { if (detailView) { openEdit(detailView); setDetailView(null); } }}>Edit</Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Add/Edit Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
@@ -1291,8 +1174,8 @@ const ServicesPage = () => {
                 }}>
                   <SelectTrigger><SelectValue placeholder="Select brand" /></SelectTrigger>
                   <SelectContent>
-                    {brands.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No brands found</div>}
                     {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                    {brands.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No brands found</div>}
                   </SelectContent>
                 </Select>
                 {formErrors.brandId && <p className="text-xs text-destructive">{formErrors.brandId}</p>}
@@ -1307,8 +1190,8 @@ const ServicesPage = () => {
                   }} disabled={!form.brandId}>
                     <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>
-                      {formCategories.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No categories found</div>}
                       {formCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                      {formCategories.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No categories found</div>}
                     </SelectContent>
                   </Select>
                   {formErrors.categoryId && <p className="text-xs text-destructive">{formErrors.categoryId}</p>}
@@ -1324,8 +1207,8 @@ const ServicesPage = () => {
                   }} disabled={!form.categoryId}>
                     <SelectTrigger><SelectValue placeholder="Select series" /></SelectTrigger>
                     <SelectContent>
-                      {formSeries.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No series found</div>}
                       {formSeries.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      {formSeries.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No series found</div>}
                     </SelectContent>
                   </Select>
                   {formErrors.seriesId && <p className="text-xs text-destructive">{formErrors.seriesId}</p>}
@@ -1341,8 +1224,8 @@ const ServicesPage = () => {
                   }} disabled={!form.seriesId}>
                     <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                     <SelectContent>
-                      {formProducts.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No products found</div>}
                       {formProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                      {formProducts.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No products found</div>}
                     </SelectContent>
                   </Select>
                   {formErrors.productId && <p className="text-xs text-destructive">{formErrors.productId}</p>}

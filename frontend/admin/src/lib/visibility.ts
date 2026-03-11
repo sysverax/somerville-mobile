@@ -1,4 +1,6 @@
-import { Brand, Category, Series, Product } from '@/types';
+import { Brand, Category, Series, Product, FilterOption } from '@/types';
+
+type ActiveEntity = { isActive: boolean };
 
 export type VisibilityStatus = 'visible' | 'hidden';
 
@@ -29,8 +31,8 @@ export function computeBrandVisibility(brand: Brand): VisibilityResult {
  * Visible = category.isActive === true AND brand.isActive === true
  */
 export function computeCategoryVisibility(
-    category: Category,
-    brand: Brand | undefined
+    category: ActiveEntity,
+    brand: ActiveEntity | undefined
 ): VisibilityResult {
     const reasons: string[] = [];
 
@@ -53,9 +55,9 @@ export function computeCategoryVisibility(
  * Visible = series.isActive === true AND category.isActive === true AND brand.isActive === true
  */
 export function computeSeriesVisibility(
-    series: Series,
-    category: Category | undefined,
-    brand: Brand | undefined
+    series: ActiveEntity,
+    category: ActiveEntity | undefined,
+    brand: ActiveEntity | undefined
 ): VisibilityResult {
     const reasons: string[] = [];
 
@@ -83,10 +85,10 @@ export function computeSeriesVisibility(
  *           AND category.isActive === true AND brand.isActive === true
  */
 export function computeProductVisibility(
-    product: Product,
-    series: Series | undefined,
-    category: Category | undefined,
-    brand: Brand | undefined
+    product: ActiveEntity,
+    series: ActiveEntity | undefined,
+    category: ActiveEntity | undefined,
+    brand: ActiveEntity | undefined
 ): VisibilityResult {
     const reasons: string[] = [];
 

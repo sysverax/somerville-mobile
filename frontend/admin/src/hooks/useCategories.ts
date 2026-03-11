@@ -6,10 +6,14 @@ export const useCategories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (filters?: { brandId?: string; page?: number; limit?: number }) => {
+    setIsLoading(true);
     try {
-      const allCategories = await categoryService.getAll();
+      const allCategories = await categoryService.getAll(filters);
       setCategories(allCategories);
+    } catch (error) {
+      console.error('Failed to refresh categories:', error);
+      setCategories([]);
     } finally {
       setIsLoading(false);
     }

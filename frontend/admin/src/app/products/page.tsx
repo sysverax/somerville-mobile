@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useProducts } from '@/hooks/useProducts';
-import { useBrands } from '@/hooks/useBrands';
-import { useCategories } from '@/hooks/useCategories';
-import { useSeriesData } from '@/hooks/useSeries';
+import { useFilterOptions } from '@/hooks/useFilterOptions';
 import { useServices } from '@/hooks/useServices';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -24,6 +22,7 @@ import TablePagination from '@/components/TablePagination';
 import { computeProductVisibility, isParentInactive } from '@/lib/visibility';
 import { VisibilityBadge, HiddenReasonCell, ParentNameCell } from '@/components/VisibilityBadge';
 import EmptyState from '@/components/EmptyState';
+import { TruncatedText } from '@/components/ui/truncated-text';
 
 const validateBrand = (value: string): string | undefined => {
   if (!value) return 'Brand is required';
@@ -47,17 +46,26 @@ const validateName = (value: string): string | undefined => {
 
 const validateImage = (value: string | null): string | undefined => {
   if (!value) return 'Product image is required';
+  if (value && value.startsWith('data:')) {
+    const mimeMatch = value.match(/^data:([^;]+);base64,/);
+    if (mimeMatch) {
+      const mimeType = mimeMatch[1];
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+      if (!allowedTypes.includes(mimeType)) {
+        return 'Unsupported format. Use JPG, PNG, WEBP, or SVG.';
+      }
+    }
+  }
   return undefined;
 };
 
 type FormErrors = { brandId?: string; categoryId?: string; seriesId?: string; name?: string; iconImage?: string };
 
 const ProductsPage = () => {
-  const { brands } = useBrands();
-  const { categories } = useCategories();
-  const { seriesList } = useSeriesData();
-  const { products, create, update, remove, toggleActive, isLoading: initialLoading } = useProducts();
+  const { brands, categories, series: seriesList, isLoading: optionsLoading } = useFilterOptions();
+  const { products, create, update, remove, toggleActive, isLoading: productsLoading, refresh } = useProducts();
   const { services, getOverridesByProduct, upsertOverride, hasVariants, overrides, toggleServiceForProduct } = useServices();
+  const initialLoading = productsLoading || optionsLoading;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -78,10 +86,10 @@ const ProductsPage = () => {
   const [overrideEdits, setOverrideEdits] = useState<Record<string, { price: number | string; time: number | string }>>({});
   const [popupCollapsedParents, setPopupCollapsedParents] = useState<Set<string>>(new Set());
 
-  const filteredCats = filters.brandId !== 'all' ? categories.filter(c => c.brandId === filters.brandId) : categories;
-  const filteredSeries = filters.categoryId !== 'all' ? seriesList.filter(s => s.categoryId === filters.categoryId) : seriesList;
+  const filteredCats = (filters.brandId !== 'all' || applied.brandId !== 'all') ? categories.filter(c => c.brandId === (filters.brandId !== 'all' ? filters.brandId : applied.brandId)) : categories;
+  const filteredSeries = (filters.categoryId !== 'all' || applied.categoryId !== 'all') ? seriesList.filter(s => s.categoryId === (filters.categoryId !== 'all' ? filters.categoryId : applied.categoryId)) : seriesList;
   const hasChanges = JSON.stringify(filters) !== JSON.stringify(applied);
-  const filtered = products.filter(p => (applied.brandId === 'all' || p.brandId === applied.brandId) && (applied.categoryId === 'all' || p.categoryId === applied.categoryId) && (applied.seriesId === 'all' || p.seriesId === applied.seriesId));
+  const filtered = products;
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -107,14 +115,25 @@ const ProductsPage = () => {
     setIsLoading(true);
     try {
       if (editing) {
-        const { brandId, categoryId, seriesId, ...updateData } = form;
-        await update(editing.id, updateData);
-        toast({ title: 'Product updated successfully', variant: 'success' });
+        const updateData: any = {};
+        if (form.name !== editing.name) updateData.name = form.name;
+        if (form.description !== editing.description) updateData.description = form.description;
+        if (form.iconImage !== editing.iconImage) updateData.iconImage = form.iconImage;
+        
+        if (Object.keys(updateData).length > 0) {
+          await update(editing.id, updateData);
+          toast({ title: 'Product updated successfully', variant: 'success' });
+        }
       } else {
         await create(form);
         toast({ title: 'Product created successfully', variant: 'success' });
       }
       setIsFormOpen(false);
+      await refresh({ 
+        brandId: applied.brandId !== 'all' ? applied.brandId : undefined, 
+        categoryId: applied.categoryId !== 'all' ? applied.categoryId : undefined, 
+        seriesId: applied.seriesId !== 'all' ? applied.seriesId : undefined 
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save product';
       toast({ title: message, variant: 'destructive' });
@@ -264,9 +283,9 @@ const ProductsPage = () => {
               {filteredSeries.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
             </SelectContent>
           </Select></div>
-        {hasChanges && <Button onClick={() => { setApplied({ ...filters }); setPage(1); }}>Apply</Button>}
+        {hasChanges && <Button onClick={() => { setApplied({ ...filters }); setPage(1); refresh({ brandId: filters.brandId !== 'all' ? filters.brandId : undefined, categoryId: filters.categoryId !== 'all' ? filters.categoryId : undefined, seriesId: filters.seriesId !== 'all' ? filters.seriesId : undefined }); }}>Apply</Button>}
         {(applied.brandId !== 'all' || applied.categoryId !== 'all' || applied.seriesId !== 'all') && (
-          <Button variant="outline" onClick={() => { const empty = { brandId: 'all', categoryId: 'all', seriesId: 'all' }; setFilters(empty); setApplied(empty); setPage(1); }}>Clear</Button>
+          <Button variant="outline" onClick={() => { const empty = { brandId: 'all', categoryId: 'all', seriesId: 'all' }; setFilters(empty); setApplied(empty); setPage(1); refresh({}); }}>Clear</Button>
         )}
         <ViewToggle view={view} onChange={setView} />
         <div className="ml-auto"><Button onClick={openAdd} disabled={isLoading} className="gap-2"><Plus className="h-4 w-4" /> Add Product</Button></div>
@@ -334,8 +353,9 @@ const ProductsPage = () => {
                 <TableHead className="w-[90px]">Icon</TableHead>
                 <TableHead className="w-[200px]">Name</TableHead>
                 <TableHead>Series</TableHead>
-                <TableHead className="hidden md:table-cell">Category</TableHead>
-                <TableHead className="hidden lg:table-cell">Services</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead className="hidden md:table-cell">Description</TableHead>
+                <TableHead>Services</TableHead>
                 <TableHead className="w-24">Visibility</TableHead>
                 <TableHead className="w-[150px] hidden xl:table-cell">Hidden Reason</TableHead>
                 <TableHead className="w-20">Active</TableHead>
@@ -345,13 +365,13 @@ const ProductsPage = () => {
             <TableBody>
               {initialLoading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-64 text-center">
+                  <TableCell colSpan={10} className="h-64 text-center">
                     <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
                   </TableCell>
                 </TableRow>
                   ) : paginated.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="py-0">
+                  <TableCell colSpan={10} className="py-0">
                     <EmptyState
                       title="No products found"
                       description={filtered.length === 0 && products.length > 0 ? 'Try adjusting your filters.' : 'Click "Add Product" to create one.'}
@@ -373,8 +393,9 @@ const ProductsPage = () => {
                     <TableCell><img src={p.iconImage} alt={p.name} className="h-8 w-8 rounded-md object-cover bg-muted" /></TableCell>
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell className="text-sm"><ParentNameCell name={seriesName(p.seriesId)} isInactive={seriesInactive} /></TableCell>
-                    <TableCell className="hidden md:table-cell text-sm"><ParentNameCell name={categoryName(p.categoryId)} isInactive={categoryInactive} /></TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{productServices.length} service(s)</TableCell>
+                    <TableCell className="text-sm"><ParentNameCell name={categoryName(p.categoryId)} isInactive={categoryInactive} /></TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px]"><TruncatedText text={p.description} /></TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{productServices.length} service(s)</TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden xl:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
                     <TableCell><Switch checked={p.isActive} onCheckedChange={() => {
@@ -402,7 +423,7 @@ const ProductsPage = () => {
 
       {/* Add/Edit Product Dialog */}
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
-        <DialogContent className="flex flex-col max-h-[90vh]">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="flex flex-col max-h-[90vh]">
           <DialogHeader><DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
             {/* Brand / Category / Series */}

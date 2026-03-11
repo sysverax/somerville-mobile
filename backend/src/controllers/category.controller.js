@@ -48,9 +48,11 @@ const updateCategoryController = async (req, res, next) => {
     req.logger.info("Update category request received", {
       categoryId: req.params.id,
     });
+    const body =
+      typeof req.body?.body === "string" ? JSON.parse(req.body.body) : req.body;
     const updateCategoryDto = new categoryRequestDto.UpdateCategoryRequestDTO(
       req.params,
-      req.body,
+      body,
       req.files,
     );
     updateCategoryDto.validate();

@@ -73,8 +73,15 @@ const imageValueToFile = async (imageValue: string, filename: string): Promise<F
 };
 
 export const categoryService = {
-  getAll: async (): Promise<Category[]> => {
-    const response = await fetch(`${API_BASE_URL}/api/categories?page=1&limit=100`, {
+  getAll: async (filters: { brandId?: string; page?: number; limit?: number } = {}): Promise<Category[]> => {
+    const params = new URLSearchParams();
+    params.append('page', String(filters.page || 1));
+    params.append('limit', String(filters.limit || 10));
+    if (filters.brandId && filters.brandId !== 'all') {
+      params.append('brandId', filters.brandId);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/categories?${params.toString()}`, {
       method: 'GET',
       headers: {
         'x-user-role': 'admin',
@@ -92,9 +99,11 @@ export const categoryService = {
   },
   create: async (data: CategoryMutationInput): Promise<Category> => {
     const formData = new FormData();
-    formData.append('brandId', data.brandId);
-    formData.append('name', data.name);
-    formData.append('description', data.description || '');
+    formData.append('body', JSON.stringify({
+      brandId: data.brandId,
+      name: data.name,
+      description: data.description || '',
+    }));
 
     const iconFile = data.image ? await imageValueToFile(data.image, 'category-icon') : null;
     if (!iconFile) {
@@ -128,22 +137,42 @@ export const categoryService = {
       return normalizeCategory(mapped);
     }
 
+    const payload: any = {};
+    if (data.name !== undefined) payload.name = data.name;
+    if (data.description !== undefined) payload.description = data.description;
+    if (data.isActive !== undefined) payload.isActive = data.isActive;
+    
+    let hasFile = false;
     const formData = new FormData();
-    if (data.brandId !== undefined) formData.append('brandId', data.brandId);
-    if (data.name !== undefined) formData.append('name', data.name);
-    if (data.description !== undefined) formData.append('description', data.description);
-    if (data.image) {
-      const iconFile = await imageValueToFile(data.image, 'category-icon');
-      if (iconFile) {
-        formData.append('iconImage', iconFile);
+
+    if (data.image && data.image.startsWith('data:')) {
+      const file = await imageValueToFile(data.image, 'category-icon');
+      if (file) {
+        formData.append('iconImage', file);
+        hasFile = true;
       }
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/categories/${id}`, {
-      method: 'PATCH',
-      body: formData,
-      credentials: 'include',
-    });
+    let fetchOptions: RequestInit;
+    if (hasFile) {
+      formData.append('body', JSON.stringify(payload));
+      fetchOptions = {
+        method: 'PATCH',
+        body: formData,
+        credentials: 'include',
+      };
+    } else {
+      fetchOptions = {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        credentials: 'include',
+      };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/categories/${id}`, fetchOptions);
     const updated = await parseResponse<CategoryApiDocument>(response);
     const mapped = mapApiCategory(updated);
     categories = categories.map(c => (c.id === id ? mapped : c));
