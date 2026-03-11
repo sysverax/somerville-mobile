@@ -29,7 +29,7 @@ const createProductService = async (createProductRequestDto, logger) => {
   );
   if (existingProduct) {
     throw new appError.ConflictError(
-      "Product already exists",
+      "Product with this name already exists",
       "A product with this name already exists in this series.",
       "Use a different product name.",
     );
@@ -148,7 +148,7 @@ const updateProductService = async (updatePayload, logger) => {
       productWithSameName._id.toString() !== updatePayload.id
     ) {
       throw new appError.ConflictError(
-        "Product with this name already exists for the selected series",
+        "Product with this name already exists",
         "Another product with the same name already exists in this series.",
         "Use a different product name.",
       );

@@ -4,13 +4,26 @@ import { productService } from '@/services/product.service';
 
 export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const refresh = useCallback(async () => {
-    const allProducts = await productService.getAll();
-    setProducts(allProducts);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const refresh = useCallback(async (filters?: { brandId?: string; categoryId?: string; seriesId?: string; page?: number; limit?: number }) => {
+    setIsLoading(true);
+    try {
+      const allProducts = await productService.getAll(filters);
+      setProducts(allProducts);
+    } catch (error) {
+      console.error('Failed to refresh products:', error);
+      setProducts([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    refresh().catch(() => setProducts([]));
+    refresh().catch(() => {
+      setProducts([]);
+      setIsLoading(false);
+    });
   }, [refresh]);
 
   const create = useCallback(async (data: Omit<Product, 'id' | 'isActive' | 'createdAt'>) => {
@@ -36,5 +49,5 @@ export const useProducts = () => {
     }
   }, [refresh]);
 
-  return { products, create, update, remove, toggleActive, refresh, count: products.length };
+  return { products, create, update, remove, toggleActive, refresh, count: products.length, isLoading };
 };

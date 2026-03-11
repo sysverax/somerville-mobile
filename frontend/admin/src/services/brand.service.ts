@@ -73,8 +73,10 @@ export const brandService = {
   },
   create: async (data: BrandMutationInput): Promise<Brand> => {
     const formData = new FormData();
-    formData.append('name', data.name);
-    formData.append('description', data.description || '');
+    formData.append('body', JSON.stringify({
+      name: data.name,
+      description: data.description || '',
+    }));
 
     const iconFile = data.iconImage ? await imageValueToFile(data.iconImage, 'brand-icon') : null;
     if (!iconFile) {
@@ -109,29 +111,50 @@ export const brandService = {
       return normalizeBrand(updated);
     }
 
+    const payload: any = {};
+    if (data.name !== undefined) payload.name = data.name;
+    if (data.description !== undefined) payload.description = data.description;
+    if (data.isActive !== undefined) payload.isActive = data.isActive;
+    
+    let hasFile = false;
     const formData = new FormData();
-    if (data.name !== undefined) formData.append('name', data.name);
-    if (data.description !== undefined) formData.append('description', data.description);
 
-    if (data.iconImage) {
-      const iconFile = await imageValueToFile(data.iconImage, 'brand-icon');
-      if (iconFile) {
-        formData.append('iconImage', iconFile);
+    if (data.iconImage && data.iconImage.startsWith('data:')) {
+      const file = await imageValueToFile(data.iconImage, 'brand-icon');
+      if (file) {
+        formData.append('iconImage', file);
+        hasFile = true;
       }
     }
 
-    if (data.bannerImage) {
-      const bannerFile = await imageValueToFile(data.bannerImage, 'brand-banner');
-      if (bannerFile) {
-        formData.append('bannerImage', bannerFile);
+    if (data.bannerImage && data.bannerImage.startsWith('data:')) {
+      const file = await imageValueToFile(data.bannerImage, 'brand-banner');
+      if (file) {
+        formData.append('bannerImage', file);
+        hasFile = true;
       }
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/brands/${id}`, {
-      method: 'PATCH',
-      body: formData,
-      credentials: 'include',
-    });
+    let fetchOptions: RequestInit;
+    if (hasFile) {
+      formData.append('body', JSON.stringify(payload));
+      fetchOptions = {
+        method: 'PATCH',
+        body: formData,
+        credentials: 'include',
+      };
+    } else {
+      fetchOptions = {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        credentials: 'include',
+      };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/brands/${id}`, fetchOptions);
     const updated = await parseResponse<BrandDocument>(response);
     brands = brands.map(b => (b.id === id ? updated : b));
     return normalizeBrand(updated);

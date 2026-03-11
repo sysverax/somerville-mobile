@@ -137,9 +137,11 @@ const updateBrandController = async (req, res, next) => {
     req.logger.info("Update brand request received", {
       brandId: req.params.id,
     });
+    const body =
+      typeof req.body?.body === "string" ? JSON.parse(req.body.body) : req.body;
     const updateBrandDto = new brandRequestDto.UpdateBrandRequestDTO(
       req.params,
-      req.body,
+      body,
       req.files,
     );
     updateBrandDto.validate();

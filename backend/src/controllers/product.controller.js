@@ -53,9 +53,11 @@ const updateProductController = async (req, res, next) => {
       productId: req.params.id,
     });
 
+    const body =
+      typeof req.body?.body === "string" ? JSON.parse(req.body.body) : req.body;
     const updateProductDto = new productRequestDto.UpdateProductRequestDTO(
       req.params,
-      req.body,
+      body,
       req.files,
     );
     updateProductDto.validate();

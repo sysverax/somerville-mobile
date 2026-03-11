@@ -29,7 +29,7 @@ const createSeriesService = async (createSeriesRequestDto, logger) => {
   );
   if (existingSeries) {
     throw new appError.ConflictError(
-      "Series already exists ",
+      "Series with this name already exists",
       "A series with this name already exists in this category.",
       "Use a different series name.",
     );

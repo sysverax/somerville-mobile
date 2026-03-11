@@ -1,17 +1,24 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ServiceRecord, ServiceProduct, } from '@/types';
 import { serviceService } from '@/services/service.service';
 
 export const useServices = () => {
-  const [services, setServices] = useState<ServiceRecord[]>(serviceService.getAll());
-  const [overrides, setOverrides] = useState<ServiceProduct[]>(serviceService.getOverrides());
+  const [services, setServices] = useState<ServiceRecord[]>([]);
+  const [overrides, setOverrides] = useState<ServiceProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const refreshServices = useCallback(() => setServices(serviceService.getAll()), []);
   const refreshOverrides = useCallback(() => setOverrides(serviceService.getOverrides()), []);
   const refresh = useCallback(() => { refreshServices(); refreshOverrides(); }, [refreshServices, refreshOverrides]);
 
+  useEffect(() => {
+    setServices(serviceService.getAll());
+    setOverrides(serviceService.getOverrides());
+    setIsLoading(false);
+  }, []);
+
   // ServiceRecord ops
-  const createService = useCallback((data: Omit<ServiceRecord, 'id' | 'createdAt'>) => {
+  const createService = useCallback((data: Omit<ServiceRecord, 'id' | 'createdAt' | 'levelId'> & { levelId?: string }) => {
     const created = serviceService.create(data);
     refreshServices();
     return created;
@@ -80,6 +87,6 @@ export const useServices = () => {
   return {
     services, createService, updateService, deleteService,
     getVariants, hasVariants, getParentServices,
-    overrides, upsertOverride, deleteOverride, getOverridesByService, getOverridesByProduct, toggleServiceForProduct, refresh,
+    overrides, upsertOverride, deleteOverride, getOverridesByService, getOverridesByProduct, toggleServiceForProduct, refresh, isLoading,
   };
 };

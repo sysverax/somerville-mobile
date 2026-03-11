@@ -95,9 +95,7 @@ class UpdateSeriesRequestDTO {
           : body.description
         : undefined;
     this.isActive = body?.isActive !== undefined ? body.isActive : undefined;
-    if (files) {
-      this.iconImageFile = files?.iconImage ? files.iconImage[0] : null;
-    }
+    this.iconImageFile = files?.iconImage ? files.iconImage[0] : null;
   }
 
   validate() {

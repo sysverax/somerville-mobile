@@ -31,7 +31,7 @@ const createCategoryService = async (createCategoryRequestDto, logger) => {
   );
   if (existingCategory) {
     throw new appError.ConflictError(
-      "Category already exists ",
+      "Category with this name already exists",
       "A category with this name already exists in this brand.",
       "Use a different category name.",
     );
@@ -83,7 +83,7 @@ const updateCategoryService = async (updatePayload, logger) => {
       categoryWithSameName._id.toString() !== updatePayload.id
     ) {
       throw new appError.ConflictError(
-        "Category with this name already exists for the selected brand",
+        "Category with this name already exists",
         "Another category with the same name already exists in this brand.",
         "Use a different category name.",
       );

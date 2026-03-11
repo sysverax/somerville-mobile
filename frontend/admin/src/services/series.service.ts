@@ -83,8 +83,14 @@ const imageValueToFile = async (imageValue: string, filename: string): Promise<F
 };
 
 export const seriesService = {
-  getAll: async (): Promise<Series[]> => {
-    const response = await fetch(`${API_BASE_URL}/api/series?page=1&limit=100`, {
+  getAll: async (filters: { brandId?: string; categoryId?: string; page?: number; limit?: number } = {}): Promise<Series[]> => {
+    const params = new URLSearchParams();
+    params.append('page', String(filters.page || 1));
+    params.append('limit', String(filters.limit || 10));
+    if (filters.brandId && filters.brandId !== 'all') params.append('brandId', filters.brandId);
+    if (filters.categoryId && filters.categoryId !== 'all') params.append('categoryId', filters.categoryId);
+
+    const response = await fetch(`${API_BASE_URL}/api/series?${params.toString()}`, {
       method: 'GET',
       headers: {
         'x-user-role': 'admin',
@@ -102,9 +108,11 @@ export const seriesService = {
   },
   create: async (data: SeriesMutationInput): Promise<Series> => {
     const formData = new FormData();
-    formData.append('categoryId', data.categoryId);
-    formData.append('name', data.name);
-    formData.append('description', data.description || '');
+    formData.append('body', JSON.stringify({
+      categoryId: data.categoryId,
+      name: data.name,
+      description: data.description || '',
+    }));
 
     const iconFile = data.image ? await imageValueToFile(data.image, 'series-icon') : null;
     if (!iconFile) {
@@ -139,22 +147,42 @@ export const seriesService = {
       return normalizeSeries(mapped);
     }
 
+    const payload: any = {};
+    if (data.name !== undefined) payload.name = data.name;
+    if (data.description !== undefined) payload.description = data.description;
+    if (data.isActive !== undefined) payload.isActive = data.isActive;
+    
+    let hasFile = false;
     const formData = new FormData();
-    if (data.categoryId !== undefined) formData.append('categoryId', data.categoryId);
-    if (data.name !== undefined) formData.append('name', data.name);
-    if (data.description !== undefined) formData.append('description', data.description);
-    if (data.image) {
-      const iconFile = await imageValueToFile(data.image, 'series-icon');
-      if (iconFile) {
-        formData.append('iconImage', iconFile);
+
+    if (data.image && data.image.startsWith('data:')) {
+      const file = await imageValueToFile(data.image, 'series-icon');
+      if (file) {
+        formData.append('iconImage', file);
+        hasFile = true;
       }
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/series/${id}`, {
-      method: 'PATCH',
-      body: formData,
-      credentials: 'include',
-    });
+    let fetchOptions: RequestInit;
+    if (hasFile) {
+      formData.append('body', JSON.stringify(payload));
+      fetchOptions = {
+        method: 'PATCH',
+        body: formData,
+        credentials: 'include',
+      };
+    } else {
+      fetchOptions = {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        credentials: 'include',
+      };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/series/${id}`, fetchOptions);
     const updated = await parseResponse<SeriesApiDocument>(response);
     const mapped = mapApiSeries(updated);
     seriesList = seriesList.map(s => (s.id === id ? mapped : s));
