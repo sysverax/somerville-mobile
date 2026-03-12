@@ -3,7 +3,7 @@ import { Upload, X, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
 interface ImageUploadProps {
@@ -22,7 +22,7 @@ const ImageUpload = ({ value, onChange, size = 120, className }: ImageUploadProp
   const handleFile = (file: File) => {
     setError('');
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('Invalid file format. Use PNG, JPG, or WEBP');
+      setError('Invalid file format. Use PNG, JPG, or SVG');
       return;
     }
     if (file.size > MAX_SIZE) {
@@ -52,7 +52,7 @@ const ImageUpload = ({ value, onChange, size = 120, className }: ImageUploadProp
       <input
         ref={inputRef}
         type="file"
-        accept="image/png,image/jpeg,image/webp"
+        accept="image/png,image/jpeg,image/svg+xml"
         hidden
         onChange={handleChange}
       />

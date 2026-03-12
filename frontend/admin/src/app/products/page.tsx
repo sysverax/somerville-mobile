@@ -64,7 +64,7 @@ type FormErrors = { brandId?: string; categoryId?: string; seriesId?: string; na
 const ProductsPage = () => {
   const { brands, categories, series: seriesList, isLoading: optionsLoading } = useFilterOptions();
   const { products, create, update, remove, toggleActive, isLoading: productsLoading, refresh } = useProducts();
-  const { services, getOverridesByProduct, upsertOverride, hasVariants, overrides, toggleServiceForProduct } = useServices();
+  const { services } = useServices();
   const initialLoading = productsLoading || optionsLoading;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -83,8 +83,6 @@ const ProductsPage = () => {
 
   // Service overrides dialog
   const [serviceProduct, setServiceProduct] = useState<Product | null>(null);
-  const [overrideEdits, setOverrideEdits] = useState<Record<string, { price: number | string; time: number | string }>>({});
-  const [popupCollapsedParents, setPopupCollapsedParents] = useState<Set<string>>(new Set());
 
   const filteredCats = (filters.brandId !== 'all' || applied.brandId !== 'all') ? categories.filter(c => c.brandId === (filters.brandId !== 'all' ? filters.brandId : applied.brandId)) : categories;
   const filteredSeries = (filters.categoryId !== 'all' || applied.categoryId !== 'all') ? seriesList.filter(s => s.categoryId === (filters.categoryId !== 'all' ? filters.categoryId : applied.categoryId)) : seriesList;
@@ -143,107 +141,22 @@ const ProductsPage = () => {
   };
   const addSpec = () => { if (specKey.trim() && specVal.trim()) { setForm(f => ({ ...f, specifications: { ...f.specifications, [specKey]: specVal } })); setSpecKey(''); setSpecVal(''); } };
 
-  // Get all services that apply to a product (inherited from brand/category/series/product levels)
-  const getServicesForProduct = (p: Product, includeDisabled = false) => {
+  // Get all active services that apply to a product (inherited from brand/category/series/product levels)
+  const getServicesForProduct = (p: Product) => {
     return services.filter(s => {
       if (!s.isActive) return false;
-      if (!s.isVariant && hasVariants(s.id)) return false;
       switch (s.level) {
-        case 'brand': {
-          if (s.brandId !== p.brandId) return false;
-          break;
-        }
-        case 'category': {
-          if (s.categoryId !== p.categoryId) return false;
-          break;
-        }
-        case 'series': {
-          if (s.seriesId !== p.seriesId) return false;
-          break;
-        }
-        case 'product': {
-          if (s.productId !== p.id) return false;
-          break;
-        }
+        case 'brand': return s.levelId === p.brandId;
+        case 'category': return s.levelId === p.categoryId;
+        case 'series': return s.levelId === p.seriesId;
+        case 'product': return s.levelId === p.id;
         default: return false;
       }
-      if (!includeDisabled) {
-        const override = overrides.find(o => o.serviceId === s.id && o.productId === p.id);
-        if (override && override.isActive === false) return false;
-      }
-      return true;
     });
-  };
-
-  const isServiceDisabledForProduct = (serviceId: string, productId: string): boolean => {
-    const override = overrides.find(o => o.serviceId === serviceId && o.productId === productId);
-    return override?.isActive === false;
-  };
-
-  const groupServicesForProduct = (productId: string) => {
-    const product = products.find(pr => pr.id === productId);
-    if (!product) return [] as { parent: typeof services[number] | null; items: typeof services }[];
-
-    const allSvcs = getServicesForProduct(product, true);
-    const groups: { parent: typeof services[number] | null; items: typeof services }[] = [];
-    const variantsByParent = new Map<string, typeof services>();
-    const standalone: typeof services = [];
-
-    allSvcs.forEach(s => {
-      if (s.isVariant && s.parentServiceId) {
-        const existing = variantsByParent.get(s.parentServiceId) || [];
-        variantsByParent.set(s.parentServiceId, [...existing, s]);
-      } else {
-        standalone.push(s);
-      }
-    });
-
-    variantsByParent.forEach((variants, parentId) => {
-      const parent = services.find(s => s.id === parentId) || null;
-      groups.push({ parent, items: variants });
-    });
-
-    standalone.forEach(s => {
-      groups.push({ parent: null, items: [s] });
-    });
-
-    return groups;
   };
 
   const openServiceOverrides = (p: Product) => {
     setServiceProduct(p);
-    setPopupCollapsedParents(new Set());
-    const existing = getOverridesByProduct(p.id);
-    const edits: Record<string, { price: number; time: number }> = {};
-    existing.forEach(o => {
-      edits[o.serviceId] = { price: o.price, time: o.estimatedTime };
-    });
-    setOverrideEdits(edits);
-  };
-
-  const saveServiceOverride = async (serviceId: string, productId: string) => {
-    const edit = overrideEdits[serviceId];
-    if (edit) {
-      setIsLoading(true);
-      try {
-        await upsertOverride({ serviceId, productId, price: Number(edit.price), estimatedTime: Number(edit.time) });
-        toast({ title: 'Service override saved', variant: 'success' });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to save override';
-        toast({ title: message, variant: 'destructive' });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const togglePopupParentExpanded = (parentId: string) => {
-    setPopupCollapsedParents(prev => {
-      const next = new Set(prev);
-      if (next.has(parentId)) next.delete(parentId);
-      else next.add(parentId);
-      return next;
-    });
   };
 
   const brandName = (id: string) => brands.find(b => b.id === id)?.name || id;
@@ -558,19 +471,14 @@ const ProductsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Service Overrides Dialog */}
+      {/* Services Dialog (shows services linked to product) */}
       <Dialog open={!!serviceProduct} onOpenChange={() => setServiceProduct(null)}>
-        <DialogContent className="flex flex-col max-h-[90vh] max-w-2xl">
+        <DialogContent className="flex flex-col max-h-[90vh] max-w-lg">
           <DialogHeader>
-            <DialogTitle>Service Overrides — {serviceProduct?.name}</DialogTitle>
+            <DialogTitle>Services — {serviceProduct?.name}</DialogTitle>
           </DialogHeader>
           {serviceProduct && (() => {
-            const groups = groupServicesForProduct(serviceProduct.id);
-
-            if (groups.length === 0) {
-              return <p className="text-sm text-muted-foreground py-4">No services are assigned to this product.</p>;
-            }
-
+            const linkedServices = getServicesForProduct(serviceProduct);
             return (
               <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
                 <div className="flex items-center gap-3">
@@ -580,91 +488,28 @@ const ProductsPage = () => {
                     <p className="text-xs text-muted-foreground">{brandName(serviceProduct.brandId)} · {categoryName(serviceProduct.categoryId)} · {seriesName(serviceProduct.seriesId)}</p>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Override price and estimated time for services inherited by this product.
-                </p>
-                <div className="space-y-4">
-                  {groups.map((group, gi) => {
-                    const isExpanded = group.parent ? !popupCollapsedParents.has(group.parent.id) : true;
-                    return (
-                      <div key={gi}>
-                        {group.parent && (
-                          <div className="mb-2 cursor-pointer" onClick={() => togglePopupParentExpanded(group.parent!.id)}>
-                            <div className="flex items-center gap-2">
-                              <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                              <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                                {group.parent.name}
-                                <Badge variant="secondary" className="text-xs">{group.items.length} variants</Badge>
-                              </h4>
-                            </div>
-                            {isExpanded && <p className="text-xs text-muted-foreground ml-6 mt-1">{group.parent.description}</p>}
+                {linkedServices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">No active services are assigned to this product.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {linkedServices.map(svc => (
+                      <div key={svc.id} className="rounded-lg border border-border p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-sm">{svc.name}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              <Badge variant="outline" className="capitalize text-xs mr-1">{svc.level}</Badge>
+                              {svc.isParent ? 'Parent service' : `$${svc.basePrice} · ${svc.estimatedTime} min`}
+                            </p>
                           </div>
-                        )}
-                        {isExpanded && (
-                          <div className={`space-y-2 ${group.parent ? 'ml-4 border-l-2 border-border pl-3' : ''}`}>
-                            {group.items.map(svc => {
-                              const edit = overrideEdits[svc.id];
-                              const isDisabled = isServiceDisabledForProduct(svc.id, serviceProduct.id);
-                              return (
-                                <div key={svc.id} className={`rounded-lg border border-border p-3 space-y-2 ${isDisabled ? 'opacity-50' : ''}`}>
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <p className="font-medium text-sm">{svc.name}</p>
-                                      <p className="text-xs text-muted-foreground mt-1">
-                                        {svc.isVariant ? 'Variant ' : ''}{svc.level} · Default: ${svc.basePrice} · {svc.estimatedTime} min
-                                      </p>
-                                    </div>
-                                    <Switch checked={!isDisabled} onCheckedChange={(checked) => toggleServiceForProduct(svc.id, serviceProduct.id, !checked)} />
-                                  </div>
-                                  {!isDisabled && (
-                                    <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
-                                      <div className="space-y-1">
-                                        <Label className="text-xs">Price ($)</Label>
-                                        <Input
-                                          type="number"
-                                          min={0}
-                                          step={0.01}
-                                          placeholder={String(svc.basePrice)}
-                                          value={edit?.price ?? ''}
-                                          onChange={e => setOverrideEdits(prev => ({
-                                            ...prev,
-                                            [svc.id]: { price: e.target.value, time: prev[svc.id]?.time ?? svc.estimatedTime }
-                                          }))}
-                                        />
-                                      </div>
-                                      <div className="space-y-1">
-                                        <Label className="text-xs">Time (min)</Label>
-                                        <Input
-                                          type="number"
-                                          min={1}
-                                          placeholder={String(svc.estimatedTime)}
-                                          value={edit?.time ?? ''}
-                                          onChange={e => setOverrideEdits(prev => ({
-                                            ...prev,
-                                            [svc.id]: { price: prev[svc.id]?.price ?? svc.basePrice, time: e.target.value }
-                                          }))}
-                                        />
-                                      </div>
-                                      <Button
-                                        size="sm"
-                                        variant="secondary"
-                                        disabled={!edit || isLoading}
-                                        onClick={() => saveServiceOverride(svc.id, serviceProduct.id)}
-                                      >
-                                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Save
-                                      </Button>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+                          <Badge variant={svc.isActive ? 'default' : 'secondary'} className="text-xs">
+                            {svc.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })()}

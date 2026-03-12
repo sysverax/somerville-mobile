@@ -32,9 +32,9 @@ const validateIcon = (value: string | null): string | undefined => {
     const mimeMatch = value.match(/^data:([^;]+);base64,/);
     if (mimeMatch) {
       const mimeType = mimeMatch[1];
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/svg+xml'];
       if (!allowedTypes.includes(mimeType)) {
-        return 'Unsupported format. Use JPG, PNG, WEBP, or SVG.';
+        return 'Unsupported format. Use JPG, PNG, or SVG.';
       }
     }
   }

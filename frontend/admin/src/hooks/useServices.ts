@@ -1,41 +1,48 @@
 import { useState, useCallback, useEffect } from 'react';
-import { ServiceRecord, ServiceProduct, } from '@/types';
-import { serviceService } from '@/services/service.service';
+import { ServiceRecord } from '@/types';
+import { serviceService, GetServicesFilters, CreateServiceInput, UpdateServiceInput } from '@/services/service.service';
 
-export const useServices = () => {
+export const useServices = (initialFilters: GetServicesFilters = {}) => {
   const [services, setServices] = useState<ServiceRecord[]>([]);
-  const [overrides, setOverrides] = useState<ServiceProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const refreshServices = useCallback(() => setServices(serviceService.getAll()), []);
-  const refreshOverrides = useCallback(() => setOverrides(serviceService.getOverrides()), []);
-  const refresh = useCallback(() => { refreshServices(); refreshOverrides(); }, [refreshServices, refreshOverrides]);
-
-  useEffect(() => {
-    setServices(serviceService.getAll());
-    setOverrides(serviceService.getOverrides());
-    setIsLoading(false);
+  const fetchServices = useCallback(async (filters: GetServicesFilters = initialFilters) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await serviceService.getAll(filters);
+      setServices(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch services');
+    } finally {
+      setIsLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ServiceRecord ops
-  const createService = useCallback((data: Omit<ServiceRecord, 'id' | 'createdAt' | 'levelId'> & { levelId?: string }) => {
-    const created = serviceService.create(data);
-    refreshServices();
-    return created;
-  }, [refreshServices]);
+  useEffect(() => {
+    fetchServices();
+  }, [fetchServices]);
 
-  const updateService = useCallback((id: string, data: Partial<ServiceRecord>) => {
-    serviceService.update(id, data);
-    refreshServices();
-  }, [refreshServices]);
+  const createService = useCallback(async (data: CreateServiceInput): Promise<ServiceRecord> => {
+    const created = await serviceService.create(data);
+    await fetchServices();
+    return created as ServiceRecord;
+  }, [fetchServices]);
 
-  const deleteService = useCallback((id: string) => {
-    serviceService.delete(id);
-    refreshServices();
-    refreshOverrides();
-  }, [refreshServices, refreshOverrides]);
+  const updateService = useCallback(async (id: string, data: UpdateServiceInput): Promise<ServiceRecord> => {
+    const updated = await serviceService.update(id, data);
+    await fetchServices();
+    return updated as ServiceRecord;
+  }, [fetchServices]);
 
-  // Variant helpers
+  const updateServiceStatus = useCallback(async (id: string, isActive: boolean): Promise<void> => {
+    await serviceService.updateStatus(id, isActive);
+    setServices(prev => prev.map(s => s.id === id ? { ...s, isActive } : s));
+  }, []);
+
+  // Variant helpers (derived from local state)
   const getVariants = useCallback((parentId: string) => {
     return services.filter(s => s.parentServiceId === parentId && s.isVariant);
   }, [services]);
@@ -48,45 +55,16 @@ export const useServices = () => {
     return services.filter(s => !s.isVariant);
   }, [services]);
 
-  // Override ops
-  const upsertOverride = useCallback((data: Omit<ServiceProduct, 'id'>) => {
-    serviceService.upsertOverride(data);
-    refreshOverrides();
-  }, [refreshOverrides]);
-
-  const deleteOverride = useCallback((id: string) => {
-    serviceService.deleteOverride(id);
-    refreshOverrides();
-  }, [refreshOverrides]);
-
-  const getOverridesByService = useCallback((serviceId: string) => {
-    return overrides.filter(o => o.serviceId === serviceId);
-  }, [overrides]);
-
-  const getOverridesByProduct = useCallback((productId: string) => {
-    return overrides.filter(o => o.productId === productId);
-  }, [overrides]);
-
-  const toggleServiceForProduct = useCallback((serviceId: string, productId: string, isDisabled: boolean) => {
-    const existing = overrides.find(o => o.serviceId === serviceId && o.productId === productId);
-    if (existing) {
-      serviceService.upsertOverride({ ...existing, isActive: !isDisabled });
-    } else {
-      const svc = serviceService.getById(serviceId);
-      serviceService.upsertOverride({
-        serviceId,
-        productId,
-        price: svc?.basePrice ?? 0,
-        estimatedTime: svc?.estimatedTime ?? 30,
-        isActive: !isDisabled,
-      });
-    }
-    refreshOverrides();
-  }, [overrides, refreshOverrides]);
-
   return {
-    services, createService, updateService, deleteService,
-    getVariants, hasVariants, getParentServices,
-    overrides, upsertOverride, deleteOverride, getOverridesByService, getOverridesByProduct, toggleServiceForProduct, refresh, isLoading,
+    services,
+    isLoading,
+    error,
+    refresh: fetchServices,
+    createService,
+    updateService,
+    updateServiceStatus,
+    getVariants,
+    hasVariants,
+    getParentServices,
   };
 };

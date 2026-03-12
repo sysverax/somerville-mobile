@@ -13,6 +13,8 @@ class ServiceResponseDTO {
     this.parentServiceId = service.parentServiceId?.toString() || null;
     this.createdAt = service.createdAt || null;
     this.updatedAt = service.updatedAt || null;
+    this.linkedProductsCount = service.linkedProductsCount || 0;
+    this.assignedTo = service.assignedTo || "";
 
     if (service.variants && Array.isArray(service.variants)) {
       this.variants = service.variants.map((v) => new ServiceResponseDTO(v));

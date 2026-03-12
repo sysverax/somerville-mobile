@@ -7,6 +7,7 @@ export const useFilterOptions = () => {
     brands: [],
     categories: [],
     series: [],
+    products: [],
   });
   const [isLoading, setIsLoading] = useState(true);
 
