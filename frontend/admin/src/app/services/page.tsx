@@ -163,25 +163,8 @@ const ServicesPage = () => {
 
   // Filter & sort for services list – only show parent/standalone services (not variants)
   const filtered = useMemo(() => {
-    let result = services.filter(s => !s.isVariant);
-    if (search) result = result.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
-    if (appliedFilters.level !== "all") result = result.filter(s => s.level === appliedFilters.level);
-    if (appliedFilters.status !== "all") result = result.filter(s => appliedFilters.status === "active" ? s.isActive : !s.isActive);
-    if (appliedFilters.product !== "all") {
-      const prod = products.find(p => p.id === appliedFilters.product);
-      result = result.filter(s => s.productId === prod?.id || s.seriesId === prod?.seriesId || s.categoryId === prod?.categoryId || (s.level === "brand" && s.brandId === prod?.brandId));
-    } else if (appliedFilters.series !== "all") {
-      const ser = seriesList.find(s => s.id === appliedFilters.series);
-      const cat = ser ? categories.find(c => c.id === ser.categoryId) : null;
-      result = result.filter(s => s.seriesId === ser?.id || s.categoryId === ser?.categoryId || (s.level === "brand" && s.brandId === cat?.brandId));
-    } else if (appliedFilters.category !== "all") {
-      const cat = categories.find(c => c.id === appliedFilters.category);
-      result = result.filter(s => s.categoryId === appliedFilters.category || (s.level === "brand" && s.brandId === cat?.brandId));
-    } else if (appliedFilters.brand !== "all") {
-      result = result.filter(s => s.brandId === appliedFilters.brand);
-    }
-    return result;
-  }, [services, search, appliedFilters, products, seriesList, categories]);
+    return services.filter(s => !s.isVariant);
+  }, [services]);
 
   const paginated = filtered;
 

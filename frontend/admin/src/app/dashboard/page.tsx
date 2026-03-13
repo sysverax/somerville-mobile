@@ -7,6 +7,7 @@ import { serviceService } from '@/services/service.service';
 import { bookingService } from '@/services/booking.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Smartphone, FolderTree, Layers, Package, Wrench, Calendar } from 'lucide-react';
+import BookingsTable from '@/components/BookingsTable';
 import EmptyState from '@/components/EmptyState';
 
 const stats = [
@@ -41,37 +42,11 @@ const DashboardPage = () => {
       <Card>
         <CardHeader><CardTitle className="text-base">Recent Bookings</CardTitle></CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-2.5 px-3 text-muted-foreground font-medium">Customer</th>
-                  <th className="text-left py-2.5 px-3 text-muted-foreground font-medium">Product</th>
-                  <th className="text-left py-2.5 px-3 text-muted-foreground font-medium">Service</th>
-                  <th className="text-left py-2.5 px-3 text-muted-foreground font-medium">Date</th>
-                  <th className="text-left py-2.5 px-3 text-muted-foreground font-medium">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentBookings.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-0">
-                      <EmptyState title="No recent bookings" description="New bookings will appear here once customers place them." compact />
-                    </td>
-                  </tr>
-                ) : recentBookings.map(b => (
-                  <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
-                    onClick={() => navigate('/bookings', { state: { bookingId: b.id } })}                  >
-                    <td className="py-2.5 px-3">{b.customerName}</td>
-                    <td className="py-2.5 px-3">{b.productName}</td>
-                    <td className="py-2.5 px-3">{b.serviceName}</td>
-                    <td className="py-2.5 px-3">{b.date}</td>
-                    <td className="py-2.5 px-3">{b.timeSlot}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <BookingsTable 
+            bookings={recentBookings} 
+            compact={true}
+            onRowClick={(booking) => navigate('/bookings', { state: { bookingId: booking.id } })}
+          />
         </CardContent>
       </Card>
     </div>
