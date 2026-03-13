@@ -228,19 +228,19 @@ const SeriesPage = () => {
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
+        <div className="rounded-xl border border-border overflow-hidden scrollbar-hide">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[130px]">Image</TableHead>
+                <TableHead className="w-[60px]">Image</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Brand</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="hidden md:table-cell">Description</TableHead>
-                <TableHead className="w-24">Visibility</TableHead>
-                <TableHead className="w-[150px] hidden lg:table-cell">Hidden Reason</TableHead>
-                <TableHead className="w-20">Active</TableHead>
-                <TableHead className="w-24 text-right">Actions</TableHead>
+                <TableHead className="w-14">Brand</TableHead>
+                <TableHead className="w-14">Category</TableHead>
+                <TableHead className="hidden md:table-cell w-16">Description</TableHead>
+                <TableHead className="w-14">Visibility</TableHead>
+                <TableHead className="w-20 hidden lg:table-cell">Hidden Reason</TableHead>
+                <TableHead className="w-14">Active</TableHead>
+                <TableHead className="w-20 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -273,7 +273,7 @@ const SeriesPage = () => {
                     <TableCell className="font-medium">{s.name}</TableCell>
                     <TableCell className="text-sm"><ParentNameCell name={s.brand?.name || brandName(s.brand?.id || s.brandId) || s.brandId} isInactive={brandInactive} /></TableCell>
                     <TableCell className="text-sm"><ParentNameCell name={s.category?.name || categoryName(s.category?.id || s.categoryId) || s.categoryId} isInactive={categoryInactive} /></TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px]"><TruncatedText text={s.description} /></TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[100px]"><TruncatedText text={s.description} /></TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
                     <TableCell><Switch checked={s.isActive} onCheckedChange={() => {

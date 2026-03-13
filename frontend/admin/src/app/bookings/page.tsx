@@ -12,8 +12,8 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar as CalendarIcon, Loader2, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import TablePagination from '@/components/TablePagination';
-import EmptyState from '@/components/EmptyState';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import BookingsTable from '@/components/BookingsTable';
 
 const BookingsPage = () => {
   const { bookings, total, loading, error, refetch } = useBookings();
@@ -147,63 +147,11 @@ const BookingsPage = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
-        {loading ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead><tr className="bg-card border-b border-border">
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Time</th>
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Customer</th>
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Email</th>
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Phone</th>
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Product</th>
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Service</th>
-              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Created</th>
-            </tr></thead>
-            <tbody>
-              {bookings.map(b => (
-                <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30">
-                  <td className="py-3 px-4">{b.date}</td>
-                  <td className="py-3 px-4">{b.timeSlot}</td>
-                  <td className="py-3 px-4">{b.customerName}</td>
-                  <td className="py-3 px-4 hidden md:table-cell">
-                    <a
-                      href={`https://mail.google.com/mail/?view=cm&to=${b.customerEmail}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      {b.customerEmail}
-                    </a>
-                  </td>
-                  <td className="py-3 px-4 hidden lg:table-cell"> <a
-                    href={`tel:${b.customerPhone}`}
-                    className="hover:underline"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    {b.customerPhone}
-                  </a></td>
-                  <td className="py-3 px-4">{b.productName}</td>
-                  <td className="py-3 px-4">{b.serviceName}</td>
-                  <td className="py-3 px-4">{b.createdAt}</td>
-                </tr>
-              ))}
-              {bookings.length === 0 && !loading && (
-                <tr>
-                  <td colSpan={8} className="py-0">
-                    <EmptyState title="No bookings found" description="New bookings will appear here once customers place them." />
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <BookingsTable 
+        bookings={bookings} 
+        loading={loading}
+        onRowClick={(booking) => navigate('/bookings', { state: { bookingId: booking.id } })}
+      />
 
       <TablePagination totalItems={total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
     </div>
