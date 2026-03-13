@@ -45,7 +45,7 @@ const normalizeSeries = (series: SeriesDocument): Series => {
   const category = categoryService.getById(series.categoryId);
   return {
     ...series,
-    brandId: category?.brandId ?? '',
+    brandId: series.brand?.id || category?.brandId || '',
     image: series.imageUrl ?? '/mock-images/default/placeholder.png',
   };
 };
@@ -62,13 +62,15 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
 
 const mapApiSeries = (series: SeriesApiDocument): SeriesDocument => ({
   id: series.id,
-  categoryId: series.category?.id,
+  categoryId: series.category?.id || (series as unknown as SeriesDocument).categoryId,
   name: series.name,
   description: series.description,
   imageUrl: series.imageUrl,
   isActive: series.isActive,
   createdAt: series.createdAt,
   updatedAt: series.updatedAt,
+  brand: series.brand ? { id: series.brand.id, name: series.brand.name, isActive: series.brand.isActive ?? true } : undefined,
+  category: series.category ? { id: series.category.id, name: series.category.name, isActive: series.category.isActive ?? true } : undefined,
 });
 
 const imageValueToFile = async (imageValue: string, filename: string): Promise<File | null> => {
@@ -83,7 +85,7 @@ const imageValueToFile = async (imageValue: string, filename: string): Promise<F
 };
 
 export const seriesService = {
-  getAll: async (filters: { brandId?: string; categoryId?: string; page?: number; limit?: number } = {}): Promise<Series[]> => {
+  getAll: async (filters: { brandId?: string; categoryId?: string; page?: number; limit?: number } = {}): Promise<{ data: Series[]; total: number }> => {
     const params = new URLSearchParams();
     params.append('page', String(filters.page || 1));
     params.append('limit', String(filters.limit || 10));
@@ -99,7 +101,10 @@ export const seriesService = {
     });
     const data = await parseResponse<SeriesListPayload>(response);
     seriesList = data.series.map(mapApiSeries);
-    return [...seriesList].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(normalizeSeries);
+    return {
+      data: [...seriesList].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(normalizeSeries),
+      total: data.totalSeries || 0
+    };
   },
   getByCategory: (categoryId: string): Series[] => seriesList.filter(s => s.categoryId === categoryId).map(normalizeSeries),
   getById: (id: string): Series | undefined => {

@@ -63,7 +63,7 @@ type FormErrors = { name?: string; brandId?: string; categoryId?: string; series
 
 const ServicesPage = () => {
   const { toast } = useToast();
-  const { services, createService, updateService, updateServiceStatus, getVariants, hasVariants, isLoading: servicesLoading, error: servicesError, refresh } = useServices();
+  const { services, total, createService, updateService, updateServiceStatus, getVariants, hasVariants, isLoading: servicesLoading, error: servicesError, refresh } = useServices();
   const { brands, categories, series: seriesList, products, isLoading: optionsLoading } = useFilterOptions();
   const initialLoading = servicesLoading || optionsLoading;
 
@@ -183,7 +183,21 @@ const ServicesPage = () => {
     return result;
   }, [services, search, appliedFilters, products, seriesList, categories]);
 
-  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const paginated = filtered;
+
+  useEffect(() => {
+    refresh({
+      page,
+      limit: pageSize,
+      level: appliedFilters.level !== "all" ? appliedFilters.level : undefined,
+      brandId: appliedFilters.brand !== "all" ? appliedFilters.brand : undefined,
+      categoryId: appliedFilters.category !== "all" ? appliedFilters.category : undefined,
+      seriesId: appliedFilters.series !== "all" ? appliedFilters.series : undefined,
+      productId: appliedFilters.product !== "all" ? appliedFilters.product : undefined,
+      search: search !== "" ? search : undefined,
+      isActive: appliedFilters.status !== "all" ? appliedFilters.status === "active" : undefined,
+    });
+  }, [appliedFilters, search, page, pageSize, refresh]);
 
   const toggleExpanded = (parentId: string) => {
     setExpandedParents(prev => {
@@ -921,7 +935,7 @@ const ServicesPage = () => {
               </table>
             </div>
             )}
-            <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
+            <TablePagination totalItems={total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
           </div>
         </TabsContent>
 
@@ -1246,7 +1260,7 @@ const ServicesPage = () => {
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
         <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="flex flex-col max-w-xl max-h-[90vh]">
           <DialogHeader><DialogTitle>{editing ? 'Edit Service' : 'Add Service'}</DialogTitle></DialogHeader>
-          <div ref={formRef} className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
+          <div ref={formRef} className="space-y-4 overflow-y-auto overflow-x-hidden w-full flex-1 scrollbar-hide min-w-0">
             <div className="space-y-4 mx-1">
               <h3 className="text-sm font-semibold text-foreground">Basic Information</h3>
               <div className="space-y-2" data-error={!!formErrors.name}>
@@ -1263,12 +1277,13 @@ const ServicesPage = () => {
                     setFormErrors(prev => ({ ...prev, name: validateName(form.name) }));
                   }}
                   placeholder="e.g. Screen Replacement"
+                  disabled={initialLoading || isSaving}
                 />
                 {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Description</Label>
-                <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional description" />
+                <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional description" disabled={initialLoading || isSaving} />
               </div>
 
               {/* Variant Toggle */}
@@ -1280,7 +1295,7 @@ const ServicesPage = () => {
                 <Switch checked={form.hasVariants} onCheckedChange={v => {
                   setForm(f => ({ ...f, hasVariants: v }));
                   if (v && variantItems.length === 0) addVariantItem();
-                }} />
+                }} disabled={initialLoading || isSaving} />
               </div>
 
               {!form.hasVariants && (
@@ -1303,6 +1318,7 @@ const ServicesPage = () => {
                         setTouched(prev => ({ ...prev, basePrice: true }));
                         setFormErrors(prev => ({ ...prev, basePrice: validateBasePrice(form.basePrice) }));
                       }}
+                      disabled={initialLoading || isSaving}
                     />
                     {formErrors.basePrice && <p className="text-xs text-destructive">{formErrors.basePrice}</p>}
                   </div>
@@ -1323,6 +1339,7 @@ const ServicesPage = () => {
                         setTouched(prev => ({ ...prev, estimatedTime: true }));
                         setFormErrors(prev => ({ ...prev, estimatedTime: validateEstimatedTime(form.estimatedTime) }));
                       }}
+                      disabled={initialLoading || isSaving}
                     />
                     {formErrors.estimatedTime && <p className="text-xs text-destructive">{formErrors.estimatedTime}</p>}
                   </div>
@@ -1334,7 +1351,7 @@ const ServicesPage = () => {
                 <div className="space-y-3 border border-border rounded-lg p-4 bg-muted/30">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-semibold text-foreground">Variants</h4>
-                    <Button type="button" size="sm" variant="outline" onClick={addVariantItem} className="gap-1">
+                    <Button type="button" size="sm" variant="outline" onClick={addVariantItem} className="gap-1" disabled={initialLoading || isSaving}>
                       <Plus className="h-3 w-3" /> Add Variant
                     </Button>
                   </div>
@@ -1347,7 +1364,7 @@ const ServicesPage = () => {
                     <div key={index} className="rounded-lg border border-border bg-card p-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-medium text-muted-foreground">Variant {index + 1}</span>
-                        <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeVariantItem(index)}>
+                        <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeVariantItem(index)} disabled={initialLoading || isSaving}>
                           <Trash2 className="h-3 w-3 text-destructive" />
                         </Button>
                       </div>
@@ -1360,9 +1377,10 @@ const ServicesPage = () => {
                             if (variantErrors[index]?.name)
                               setVariantErrors(prev => ({ ...prev, [index]: { ...prev[index], name: undefined } }));
                           }}
+                          disabled={initialLoading || isSaving}
                         />
                         {variantErrors[index]?.name && <p className="text-xs text-destructive">{variantErrors[index].name}</p>}
-                        <Input placeholder="Description (optional)" value={vi.description} onChange={e => updateVariantItem(index, 'description', e.target.value)} />
+                        <Input placeholder="Description (optional)" value={vi.description} onChange={e => updateVariantItem(index, 'description', e.target.value)} disabled={initialLoading || isSaving} />
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1" data-error={!!formErrors.basePrice}>
@@ -1378,6 +1396,7 @@ const ServicesPage = () => {
                               if (variantErrors[index]?.basePrice)
                                 setVariantErrors(prev => ({ ...prev, [index]: { ...prev[index], basePrice: undefined } }));
                             }}
+                            disabled={initialLoading || isSaving}
                           />
                           {variantErrors[index]?.basePrice && <p className="text-xs text-destructive">{variantErrors[index].basePrice}</p>}
                         </div>
@@ -1389,8 +1408,8 @@ const ServicesPage = () => {
                             placeholder="30"
                             value={vi.estimatedTime === 0 ? '' : vi.estimatedTime}
                             onChange={e => {
-                              const raw = e.target.value.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
-                              updateVariantItem(index, 'estimatedTime', raw === '' ? 0 : Math.max(1, Number(raw)));
+                              const raw = e.target.value.replace(/[^0-9.]/g, '');
+                              updateVariantItem(index, 'estimatedTime', raw === '' ? 0 : Number(raw));
                               if (variantErrors[index]?.estimatedTime)
                                 setVariantErrors(prev => ({ ...prev, [index]: { ...prev[index], estimatedTime: undefined } }));
                             }}

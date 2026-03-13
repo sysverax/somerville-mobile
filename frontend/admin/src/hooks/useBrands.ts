@@ -1,15 +1,23 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Brand } from '@/types';
 import { brandService } from '@/services/brand.service';
 
 export const useBrands = () => {
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const lastFilters = useRef<{ page?: number; limit?: number } | undefined>();
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (filters?: { page?: number; limit?: number }) => {
     try {
-      const allBrands = await brandService.getAll();
-      setBrands(allBrands);
+      if (filters !== undefined) lastFilters.current = filters;
+      const result = await brandService.getAll(lastFilters.current);
+      setBrands(result.data);
+      setTotal(result.total);
+    } catch (error) {
+      console.error('Failed to refresh brands:', error);
+      setBrands([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
@@ -45,5 +53,5 @@ export const useBrands = () => {
     }
   }, [refresh]);
 
-  return { brands, create, update, remove, toggleActive, refresh, count: brands.length, isLoading };
+  return { brands, total, create, update, remove, toggleActive, refresh, count: brands.length, isLoading };
 };

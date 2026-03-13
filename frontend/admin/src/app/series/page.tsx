@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSeriesData } from '@/hooks/useSeries';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
@@ -56,7 +56,7 @@ type FormErrors = { brandId?: string; categoryId?: string; name?: string; image?
 
 const SeriesPage = () => {
   const { brands, categories, isLoading: optionsLoading } = useFilterOptions();
-  const { seriesList, create, update, remove, toggleActive, isLoading: seriesLoading, refresh } = useSeriesData();
+  const { seriesList, total, create, update, remove, toggleActive, isLoading: seriesLoading, refresh } = useSeriesData();
   const initialLoading = seriesLoading || optionsLoading;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -77,11 +77,21 @@ const SeriesPage = () => {
 
   const filteredCats = (filters.brandId !== 'all' || applied.brandId !== 'all') ? categories.filter(c => c.brandId === (filters.brandId !== 'all' ? filters.brandId : applied.brandId)) : categories;
   const hasChanges = JSON.stringify(filters) !== JSON.stringify(applied);
-  const filtered = seriesList;
-  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const paginated = seriesList;
+
+  useEffect(() => {
+    if (!isFormOpen) {
+      refresh({ 
+        brandId: applied.brandId !== 'all' ? applied.brandId : undefined,
+        categoryId: applied.categoryId !== 'all' ? applied.categoryId : undefined,
+        page,
+        limit: pageSize
+      });
+    }
+  }, [applied, page, pageSize, refresh, isFormOpen]);
 
   const openAdd = () => { setEditing(null); setForm({ categoryId: applied.categoryId !== 'all' ? applied.categoryId : '', brandId: applied.brandId !== 'all' ? applied.brandId : '', name: '', image: null, description: '' }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
-  const openEdit = (s: Series) => { setEditing(s); setForm({ categoryId: s.categoryId, brandId: s.brandId, name: s.name, image: s.image, description: s.description }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
+  const openEdit = (s: Series) => { setEditing(s); setForm({ categoryId: s.category?.id || s.categoryId, brandId: s.brand?.id || s.brandId, name: s.name, image: s.image, description: s.description }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
 
   const handleClose = () => { setIsFormOpen(false); setFormErrors({}); setTouched({}); };
 
@@ -93,6 +103,25 @@ const SeriesPage = () => {
     if (brandErr || categoryErr || nameErr || imageErr) {
       setFormErrors({ brandId: brandErr, categoryId: categoryErr, name: nameErr, image: imageErr });
       setTouched({ brandId: true, categoryId: true, name: true, image: true });
+      
+      // Scroll to first error field
+      setTimeout(() => {
+        const errorFields = ['brandId', 'categoryId', 'name', 'image'];
+        const firstError = errorFields.find(field => 
+          field === 'brandId' && brandErr ||
+          field === 'categoryId' && categoryErr ||
+          field === 'name' && nameErr ||
+          field === 'image' && imageErr
+        );
+        
+        if (firstError) {
+          const element = document.querySelector(`[data-field="${firstError}"]`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 100);
+      
       return;
     }
     setIsLoading(true);
@@ -112,7 +141,6 @@ const SeriesPage = () => {
         toast({ title: 'Series created successfully', variant: 'success' });
       }
       setIsFormOpen(false);
-      await refresh({ brandId: applied.brandId !== 'all' ? applied.brandId : undefined, categoryId: applied.categoryId !== 'all' ? applied.categoryId : undefined });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save series';
       toast({ title: message, variant: 'destructive' });
@@ -151,9 +179,9 @@ const SeriesPage = () => {
             </SelectContent>
           </Select>
         </div>
-        {hasChanges && <Button onClick={() => { setApplied({ ...filters }); setPage(1); refresh({ brandId: filters.brandId !== 'all' ? filters.brandId : undefined, categoryId: filters.categoryId !== 'all' ? filters.categoryId : undefined }); }}>Apply</Button>}
+        {hasChanges && <Button onClick={() => { setApplied({ ...filters }); setPage(1); }}>Apply</Button>}
         {(applied.brandId !== 'all' || applied.categoryId !== 'all') && (
-          <Button variant="outline" onClick={() => { const empty = { brandId: 'all', categoryId: 'all' }; setFilters(empty); setApplied(empty); setPage(1); refresh({}); }}>Clear</Button>
+          <Button variant="outline" onClick={() => { const empty = { brandId: 'all', categoryId: 'all' }; setFilters(empty); setApplied(empty); setPage(1); }}>Clear</Button>
         )}
         <ViewToggle view={view} onChange={setView} />
         <div className="ml-auto"><Button onClick={openAdd} disabled={isLoading} className="gap-2"><Plus className="h-4 w-4" /> Add Series</Button></div>
@@ -169,7 +197,7 @@ const SeriesPage = () => {
             <div className="col-span-full rounded-xl border border-dashed border-border bg-card">
               <EmptyState
                 title="No series found"
-                description={filtered.length > 0 ? 'Try changing page size or page number.' : 'Click "Add Series" to create your first series.'}
+                description={seriesList.length > 0 ? 'Try changing page size or page number.' : 'Click "Add Series" to create your first series.'}
                 actionLabel="Add Series"
                 onAction={openAdd}
               />
@@ -182,7 +210,7 @@ const SeriesPage = () => {
                   <h3 className="font-semibold truncate">{s.name}</h3>
                   <p className="text-xs text-muted-foreground truncate">{s.description}</p>
                 </div>
-                <VisibilityBadge visibility={computeSeriesVisibility(s, getCategory(s.categoryId), getBrand(s.brandId))} />
+                <VisibilityBadge visibility={computeSeriesVisibility(s, getCategory(s.category?.id || s.categoryId), getBrand(s.brand?.id || s.brandId))} />
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-border/50">
                 <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={s.isActive} onCheckedChange={() => {
@@ -227,15 +255,15 @@ const SeriesPage = () => {
                   <TableCell colSpan={9} className="py-0">
                     <EmptyState
                       title="No series found"
-                      description={filtered.length > 0 ? 'Try changing page size or page number.' : 'Click "Add Series" to create your first series.'}
+                      description={seriesList.length > 0 ? 'Try changing page size or page number.' : 'Click "Add Series" to create your first series.'}
                       actionLabel="Add Series"
                       onAction={openAdd}
                     />
                   </TableCell>
                 </TableRow>
               ) : paginated.map(s => {
-                const brand = getBrand(s.brandId);
-                const category = getCategory(s.categoryId);
+                const brand = getBrand(s.brand?.id || s.brandId);
+                const category = getCategory(s.category?.id || s.categoryId);
                 const visibility = computeSeriesVisibility(s, category, brand);
                 const brandInactive = isParentInactive(brand);
                 const categoryInactive = isParentInactive(category);
@@ -243,8 +271,8 @@ const SeriesPage = () => {
                   <TableRow key={s.id}>
                     <TableCell><img src={s.image} alt={s.name} className="h-8 w-8 rounded-md object-cover bg-muted" /></TableCell>
                     <TableCell className="font-medium">{s.name}</TableCell>
-                    <TableCell className="text-sm"><ParentNameCell name={brandName(s.brandId)} isInactive={brandInactive} /></TableCell>
-                    <TableCell className="text-sm"><ParentNameCell name={categoryName(s.categoryId)} isInactive={categoryInactive} /></TableCell>
+                    <TableCell className="text-sm"><ParentNameCell name={s.brand?.name || brandName(s.brand?.id || s.brandId) || s.brandId} isInactive={brandInactive} /></TableCell>
+                    <TableCell className="text-sm"><ParentNameCell name={s.category?.name || categoryName(s.category?.id || s.categoryId) || s.categoryId} isInactive={categoryInactive} /></TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px]"><TruncatedText text={s.description} /></TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
@@ -268,20 +296,20 @@ const SeriesPage = () => {
         </div>
       )}
 
-      <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
+      <TablePagination totalItems={total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
         <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="flex flex-col max-h-[90vh]">
           <DialogHeader><DialogTitle>{editing ? 'Edit Series' : 'Add Series'}</DialogTitle></DialogHeader>
           <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
-            <div className="space-y-2 mx-1">
+            <div className="space-y-2 mx-1" data-field="brandId">
               <Label>Brand *</Label>
               <Select value={form.brandId} onValueChange={v => {
                 setForm(f => ({ ...f, brandId: v, categoryId: '' }));
                 setTouched(prev => ({ ...prev, brandId: true }));
                 setFormErrors(prev => ({ ...prev, brandId: validateBrand(v), categoryId: undefined }));
               }}>
-                <SelectTrigger disabled={!!editing}><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectTrigger disabled={isLoading || !!editing}><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
                   {brands.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No brands found</div>}
                   {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
@@ -289,7 +317,7 @@ const SeriesPage = () => {
               </Select>
               {formErrors.brandId && <p className="text-xs text-destructive">{formErrors.brandId}</p>}
             </div>
-            <div className="space-y-2 mx-1">
+            <div className="space-y-2 mx-1" data-field="categoryId">
               <Label>Category *</Label>
               <Select value={form.categoryId}
                 onValueChange={v => {
@@ -298,7 +326,7 @@ const SeriesPage = () => {
                   setFormErrors(prev => ({ ...prev, categoryId: validateCategory(v) }));
                 }}
                 disabled={!form.brandId || !!editing}>
-                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectTrigger disabled={isLoading}><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
                   {categories.filter(c => c.brandId === form.brandId).length === 0 && (
                     <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No categories found</div>
@@ -308,7 +336,7 @@ const SeriesPage = () => {
               </Select>
               {formErrors.categoryId && <p className="text-xs text-destructive">{formErrors.categoryId}</p>}
             </div>
-            <div className="space-y-2 mx-1">
+            <div className="space-y-2 mx-1" data-field="name">
               <Label>Name *</Label>
               <Input
                 value={form.name}
@@ -321,11 +349,12 @@ const SeriesPage = () => {
                   setTouched(prev => ({ ...prev, name: true }));
                   setFormErrors(prev => ({ ...prev, name: validateName(form.name) }));
                 }}
+                disabled={isLoading}
               />
               {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
             </div>
             <div className="space-y-2 mx-1"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} disabled={isLoading} /></div>
-            <div className="space-y-2">
+            <div className="space-y-2 mx-1" data-field="image">
               <Label>Image *</Label>
               <ImageUpload
                 value={form.image}

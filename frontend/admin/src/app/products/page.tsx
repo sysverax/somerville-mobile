@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useProducts } from '@/hooks/useProducts';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
@@ -63,7 +63,7 @@ type FormErrors = { brandId?: string; categoryId?: string; seriesId?: string; na
 
 const ProductsPage = () => {
   const { brands, categories, series: seriesList, isLoading: optionsLoading } = useFilterOptions();
-  const { products, create, update, remove, toggleActive, isLoading: productsLoading, refresh } = useProducts();
+  const { products, total, create, update, remove, toggleActive, isLoading: productsLoading, refresh } = useProducts();
   const { services } = useServices();
   const initialLoading = productsLoading || optionsLoading;
   const { toast } = useToast();
@@ -87,12 +87,23 @@ const ProductsPage = () => {
   const filteredCats = (filters.brandId !== 'all' || applied.brandId !== 'all') ? categories.filter(c => c.brandId === (filters.brandId !== 'all' ? filters.brandId : applied.brandId)) : categories;
   const filteredSeries = (filters.categoryId !== 'all' || applied.categoryId !== 'all') ? seriesList.filter(s => s.categoryId === (filters.categoryId !== 'all' ? filters.categoryId : applied.categoryId)) : seriesList;
   const hasChanges = JSON.stringify(filters) !== JSON.stringify(applied);
-  const filtered = products;
+  const paginated = products;
 
   // Pagination
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    if (!isFormOpen) {
+      refresh({ 
+        brandId: applied.brandId !== 'all' ? applied.brandId : undefined,
+        categoryId: applied.categoryId !== 'all' ? applied.categoryId : undefined,
+        seriesId: applied.seriesId !== 'all' ? applied.seriesId : undefined,
+        page,
+        limit: pageSize
+      });
+    }
+  }, [applied, page, pageSize, refresh, isFormOpen]);
 
   const openAdd = () => { setEditing(null); setForm({ seriesId: '', categoryId: '', brandId: '', name: '', description: '', specifications: {}, iconImage: null, galleryImages: [] }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
   const openEdit = (p: Product) => { setEditing(p); setForm({ seriesId: p.seriesId, categoryId: p.categoryId, brandId: p.brandId, name: p.name, description: p.description, specifications: { ...p.specifications }, iconImage: p.iconImage, galleryImages: [...p.galleryImages] }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
@@ -127,11 +138,6 @@ const ProductsPage = () => {
         toast({ title: 'Product created successfully', variant: 'success' });
       }
       setIsFormOpen(false);
-      await refresh({ 
-        brandId: applied.brandId !== 'all' ? applied.brandId : undefined, 
-        categoryId: applied.categoryId !== 'all' ? applied.categoryId : undefined, 
-        seriesId: applied.seriesId !== 'all' ? applied.seriesId : undefined 
-      });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save product';
       toast({ title: message, variant: 'destructive' });
@@ -195,10 +201,10 @@ const ProductsPage = () => {
               {filteredSeries.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No series found</div>}
               {filteredSeries.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
             </SelectContent>
-          </Select></div>
-        {hasChanges && <Button onClick={() => { setApplied({ ...filters }); setPage(1); refresh({ brandId: filters.brandId !== 'all' ? filters.brandId : undefined, categoryId: filters.categoryId !== 'all' ? filters.categoryId : undefined, seriesId: filters.seriesId !== 'all' ? filters.seriesId : undefined }); }}>Apply</Button>}
+          </Select>        </div>
+        {hasChanges && <Button onClick={() => { setApplied({ ...filters }); setPage(1); }}>Apply</Button>}
         {(applied.brandId !== 'all' || applied.categoryId !== 'all' || applied.seriesId !== 'all') && (
-          <Button variant="outline" onClick={() => { const empty = { brandId: 'all', categoryId: 'all', seriesId: 'all' }; setFilters(empty); setApplied(empty); setPage(1); refresh({}); }}>Clear</Button>
+          <Button variant="outline" onClick={() => { const empty = { brandId: 'all', categoryId: 'all', seriesId: 'all' }; setFilters(empty); setApplied(empty); setPage(1); }}>Clear</Button>
         )}
         <ViewToggle view={view} onChange={setView} />
         <div className="ml-auto"><Button onClick={openAdd} disabled={isLoading} className="gap-2"><Plus className="h-4 w-4" /> Add Product</Button></div>
@@ -214,7 +220,7 @@ const ProductsPage = () => {
            <div className="col-span-full rounded-xl border border-dashed border-border bg-card">
               <EmptyState
                 title="No products found"
-                description={filtered.length === 0 && products.length > 0 ? 'Try adjusting your filters.' : 'Click "Add Product" to create one.'}
+                description={products.length > 0 ? 'Try changing page size or page number.' : 'Click "Add Product" to create one.'}
                 actionLabel="Add Product"
                 onAction={openAdd}
               />
@@ -287,7 +293,7 @@ const ProductsPage = () => {
                   <TableCell colSpan={10} className="py-0">
                     <EmptyState
                       title="No products found"
-                      description={filtered.length === 0 && products.length > 0 ? 'Try adjusting your filters.' : 'Click "Add Product" to create one.'}
+                      description={products.length > 0 ? 'Try changing page size or page number.' : 'Click "Add Product" to create one.'}
                       actionLabel="Add Product"
                       onAction={openAdd}
                     />
@@ -332,7 +338,7 @@ const ProductsPage = () => {
         </div>
       )}
 
-      <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
+      <TablePagination totalItems={total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
       {/* Add/Edit Product Dialog */}
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
@@ -351,7 +357,7 @@ const ProductsPage = () => {
                     setFormErrors(prev => ({ ...prev, brandId: validateBrand(v), categoryId: undefined, seriesId: undefined }));
                   }}
                 >
-                  <SelectTrigger disabled={!!editing}><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger disabled={isLoading || !!editing}><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     {brands.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No brands found</div>}
                     {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
@@ -370,7 +376,7 @@ const ProductsPage = () => {
                     setFormErrors(prev => ({ ...prev, categoryId: validateCategory(v), seriesId: undefined }));
                   }}
                 >
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger disabled={isLoading || !!editing}><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     {categories.filter(c => c.brandId === form.brandId).length === 0 && (
                       <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No categories found</div>
@@ -391,7 +397,7 @@ const ProductsPage = () => {
                     setFormErrors(prev => ({ ...prev, seriesId: validateSeries(v) }));
                   }}
                 >
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger disabled={isLoading || !!editing}><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     {seriesList.filter(s => s.categoryId === form.categoryId).length === 0 && (
                       <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No series found</div>
@@ -417,6 +423,7 @@ const ProductsPage = () => {
                   setTouched(prev => ({ ...prev, name: true }));
                   setFormErrors(prev => ({ ...prev, name: validateName(form.name) }));
                 }}
+                disabled={isLoading}
               />
               {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
             </div>
@@ -424,7 +431,7 @@ const ProductsPage = () => {
             {/* Description */}
             <div className="space-y-2 mx-1">
               <Label>Description</Label>
-              <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+              <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} disabled={isLoading} />
             </div>
 
             {/* Product Image */}

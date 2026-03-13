@@ -1,19 +1,23 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Series } from '@/types';
 import { seriesService } from '@/services/series.service';
 
 export const useSeriesData = () => {
   const [seriesList, setSeriesList] = useState<Series[]>([]);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const lastFilters = useRef<{ brandId?: string; categoryId?: string; page?: number; limit?: number } | undefined>();
 
   const refresh = useCallback(async (filters?: { brandId?: string; categoryId?: string; page?: number; limit?: number }) => {
-    setIsLoading(true);
     try {
-      const allSeries = await seriesService.getAll(filters);
-      setSeriesList(allSeries);
+      if (filters !== undefined) lastFilters.current = filters;
+      const result = await seriesService.getAll(lastFilters.current);
+      setSeriesList(result.data);
+      setTotal(result.total);
     } catch (error) {
       console.error('Failed to refresh series:', error);
       setSeriesList([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
@@ -49,5 +53,5 @@ export const useSeriesData = () => {
     }
   }, [refresh]);
 
-  return { seriesList, create, update, remove, toggleActive, refresh, count: seriesList.length, isLoading };
+  return { seriesList, total, create, update, remove, toggleActive, refresh, count: seriesList.length, isLoading };
 };

@@ -98,7 +98,7 @@ const imageValueToFile = async (imageValue: string, filename: string): Promise<F
 };
 
 export const productService = {
-  getAll: async (filters: { brandId?: string; categoryId?: string; seriesId?: string; page?: number; limit?: number } = {}): Promise<Product[]> => {
+  getAll: async (filters: { brandId?: string; categoryId?: string; seriesId?: string; page?: number; limit?: number } = {}): Promise<{ data: Product[]; total: number }> => {
     const params = new URLSearchParams();
     params.append('page', String(filters.page || 1));
     params.append('limit', String(filters.limit || 10));
@@ -115,7 +115,10 @@ export const productService = {
     });
     const data = await parseResponse<ProductListPayload>(response);
     products = data.products.map(mapApiProduct);
-    return [...products].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(normalizeProduct);
+    return {
+      data: [...products].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(normalizeProduct),
+      total: data.totalProducts || 0
+    };
   },
   getBySeries: (seriesId: string): Product[] => products.filter(p => p.seriesId === seriesId).map(normalizeProduct),
   getById: async (id: string): Promise<Product | undefined> => {

@@ -12,7 +12,6 @@ export const useFilterOptions = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    setIsLoading(true);
     try {
       const options = await filterService.getOptions();
       setData(options);

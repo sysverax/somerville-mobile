@@ -1,20 +1,25 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { ServiceRecord } from '@/types';
 import { serviceService, GetServicesFilters, CreateServiceInput, UpdateServiceInput } from '@/services/service.service';
 
 export const useServices = (initialFilters: GetServicesFilters = {}) => {
   const [services, setServices] = useState<ServiceRecord[]>([]);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const lastFilters = useRef<GetServicesFilters | undefined>();
 
-  const fetchServices = useCallback(async (filters: GetServicesFilters = initialFilters) => {
-    setIsLoading(true);
+  const fetchServices = useCallback(async (filters?: GetServicesFilters) => {
     setError(null);
     try {
-      const result = await serviceService.getAll(filters);
-      setServices(result);
+      if (filters !== undefined) lastFilters.current = filters;
+      const result = await serviceService.getAll(lastFilters.current || initialFilters);
+      setServices(result.data);
+      setTotal(result.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch services');
+      setServices([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
@@ -57,6 +62,7 @@ export const useServices = (initialFilters: GetServicesFilters = {}) => {
 
   return {
     services,
+    total,
     isLoading,
     error,
     refresh: fetchServices,

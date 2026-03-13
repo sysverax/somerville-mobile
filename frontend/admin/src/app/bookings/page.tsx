@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useBookings } from '@/hooks/useBookings';
-import { useBrands } from '@/hooks/useBrands';
-import { useCategories } from '@/hooks/useCategories';
-import { useProducts } from '@/hooks/useProducts';
+import { useFilterOptions } from '@/hooks/useFilterOptions';
 import { Booking } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -11,16 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { useNavigate } from 'react-router-dom';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import TablePagination from '@/components/TablePagination';
 import EmptyState from '@/components/EmptyState';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const BookingsPage = () => {
-  const { bookings } = useBookings();
-  const { brands } = useBrands();
-  const { categories } = useCategories();
-  const { products } = useProducts();
+  const { bookings, total, loading, error, refetch } = useBookings();
+  const { brands, categories, products, isLoading: optionsLoading } = useFilterOptions();
   const navigate = useNavigate();
 
   const [filters, setFilters] = useState({ brandName: '', categoryName: '', productId: '', date: '' });
@@ -33,27 +30,79 @@ const BookingsPage = () => {
   const [pageSize, setPageSize] = useState(10);
 
   const hasChanges = JSON.stringify(filters) !== JSON.stringify(applied);
-
-  const filtered = bookings.filter(b =>
-    (!applied.brandName || b.brandName === applied.brandName) &&
-    (!applied.categoryName || b.categoryName === applied.categoryName) &&
-    (!applied.productId || b.productId === applied.productId) &&
-    (!applied.date || b.date === applied.date)
-  );
-  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  useEffect(() => {
+    if (optionsLoading) return;
+
+    let brandId: string | undefined = undefined;
+    if (applied.brandName) {
+      brandId = brands.find(b => b.name === applied.brandName)?.id;
+    }
+    let categoryId: string | undefined = undefined;
+    if (applied.categoryName) {
+      categoryId = categories.find(c => c.name === applied.categoryName)?.id;
+    }
+
+    refetch({
+      page,
+      limit: pageSize,
+      brandId,
+      categoryId,
+      productId: applied.productId || undefined,
+      date: applied.date || undefined
+    });
+  }, [applied, page, pageSize, brands, categories, optionsLoading, refetch]);
 
   return (
     <div className="space-y-6">
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>{error}</span>
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="ml-4">
+              <Loader2 className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-3 w-full">
         <div className="space-y-1"><Label className="text-xs">Brand</Label>
-          <Select value={filters.brandName} onValueChange={v => setFilters(f => ({ ...f, brandName: v }))}><SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All" /></SelectTrigger><SelectContent>{brands.map(b => <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>)}</SelectContent></Select>
+          <Select value={filters.brandName || "all"} onValueChange={v => setFilters(f => ({ ...f, brandName: v === 'all' ? '' : v }))}>
+            <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All Brands" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Brands</SelectItem>
+              {optionsLoading && brands.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">Loading...</div>}
+              {!optionsLoading && brands.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No brands found</div>}
+              {brands.map(b => <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-1"><Label className="text-xs">Category</Label>
-          <Select value={filters.categoryName} onValueChange={v => setFilters(f => ({ ...f, categoryName: v }))}><SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All" /></SelectTrigger><SelectContent>{[...new Set(categories.map(c => c.name))].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent></Select>
+          <Select value={filters.categoryName || "all"} onValueChange={v => setFilters(f => ({ ...f, categoryName: v === 'all' ? '' : v }))}>
+            <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All Categories" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {optionsLoading && categories.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">Loading...</div>}
+              {!optionsLoading && categories.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No categories found</div>}
+              {[...new Set(categories.map(c => c.name))].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-1"><Label className="text-xs">Product</Label>
-          <Select value={filters.productId} onValueChange={v => setFilters(f => ({ ...f, productId: v }))}><SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All" /></SelectTrigger><SelectContent>{products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select>
+          <Select value={filters.productId || "all"} onValueChange={v => setFilters(f => ({ ...f, productId: v === 'all' ? '' : v }))}>
+            <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All Products" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Products</SelectItem>
+              {optionsLoading && products.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">Loading...</div>}
+              {!optionsLoading && products.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No products found</div>}
+              {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex flex-col space-y-1">
           <Label className="text-xs">Date</Label>
@@ -99,58 +148,64 @@ const BookingsPage = () => {
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-border">
-        <table className="w-full text-sm">
-          <thead><tr className="bg-card border-b border-border">
-            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
-            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Time</th>
-            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Customer</th>
-            <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Email</th>
-            <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Phone</th>
-            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Product</th>
-            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Service</th>
-            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Created</th>
-          </tr></thead>
-          <tbody>
-            {paginated.map(b => (
-              <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30">
-                <td className="py-3 px-4">{b.date}</td>
-                <td className="py-3 px-4">{b.timeSlot}</td>
-                <td className="py-3 px-4">{b.customerName}</td>
-                <td className="py-3 px-4 hidden md:table-cell">
-                  <a
-                    href={`https://mail.google.com/mail/?view=cm&to=${b.customerEmail}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+        {loading ? (
+          <div className="col-span-full flex flex-col items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead><tr className="bg-card border-b border-border">
+              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
+              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Time</th>
+              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Customer</th>
+              <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Email</th>
+              <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Phone</th>
+              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Product</th>
+              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Service</th>
+              <th className="text-left py-3 px-4 font-medium text-muted-foreground">Created</th>
+            </tr></thead>
+            <tbody>
+              {bookings.map(b => (
+                <tr key={b.id} className="border-b border-border/50 hover:bg-muted/30">
+                  <td className="py-3 px-4">{b.date}</td>
+                  <td className="py-3 px-4">{b.timeSlot}</td>
+                  <td className="py-3 px-4">{b.customerName}</td>
+                  <td className="py-3 px-4 hidden md:table-cell">
+                    <a
+                      href={`https://mail.google.com/mail/?view=cm&to=${b.customerEmail}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      {b.customerEmail}
+                    </a>
+                  </td>
+                  <td className="py-3 px-4 hidden lg:table-cell"> <a
+                    href={`tel:${b.customerPhone}`}
                     className="hover:underline"
                     onClick={e => e.stopPropagation()}
                   >
-                    {b.customerEmail}
-                  </a>
-                </td>
-                <td className="py-3 px-4 hidden lg:table-cell"> <a
-                  href={`tel:${b.customerPhone}`}
-                  className="hover:underline"
-                  onClick={e => e.stopPropagation()}
-                >
-                  {b.customerPhone}
-                </a></td>
-                <td className="py-3 px-4">{b.productName}</td>
-                <td className="py-3 px-4">{b.serviceName}</td>
-                <td className="py-3 px-4">{b.createdAt}</td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={8} className="py-0">
-                  <EmptyState title="No bookings found" description="New bookings will appear here once customers place them." />
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                    {b.customerPhone}
+                  </a></td>
+                  <td className="py-3 px-4">{b.productName}</td>
+                  <td className="py-3 px-4">{b.serviceName}</td>
+                  <td className="py-3 px-4">{b.createdAt}</td>
+                </tr>
+              ))}
+              {bookings.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={8} className="py-0">
+                    <EmptyState title="No bookings found" description="New bookings will appear here once customers place them." />
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
+      <TablePagination totalItems={total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
     </div>
   );
 };

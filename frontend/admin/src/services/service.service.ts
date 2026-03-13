@@ -127,10 +127,10 @@ let serviceCache: ServiceDocument[] = [];
 
 export const serviceService = {
 
-  getAll: async (filters: GetServicesFilters = {}): Promise<ServiceRecord[]> => {
+  getAll: async (filters: GetServicesFilters = {}): Promise<{ data: ServiceRecord[]; total: number }> => {
     const params = new URLSearchParams();
     params.append('page', String(filters.page || 1));
-    params.append('limit', String(filters.limit || 100));
+    params.append('limit', String(filters.limit || 10));
     if (filters.level) params.append('level', filters.level);
     if (filters.brandId && filters.brandId !== 'all') params.append('brandId', filters.brandId);
     if (filters.categoryId && filters.categoryId !== 'all') params.append('categoryId', filters.categoryId);
@@ -154,7 +154,10 @@ export const serviceService = {
       }
     });
     serviceCache = allServices;
-    return [...serviceCache].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) as ServiceRecord[];
+    return {
+      data: [...serviceCache].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) as ServiceRecord[],
+      total: data.totalServices || 0
+    };
   },
 
   getById: async (id: string): Promise<ServiceDetailPayload & { mappedService: ServiceDocument; mappedVariants: ServiceDocument[] }> => {

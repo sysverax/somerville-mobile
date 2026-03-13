@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCategories } from '@/hooks/useCategories';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
@@ -51,7 +51,7 @@ type FormErrors = { brandId?: string; name?: string; image?: string };
 
 const CategoriesPage = () => {
   const { brands, isLoading: optionsLoading } = useFilterOptions();
-  const { categories, create, update, remove, toggleActive, isLoading: categoriesLoading, refresh } = useCategories();
+  const { categories, total, create, update, remove, toggleActive, isLoading: categoriesLoading, refresh } = useCategories();
   const initialLoading = categoriesLoading || optionsLoading;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -68,8 +68,17 @@ const CategoriesPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const filtered = categories; 
-  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const paginated = categories;
+
+  useEffect(() => {
+    if (!isFormOpen) {
+      refresh({ 
+        brandId: selectedBrand !== 'all' ? selectedBrand : undefined,
+        page,
+        limit: pageSize
+      });
+    }
+  }, [selectedBrand, page, pageSize, refresh, isFormOpen]);
 
   const openAdd = () => { setEditing(null); setForm({ brandId: selectedBrand !== 'all' ? selectedBrand : '', name: '', image: null, description: '' }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
   const openEdit = (c: Category) => { setEditing(c); setForm({ brandId: c.brandId, name: c.name, image: c.image, description: c.description }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
@@ -102,7 +111,6 @@ const CategoriesPage = () => {
         toast({ title: 'Category created successfully', variant: 'success' });
       }
       setIsFormOpen(false);
-      await refresh({ brandId: selectedBrand !== 'all' ? selectedBrand : undefined }); 
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save category';
       toast({ title: message, variant: 'destructive' });
@@ -121,7 +129,6 @@ const CategoriesPage = () => {
           <Select value={selectedBrand} onValueChange={v => { 
             setSelectedBrand(v); 
             setPage(1); 
-             refresh({ brandId: v !== 'all' ? v : undefined });
           }}>
             <SelectTrigger className="w-[200px]"><SelectValue placeholder="Filter by Brand" /></SelectTrigger>
             <SelectContent>
@@ -134,7 +141,6 @@ const CategoriesPage = () => {
             <Button variant="outline" onClick={() => { 
                setSelectedBrand('all'); 
                setPage(1); 
-               refresh({});
             }}>Clear</Button>
           )}
           <ViewToggle view={view} onChange={setView} />
@@ -152,7 +158,7 @@ const CategoriesPage = () => {
             <div className="col-span-full rounded-xl border border-dashed border-border bg-card">
               <EmptyState
                 title="No categories found"
-                description={filtered.length > 0 ? 'Try changing page size or page number.' : 'Click "Add Category" to create your first category.'}
+                description={categories.length > 0 ? 'Try changing page size or page number.' : 'Click "Add Category" to create your first category.'}
                 actionLabel="Add Category"
                 onAction={openAdd}
               />
@@ -209,7 +215,7 @@ const CategoriesPage = () => {
                   <TableCell colSpan={8} className="py-0">
                     <EmptyState
                       title="No categories found"
-                      description={filtered.length > 0 ? 'Try changing page size or page number.' : 'Click "Add Category" to create your first category.'}
+                      description={categories.length > 0 ? 'Try changing page size or page number.' : 'Click "Add Category" to create your first category.'}
                       actionLabel="Add Category"
                       onAction={openAdd}
                     />
@@ -247,16 +253,16 @@ const CategoriesPage = () => {
         </div>
       )}
 
-      <TablePagination totalItems={filtered.length} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
+      <TablePagination totalItems={total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
 
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
         <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader><DialogTitle>{editing ? 'Edit Category' : 'Add Category'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0 w-full">
             <div className="space-y-2">
               <Label>Brand *</Label>
               <Select value={form.brandId} onValueChange={v => { setForm(f => ({ ...f, brandId: v })); setTouched(prev => ({ ...prev, brandId: true })); setFormErrors(prev => ({ ...prev, brandId: validateBrand(v) })); }}>
-                <SelectTrigger disabled={!!editing}><SelectValue placeholder="Select Brand" /></SelectTrigger>
+                <SelectTrigger disabled={isLoading || !!editing}><SelectValue placeholder="Select Brand" /></SelectTrigger>
                 <SelectContent>
                   {brands.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No brands found</div>}
                   {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
@@ -276,6 +282,7 @@ const CategoriesPage = () => {
                   setTouched(prev => ({ ...prev, name: true }));
                   setFormErrors(prev => ({ ...prev, name: validateName(form.name) }));
                 }}
+                disabled={isLoading}
               />
               {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
             </div>
