@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useBrands } from '@/hooks/useBrands';
 import { Brand } from '@/types';
@@ -32,9 +32,9 @@ const validateIcon = (value: string | null): string | undefined => {
     const mimeMatch = value.match(/^data:([^;]+);base64,/);
     if (mimeMatch) {
       const mimeType = mimeMatch[1];
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/svg+xml'];
       if (!allowedTypes.includes(mimeType)) {
-        return 'Unsupported format. Use JPG, PNG, WEBP, or SVG.';
+        return 'Unsupported format. Use JPG, PNG, or SVG.';
       }
     }
   }
@@ -44,7 +44,7 @@ const validateIcon = (value: string | null): string | undefined => {
 type FormErrors = { name?: string; iconImage?: string };
 
 const BrandsPage = () => {
-  const { brands, create, update, remove, toggleActive, count, isLoading: initialLoading } = useBrands();
+  const { brands, total, create, update, remove, toggleActive, count, isLoading: initialLoading, refresh } = useBrands();
   const { toast } = useToast();
   const [view, setView] = useState<ViewMode>('table');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -59,7 +59,14 @@ const BrandsPage = () => {
   // Pagination
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const paginated = brands.slice((page - 1) * pageSize, page * pageSize);
+  const paginated = brands;
+
+  useEffect(() => {
+    refresh({ 
+      page,
+      limit: pageSize
+    });
+  }, [page, pageSize, refresh]);
 
   const openAdd = () => { setEditing(null); setForm({ name: '', iconImage: null, description: '' }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };
   const openEdit = (b: Brand) => { setEditing(b); setForm({ name: b.name, iconImage: b.iconImage, description: b.description }); setFormErrors({}); setTouched({}); setIsFormOpen(true); };

@@ -71,7 +71,6 @@ const LoginPage = () => {
         navigate('/dashboard');
       } else {
         setAttempts(prev => prev + 1);
-        setPassword('');
         toast({ title: 'Invalid email or password', variant: 'destructive' });
       }
     } finally {
@@ -89,7 +88,7 @@ const LoginPage = () => {
             <p className="text-sm text-muted-foreground mt-1">Admin Portal</p>
           </div>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+        <form noValidate onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -119,7 +118,7 @@ const LoginPage = () => {
                 }}
                 onBlur={handlePasswordBlur}
                 placeholder="Enter your password"
-                autoComplete="one-time-code"
+                autoComplete="new-password"
                 className="pr-10"
               />
               <button

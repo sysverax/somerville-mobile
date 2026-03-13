@@ -1,19 +1,23 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Product } from '@/types';
 import { productService } from '@/services/product.service';
 
 export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const lastFilters = useRef<{ brandId?: string; categoryId?: string; seriesId?: string; page?: number; limit?: number } | undefined>();
 
   const refresh = useCallback(async (filters?: { brandId?: string; categoryId?: string; seriesId?: string; page?: number; limit?: number }) => {
-    setIsLoading(true);
     try {
-      const allProducts = await productService.getAll(filters);
-      setProducts(allProducts);
+      if (filters !== undefined) lastFilters.current = filters;
+      const result = await productService.getAll(lastFilters.current);
+      setProducts(result.data);
+      setTotal(result.total);
     } catch (error) {
       console.error('Failed to refresh products:', error);
       setProducts([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
@@ -49,5 +53,5 @@ export const useProducts = () => {
     }
   }, [refresh]);
 
-  return { products, create, update, remove, toggleActive, refresh, count: products.length, isLoading };
+  return { products, total, create, update, remove, toggleActive, refresh, count: products.length, isLoading };
 };

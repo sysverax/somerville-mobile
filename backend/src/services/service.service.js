@@ -235,7 +235,8 @@ const updateServiceService = async (updateServiceRequestDto, logger) => {
       // Update product services for the main service 
       await productServiceRepo.updateProductServicesByServiceIdAndIsDefaultRepo(
         updateServiceRequestDto.id,
-        productServiceUpdatePayload
+        productServiceUpdatePayload,
+        session
       );
 
       logger.info("Default product services updated for main service", {
@@ -251,6 +252,7 @@ const updateServiceService = async (updateServiceRequestDto, logger) => {
       //get all service IDs affected 
       const existingVariants = await serviceRepo.getVariantsByParentServiceIdRepo(
         updateServiceRequestDto.id,
+        session
       );
       const allServiceIds = [
         updateServiceRequestDto.id,
@@ -258,7 +260,7 @@ const updateServiceService = async (updateServiceRequestDto, logger) => {
       ];
 
       //get existing ProductServices
-      const existingProductServices = await productServiceRepo.getProductServicesByServiceIdsRepo(allServiceIds);
+      const existingProductServices = await productServiceRepo.getProductServicesByServiceIdsRepo(allServiceIds, session);
       const oldProductIdSet = new Set(
         existingProductServices.map((ps) => ps.productId.toString()),
       );
@@ -267,6 +269,7 @@ const updateServiceService = async (updateServiceRequestDto, logger) => {
       const newProductIds = await serviceRepo.getProductIdsByLevelRepo(
         newLevel,
         newLevelId,
+        session
       );
       const newProductIdSet = new Set(
         newProductIds.map((id) => id.toString()),
@@ -426,6 +429,7 @@ const updateServiceService = async (updateServiceRequestDto, logger) => {
       const productIds = await serviceRepo.getProductIdsByLevelRepo(
         variantLevel,
         variantLevelId,
+        session
       );
 
       if (productIds.length > 0) {
@@ -550,6 +554,15 @@ const getServiceByIdService = async (getServiceByIdRequestDto) => {
   const linkedProductsCount = new Set(
     linkedProductServices.map((ps) => ps.productId.toString()),
   ).size;
+
+  const levelEntity = await serviceRepo.validateLevelIdExistsRepo(service.level, service.levelId);
+  service.assignedTo = levelEntity ? levelEntity.name : "";
+  service.linkedProductsCount = linkedProductsCount;
+  
+  variants.forEach(v => {
+    v.linkedProductsCount = linkedProductServices.filter(ps => ps.serviceId.toString() === v._id.toString()).length;
+    v.assignedTo = service.assignedTo;
+  });
 
   return new serviceResponseDto.ServiceDetailResponseDTO(
     service,

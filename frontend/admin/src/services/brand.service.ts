@@ -55,8 +55,12 @@ const imageValueToFile = async (imageValue: string, filename: string): Promise<F
 };
 
 export const brandService = {
-  getAll: async (): Promise<Brand[]> => {
-    const response = await fetch(`${API_BASE_URL}/api/brands?page=1&limit=100`, {
+  getAll: async (filters: { page?: number; limit?: number } = {}): Promise<{ data: Brand[]; total: number }> => {
+    const params = new URLSearchParams();
+    params.append('page', String(filters.page || 1));
+    params.append('limit', String(filters.limit || 10));
+
+    const response = await fetch(`${API_BASE_URL}/api/brands?${params.toString()}`, {
       method: 'GET',
       headers: {
         'x-user-role': 'admin',
@@ -65,7 +69,10 @@ export const brandService = {
     });
     const data = await parseResponse<BrandListPayload>(response);
     brands = data.brands;
-    return [...brands].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(normalizeBrand);
+    return {
+      data: [...brands].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(normalizeBrand),
+      total: data.totalBrands || 0
+    };
   },
   getById: (id: string): Brand | undefined => {
     const brand = brands.find(b => b.id === id);

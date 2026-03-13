@@ -7,11 +7,11 @@ export const useFilterOptions = () => {
     brands: [],
     categories: [],
     series: [],
+    products: [],
   });
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    setIsLoading(true);
     try {
       const options = await filterService.getOptions();
       setData(options);

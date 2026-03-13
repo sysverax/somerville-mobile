@@ -46,7 +46,7 @@ const getServiceByNameRepo = async (name, level, levelId) => {
   });
 };
 
-const getProductIdsByLevelRepo = async (level, levelId) => {
+const getProductIdsByLevelRepo = async (level, levelId, session = null) => {
   const objectId = new mongoose.Types.ObjectId(levelId);
 
   switch (level) {
@@ -57,6 +57,7 @@ const getProductIdsByLevelRepo = async (level, levelId) => {
     case "series": {
       const products = await Product.find({ seriesId: objectId })
         .select("_id")
+        .session(session)
         .lean();
       return products.map((p) => p._id);
     }
@@ -64,12 +65,14 @@ const getProductIdsByLevelRepo = async (level, levelId) => {
     case "category": {
       const seriesInCategory = await Series.find({ categoryId: objectId })
         .select("_id")
+        .session(session)
         .lean();
       const seriesIds = seriesInCategory.map((s) => s._id);
       if (!seriesIds.length) return [];
 
       const products = await Product.find({ seriesId: { $in: seriesIds } })
         .select("_id")
+        .session(session)
         .lean();
       return products.map((p) => p._id);
     }
@@ -77,6 +80,7 @@ const getProductIdsByLevelRepo = async (level, levelId) => {
     case "brand": {
       const categoriesInBrand = await Category.find({ brandId: objectId })
         .select("_id")
+        .session(session)
         .lean();
       const categoryIds = categoriesInBrand.map((c) => c._id);
       if (!categoryIds.length) return [];
@@ -85,12 +89,14 @@ const getProductIdsByLevelRepo = async (level, levelId) => {
         categoryId: { $in: categoryIds },
       })
         .select("_id")
+        .session(session)
         .lean();
       const seriesIds = seriesInBrand.map((s) => s._id);
       if (!seriesIds.length) return [];
 
       const products = await Product.find({ seriesId: { $in: seriesIds } })
         .select("_id")
+        .session(session)
         .lean();
       return products.map((p) => p._id);
     }
@@ -113,16 +119,18 @@ const validateLevelIdExistsRepo = async (level, levelId) => {
   const Model = modelMap[level];
   if (!Model) return null;
 
-  return Model.findById(objectId).select("_id").lean();
+  return Model.findById(objectId).select("_id name").lean();
 };
 
 
 
-const getVariantsByParentServiceIdRepo = async (parentServiceId) => {
+const getVariantsByParentServiceIdRepo = async (parentServiceId, session = null) => {
   return Service.find({
     parentServiceId: new mongoose.Types.ObjectId(parentServiceId),
     isVariant: true,
-  }).lean();
+  })
+    .session(session)
+    .lean();
 };
 
 const updateVariantRepo = async (variantId, payload, session) => {
@@ -375,8 +383,122 @@ const getAllServicesRepo = async ({
                 ...(userRole !== USER_ROLES.ADMIN ? { isActive: true } : {}),
               },
             },
+            {
+              $lookup: {
+                from: "product_services",
+                localField: "_id",
+                foreignField: "serviceId",
+                as: "v_prod_entries",
+              },
+            },
+            {
+              $addFields: {
+                linkedProductsCount: { $size: "$v_prod_entries" },
+              },
+            },
           ],
           as: "variants",
+        },
+      },
+      {
+        $lookup: {
+          from: "product_services",
+          localField: "_id",
+          foreignField: "serviceId",
+          as: "p_prod_entries",
+        },
+      },
+      {
+        $addFields: {
+          allProdEntries: {
+            $concatArrays: [
+              "$p_prod_entries.productId",
+              {
+                $reduce: {
+                  input: "$variants",
+                  initialValue: [],
+                  in: { $concatArrays: ["$$value", "$$this.v_prod_entries.productId"] },
+                },
+              },
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          linkedProductsCount: {
+            $size: { $setUnion: ["$allProdEntries", []] },
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "brands",
+          localField: "levelId",
+          foreignField: "_id",
+          as: "brandInfo",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "levelId",
+          foreignField: "_id",
+          as: "categoryInfo",
+        },
+      },
+      {
+        $lookup: {
+          from: "series",
+          localField: "levelId",
+          foreignField: "_id",
+          as: "seriesInfo",
+        },
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "levelId",
+          foreignField: "_id",
+          as: "productInfo",
+        },
+      },
+      {
+        $addFields: {
+          assignedTo: {
+            $switch: {
+              branches: [
+                {
+                  case: { $eq: ["$level", "brand"] },
+                  then: { $arrayElemAt: ["$brandInfo.name", 0] },
+                },
+                {
+                  case: { $eq: ["$level", "category"] },
+                  then: { $arrayElemAt: ["$categoryInfo.name", 0] },
+                },
+                {
+                  case: { $eq: ["$level", "series"] },
+                  then: { $arrayElemAt: ["$seriesInfo.name", 0] },
+                },
+                {
+                  case: { $eq: ["$level", "product"] },
+                  then: { $arrayElemAt: ["$productInfo.name", 0] },
+                },
+              ],
+              default: "",
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          p_prod_entries: 0,
+          allProdEntries: 0,
+          brandInfo: 0,
+          categoryInfo: 0,
+          seriesInfo: 0,
+          productInfo: 0,
+          "variants.v_prod_entries": 0,
         },
       },
     ]),

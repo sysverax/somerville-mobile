@@ -32,6 +32,7 @@ const updateProductServiceStatusRepo = async (id, isActive) => {
 const updateProductServicesByServiceIdAndIsDefaultRepo = async (
   serviceId,
   updatePayload,
+  session = null
 ) => {
   return ProductService.updateMany(
     {
@@ -39,7 +40,7 @@ const updateProductServicesByServiceIdAndIsDefaultRepo = async (
       isDefault: true,
     },
     updatePayload,
-    { runValidators: true },
+    { runValidators: true, session },
   ).lean();
 };
 
@@ -77,10 +78,12 @@ const getProductsByServiceIdRepo = async (serviceId, page, limit) => {
   return { productServices, total };
 };
 
-const getProductServicesByServiceIdsRepo = async (serviceIds) => {
+const getProductServicesByServiceIdsRepo = async (serviceIds, session = null) => {
   return ProductService.find({
     serviceId: { $in: serviceIds.map((id) => new mongoose.Types.ObjectId(id)) },
-  }).lean();
+  })
+    .session(session)
+    .lean();
 };
 
 const deleteProductServicesByServiceIdsRepo = async (serviceIds, session = null) => {

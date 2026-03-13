@@ -1,19 +1,23 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Category } from '@/types';
 import { categoryService } from '@/services/category.service';
 
 export const useCategories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const lastFilters = useRef<{ brandId?: string; page?: number; limit?: number } | undefined>();
 
   const refresh = useCallback(async (filters?: { brandId?: string; page?: number; limit?: number }) => {
-    setIsLoading(true);
     try {
-      const allCategories = await categoryService.getAll(filters);
-      setCategories(allCategories);
+      if (filters !== undefined) lastFilters.current = filters;
+      const result = await categoryService.getAll(lastFilters.current);
+      setCategories(result.data);
+      setTotal(result.total);
     } catch (error) {
       console.error('Failed to refresh categories:', error);
       setCategories([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
@@ -49,5 +53,5 @@ export const useCategories = () => {
     }
   }, [refresh]);
 
-  return { categories, create, update, remove, toggleActive, refresh, count: categories.length, isLoading };
+  return { categories, total, create, update, remove, toggleActive, refresh, count: categories.length, isLoading };
 };

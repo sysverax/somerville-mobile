@@ -1,6 +1,5 @@
 export type AssignmentLevel = 'brand' | 'category' | 'series' | 'product';
 
-// Mirrors the backend Service model shape.
 export interface ServiceDocument {
   id: string;
   name: string;
@@ -14,9 +13,10 @@ export interface ServiceDocument {
   isVariant?: boolean;
   isParent?: boolean;
   createdAt: string;
+  linkedProductsCount: number;
+  assignedTo: string;
 }
 
-// UI-friendly shape used by pages/services after resolving levelId hierarchy.
 export interface ServiceRecord extends ServiceDocument {
   brandId: string;
   categoryId?: string;

@@ -7,6 +7,16 @@ export interface SeriesDocument {
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;
+  brand?: {
+    id: string;
+    name: string;
+    isActive: boolean;
+  };
+  category?: {
+    id: string;
+    name: string;
+    isActive: boolean;
+  };
 }
 
 export interface Series {
@@ -17,9 +27,17 @@ export interface Series {
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;
-  // Derived for UI filtering and display.
   brandId: string;
   image: string;
-  // Optional API-native field for compatibility.
   imageUrl?: string | null;
+  brand?: {
+    id: string;
+    name: string;
+    isActive: boolean;
+  };
+  category?: {
+    id: string;
+    name: string;
+    isActive: boolean;
+  };
 }

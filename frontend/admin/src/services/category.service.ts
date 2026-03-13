@@ -73,7 +73,7 @@ const imageValueToFile = async (imageValue: string, filename: string): Promise<F
 };
 
 export const categoryService = {
-  getAll: async (filters: { brandId?: string; page?: number; limit?: number } = {}): Promise<Category[]> => {
+  getAll: async (filters: { brandId?: string; page?: number; limit?: number } = {}): Promise<{ data: Category[]; total: number }> => {
     const params = new URLSearchParams();
     params.append('page', String(filters.page || 1));
     params.append('limit', String(filters.limit || 10));
@@ -90,7 +90,10 @@ export const categoryService = {
     });
     const data = await parseResponse<CategoryListPayload>(response);
     categories = data.categories.map(mapApiCategory);
-    return [...categories].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(normalizeCategory);
+    return {
+      data: [...categories].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(normalizeCategory),
+      total: data.totalCategories || 0
+    };
   },
   getByBrand: (brandId: string): Category[] => categories.filter(c => c.brandId === brandId).map(normalizeCategory),
   getById: (id: string): Category | undefined => {

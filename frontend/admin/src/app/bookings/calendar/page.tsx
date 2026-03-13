@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useBookings } from '@/hooks/useBookings';
 import { Booking } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,14 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths,
 const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const CalendarPage = () => {
-  const { bookings } = useBookings();
+  const { bookings, refetch } = useBookings();
   const navigate = useNavigate();
-  const [currentMonth, setCurrentMonth] = useState(new Date(2026, 1, 1)); // Feb 2026 to show mock data
+  const [currentMonth, setCurrentMonth] = useState(new Date()); 
   const [selected, setSelected] = useState<Booking | null>(null);
+
+  useEffect(() => {
+    refetch({ limit: 500 }); 
+  }, [refetch]);
 
   const days = useMemo(() => {
     const start = startOfMonth(currentMonth);
