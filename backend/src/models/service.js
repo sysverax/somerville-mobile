@@ -54,4 +54,11 @@ const serviceSchema = new mongoose.Schema(
   },
 );
 
+serviceSchema.index({ isVariant: 1, isActive: 1 });
+serviceSchema.index({ isVariant: 1, level: 1, levelId: 1 });
+serviceSchema.index({ isVariant: 1, level: 1, levelId: 1, isActive: 1 });
+serviceSchema.index({ isVariant: 1, level: 1, levelId: 1, createdAt: -1 });
+serviceSchema.index({ parentServiceId: 1, isVariant: 1, isActive: 1 });
+serviceSchema.index({ name: "text" });
+
 module.exports = mongoose.model("Service", serviceSchema);

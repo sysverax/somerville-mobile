@@ -31,4 +31,10 @@ const seriesSchema = new mongoose.Schema(
   },
 );
 
+seriesSchema.index({ categoryId: 1 });
+seriesSchema.index({ isActive: 1 });
+seriesSchema.index({ createdAt: -1 });
+seriesSchema.index({ categoryId: 1, isActive: 1 });
+seriesSchema.index({ categoryId: 1, isActive: 1, createdAt: -1 });
+
 module.exports = mongoose.model("Series", seriesSchema);
