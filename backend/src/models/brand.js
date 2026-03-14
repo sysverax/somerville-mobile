@@ -30,4 +30,7 @@ const brandSchema = new mongoose.Schema(
   },
 );
 
+brandSchema.index({ isActive: 1 });
+brandSchema.index({ _id: 1, isActive: 1 }); 
+
 module.exports = mongoose.model("Brand", brandSchema);
