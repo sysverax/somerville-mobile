@@ -1,10 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";         
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { getStorefrontProductsBySeries, type StorefrontSeries } from "@/src/services";
+import { getStorefrontProductsBySeries, type StorefrontSeries, type StorefrontProduct } from "@/src/services";
 
 interface SeriesCardProps {
   series: StorefrontSeries;
@@ -13,7 +14,13 @@ interface SeriesCardProps {
 }
 
 const SeriesCard = ({ series, index = 0, showProducts = true }: SeriesCardProps) => {
-  const products = getStorefrontProductsBySeries(series.id);
+  const [products, setProducts] = useState<StorefrontProduct[]>([]);
+
+  useEffect(() => {
+    if (showProducts) {
+      getStorefrontProductsBySeries(series.id).then(setProducts);
+    }
+  }, [series.id, showProducts]);
 
   return (
     <motion.div

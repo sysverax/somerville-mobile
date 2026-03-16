@@ -1,16 +1,34 @@
 "use client";
-import { Suspense } from "react";
+
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation"; 
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
-import { storefrontSearchProducts } from "@/src/services";
+import { storefrontSearchProducts, type StorefrontProduct } from "@/src/services";
 import Layout from "@/src/components/layout/Layout";
 import ProductCard from "@/src/components/cards/ProductCard";
 
 function SearchForm() {
   const searchParams = useSearchParams(); 
   const query = searchParams?.get("q") || "";
-  const results = storefrontSearchProducts(query);
+  const [results, setResults] = useState<StorefrontProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    
+    storefrontSearchProducts(query).then(data => {
+      if (isMounted) {
+        setResults(data);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [query]);
 
   return (
     <Layout>
@@ -27,12 +45,18 @@ function SearchForm() {
                 Search Results
               </h1>
             </div>
-            <p className="text-muted-foreground">
-              {results.length} result{results.length !== 1 ? "s" : ""} for "{query}"
-            </p>
+            {!loading && (
+              <p className="text-muted-foreground">
+                {results.length} result{results.length !== 1 ? "s" : ""} for "{query}"
+              </p>
+            )}
           </motion.div>
 
-          {results.length > 0 ? (
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : results.length > 0 ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {results.map((product, index) => (
                 <ProductCard key={product.id} product={product} index={index} />

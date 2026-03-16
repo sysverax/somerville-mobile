@@ -5,21 +5,36 @@ import { ArrowRight, Zap } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/src/components/ui/button";
 import {
-  getStorefrontBrands,
   getStorefrontLatestSeries,
-  getStorefrontFeaturedProducts,
+  type StorefrontSeries,
+  type StorefrontProduct,
 } from "@/src/services";
+import { useBrands } from "@/src/hooks/useBrands";
+import { useState, useEffect } from "react";
 import BrandCard from "@/src/components/cards/BrandCard";
 import SeriesCard from "@/src/components/cards/SeriesCard";
-import ProductCard from "@/src/components/cards/ProductCard";
 import Layout from "@/src/components/layout/Layout";
 import ProductFilterCard from "@/src/components/home/ProductFilterCard";
 import ServiceInfoCards from "@/src/components/home/ServiceInfoCards";
 
 const Index = () => {
-  const brands = getStorefrontBrands();
-  const latestSeries = getStorefrontLatestSeries();
-  const featuredProducts = getStorefrontFeaturedProducts();
+  const { data: brands = [] } = useBrands();
+  const [latestSeries, setLatestSeries] = useState<StorefrontSeries[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const series = await getStorefrontLatestSeries();
+        setLatestSeries(series);
+      } catch (error) {
+        console.error("Failed to fetch home page data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   return (
     <Layout>
@@ -54,14 +69,6 @@ const Index = () => {
               </p>
 
               <div className="flex flex-wrap gap-4">
-                {/* TODO: If need shop now please uncomment the following section */}
-                {/*Shop feature */}
-                {/* <Link href="/brand?mode=shop">
-                  <Button size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 animate-pulse-glow">
-                    Shop Now
-                    <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link> */}
                 <Link href="/brand?mode=service">
                   <Button size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 animate-pulse-glow">
                     Repair Service
@@ -115,12 +122,6 @@ const Index = () => {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            {/* TODO: If need shop now please uncomment the following section and remove service related h2 and p*/}
-            {/* Shop feature */}
-            {/* <h2 className="text-3xl md:text-4xl font-bold mb-4">Shop by Brand</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Explore our curated selection of premium mobile devices from the world's leading brands
-            </p> */}
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Select Your Device Brand</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">Choose your device brand to explore our repair services</p>
           </motion.div>
@@ -153,49 +154,16 @@ const Index = () => {
               <h2 className="text-3xl md:text-4xl font-bold mb-2">Latest Series</h2>
               <p className="text-muted-foreground">Discover the newest product lines</p>
             </div>
-            {/* <Button variant="outline" className="hidden md:flex gap-2">
-              View All
-              <ArrowRight className="h-4 w-4" />
-            </Button> */}
           </motion.div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {latestSeries.slice(0, 3).map((s, index) => (
-              <SeriesCard key={s.id} series={s} index={index} />
+              <SeriesCard key={s.id} series={s} index={index} showProducts={false} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* TODO: If need shop now please uncomment the following section */}
-      {/* TODO: Featured Products Section */}
-      {/* <section className="py-20 bg-gradient-dark">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="flex items-center justify-between mb-12"
-          >
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-2">Featured Products</h2>
-              <p className="text-muted-foreground">Handpicked devices for you</p>
-            </div>
-            <Button variant="outline" className="hidden md:flex gap-2">
-              View All
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </motion.div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} />
-            ))}
-          </div>
-        </div>
-      </section> */}
-
-      {/* TODO: If need shop now please change classname as py-20 */}
       {/* Services Section */}
       <section className="py-20 bg-gradient-dark">
         <div className="container mx-auto px-4">

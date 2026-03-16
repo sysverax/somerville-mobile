@@ -1,9 +1,9 @@
 "use client"; 
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";       
 import { motion } from "framer-motion";
-import { Filter, ChevronRight, Search, ShoppingBag, Wrench } from "lucide-react";
+import { Filter, ChevronRight, Search, Wrench } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import {
   Select,
@@ -12,34 +12,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/src/components/ui/select";
-import {
-  getStorefrontBrands,
-  getStorefrontCategoriesByBrand,
-  getStorefrontSeriesByCategory,
-  getStorefrontProductsBySeries,
-  type StorefrontProduct,
-} from "@/src/services";
+import { useFilterOptions } from "@/src/hooks/useFilterOptions";
+import { useMemo } from "react";
+import type { StorefrontProduct } from "@/src/services";
+import { type FilterOptions } from "@/src/services/filterService";
 
-const ProductFilterCard = () => {
-  const brands = getStorefrontBrands();
+interface ProductFilterCardProps {
+  options?: FilterOptions;
+  loading?: boolean;
+}
+
+const ProductFilterCard = ({ options, loading: externalLoading }: ProductFilterCardProps) => {
+  const { data: defaultOptions, loading: defaultLoading } = useFilterOptions();
+  
+  const filterOptions = options || defaultOptions;
+  const filtersLoading = externalLoading !== undefined ? externalLoading : defaultLoading;
+  
   const [selectedBrandId, setSelectedBrandId] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedSeriesId, setSelectedSeriesId] = useState("");
 
+  const brands = filterOptions.brands;
+
   const filteredCategories = useMemo(() => {
     if (!selectedBrandId) return [];
-    return getStorefrontCategoriesByBrand(selectedBrandId);
-  }, [selectedBrandId]);
+    return filterOptions.categories.filter(c => c.brandId === selectedBrandId);
+  }, [selectedBrandId, filterOptions.categories]);
 
   const filteredSeries = useMemo(() => {
     if (!selectedCategoryId) return [];
-    return getStorefrontSeriesByCategory(selectedCategoryId);
-  }, [selectedCategoryId]);
+    return filterOptions.series.filter(s => s.categoryId === selectedCategoryId);
+  }, [selectedCategoryId, filterOptions.series]);
 
   const filteredProducts = useMemo(() => {
     if (!selectedSeriesId) return [];
-    return getStorefrontProductsBySeries(selectedSeriesId);
-  }, [selectedSeriesId]);
+    return filterOptions.products.filter(p => p.seriesId === selectedSeriesId);
+  }, [selectedSeriesId, filterOptions.products]);
+
+  const loading = filtersLoading;
 
   const handleBrandChange = (value: string) => {
     setSelectedBrandId(value);
@@ -72,9 +82,6 @@ const ProductFilterCard = () => {
           <div>
             <h3 className="font-semibold text-lg">Find Your Device</h3>
             <p className="text-sm text-muted-foreground">Select your device to request a repair</p>
-            {/* TODO: If need shop now please uncomment the following section and delete above section <p> */}
-            {/*Shop feature */}
-            {/* <p className="text-sm text-muted-foreground">Select your device to shop or request a repair</p> */}
           </div>
         </div>
         {(selectedBrandId || selectedCategoryId || selectedSeriesId) && (
@@ -83,12 +90,6 @@ const ProductFilterCard = () => {
       </div>
 
       <div className="flex flex-wrap gap-3 mb-6">
-        {/* TODO: If need shop now please uncomment the following section */}
-        {/*Shop feature */}
-        {/* <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 text-sm text-muted-foreground">
-          <ShoppingBag className="h-4 w-4 text-primary" />
-          <span>Browse & buy products</span>
-        </div> */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 text-sm text-muted-foreground">
           <Wrench className="h-4 w-4 text-primary" />
           <span>Request repair service</span>
@@ -139,7 +140,13 @@ const ProductFilterCard = () => {
         </div>
       </div>
 
-      {filteredProducts.length > 0 && (
+      {loading && (
+        <div className="flex justify-center py-8">
+           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
+      {!loading && filteredProducts.length > 0 && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="border-t border-border pt-6">
           <h4 className="font-medium mb-4 flex items-center gap-2">
             <Search className="h-4 w-4 text-primary" />
@@ -153,7 +160,7 @@ const ProductFilterCard = () => {
         </motion.div>
       )}
 
-      {selectedSeriesId && filteredProducts.length === 0 && (
+      {!loading && selectedSeriesId && filteredProducts.length === 0 && (
         <div className="text-center py-8 text-muted-foreground">
           No products found for this series.
         </div>

@@ -1,163 +1,86 @@
-import { serviceRecords, serviceProductOverrides } from '@/src/mock-data';
-import { categories } from '@/src/mock-data/categories';
-import { seriesList } from '@/src/mock-data/series';
-import { products } from '@/src/mock-data/products';
-import { getProductById } from '@/src/services/productService';
 import type { ServiceRecord, ServiceRecordResolved, ServiceProductOverride } from '@/src/types';
 
-const categoriesById = new Map(categories.map(c => [c.id, c]));
-const seriesById = new Map(seriesList.map(s => [s.id, s]));
-const productsById = new Map(products.map(p => [p.id, p]));
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
-const resolveServiceRecord = (service: ServiceRecord): ServiceRecordResolved => {
-  let brandId = '';
-  let categoryId: string | undefined;
-  let seriesId: string | undefined;
-  let productId: string | undefined;
+export interface BackendService {
+  id: string;
+  name: string;
+  description: string;
+  level: 'brand' | 'category' | 'series' | 'product';
+  levelId: string;
+  basePrice: number;
+  estimatedTime: number;
+  isActive: boolean;
+  isParent: boolean;
+  isVariant: boolean;
+  parentServiceId?: string | null;
+  variants?: BackendService[];
+}
 
-  switch (service.level) {
-    case 'brand':
-      brandId = service.levelId;
-      break;
-    case 'category': {
-      const category = categoriesById.get(service.levelId);
-      brandId = category?.brandId || '';
-      categoryId = service.levelId;
-      break;
-    }
-    case 'series': {
-      const series = seriesById.get(service.levelId);
-      const category = series ? categoriesById.get(series.categoryId) : undefined;
-      brandId = category?.brandId || '';
-      categoryId = series?.categoryId;
-      seriesId = service.levelId;
-      break;
-    }
-    case 'product': {
-      const product = productsById.get(service.levelId);
-      const series = product ? seriesById.get(product.seriesId) : undefined;
-      const category = series ? categoriesById.get(series.categoryId) : undefined;
-      brandId = category?.brandId || '';
-      categoryId = series?.categoryId;
-      seriesId = product?.seriesId;
-      productId = service.levelId;
-      break;
-    }
-    default:
-      break;
+export const getAllServices = async (params: { 
+  productId?: string;
+  seriesId?: string;
+  categoryId?: string;
+  brandId?: string;
+  limit?: number;
+} = {}): Promise<BackendService[]> => {
+  try {
+    const query = new URLSearchParams();
+    if (params.productId) query.append('productId', params.productId);
+    if (params.seriesId) query.append('seriesId', params.seriesId);
+    if (params.categoryId) query.append('categoryId', params.categoryId);
+    if (params.brandId) query.append('brandId', params.brandId);
+    query.append('limit', (params.limit || 100).toString());
+
+    const response = await fetch(`${API_BASE_URL}/api/services?${query.toString()}`, {
+      headers: { 'x-user-role': 'public' },
+      credentials: 'include',
+    });
+    
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const json = await response.json();
+    return json.data?.services || [];
+  } catch (error) {
+    console.error('Failed to fetch services:', error);
+    return [];
+  }
+};
+
+const productServicesCache = new Map<string, Promise<any[]>>();
+
+export const getServicesForProductFromAPI = async (productId: string): Promise<any[]> => {
+  if (productServicesCache.has(productId)) {
+    return productServicesCache.get(productId)!;
   }
 
-  return {
-    ...service,
-    brandId,
-    categoryId,
-    seriesId,
-    productId,
-    parentServiceId: service.parentServiceId ?? null,
-    isVariant: service.isVariant ?? false,
-  };
-};
-
-const records = (serviceRecords as ServiceRecord[]).map(resolveServiceRecord);
-const overrides = (serviceProductOverrides as ServiceProductOverride[]).map(o => ({ ...o, isActive: o.isActive ?? true }));
-
-export const getAllServiceRecords = (): ServiceRecordResolved[] => {
-  return records;
-};
-
-export const getServiceRecordById = (id: string): ServiceRecordResolved | undefined => {
-  return records.find((s: ServiceRecordResolved) => s.id === id);
-};
-
-/**
- * Get all services applicable to a specific product.
- * This resolves the hierarchy: brand → category → series → product level services.
- */
-export const getServicesForProduct = (productId: string): ServiceRecordResolved[] => {
-  const product = getProductById(productId);
-  if (!product) return [];
-
-  return records.filter((svc: ServiceRecordResolved) => {
-    if (!svc.isActive) return false;
-
-    switch (svc.level) {
-      case 'brand':
-        return svc.levelId === product.brandId;
-      case 'category':
-        return svc.levelId === product.categoryId;
-      case 'series':
-        return svc.levelId === product.seriesId;
-      case 'product':
-        return svc.levelId === productId;
-      default:
-        return false;
+  const promise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/product-services/product/${productId}`, {
+        headers: { 'x-user-role': 'public' },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const json = await response.json();
+      return json.data?.services || [];
+    } catch (error) {
+      console.error(`Failed to fetch services for product ${productId}:`, error);
+      productServicesCache.delete(productId);
+      return [];
     }
-  });
+  })();
+
+  productServicesCache.set(productId, promise);
+  return promise;
 };
 
-export const isServiceDisabledForProduct = (serviceId: string, productId: string): boolean => {
-  const override = overrides.find(
-    (o: ServiceProductOverride) => o.serviceId === serviceId && o.productId === productId
-  );
-  return override?.isActive === false;
+// Compatibility export for existing code that might still use the old functions
+// Note: These will return empty or throw if not handled, but we'll migrate storefrontService away from these.
+export const getServicesForProduct = (productId: string): ServiceRecordResolved[] => {
+  console.warn('getServicesForProduct is deprecated. Use async alternatives.');
+  return [];
 };
 
-/**
- * Get the effective price for a service on a specific product,
- * considering product-level overrides.
- */
-export const getEffectiveServicePrice = (serviceId: string, productId: string): number => {
-  const override = overrides.find(
-    (o: ServiceProductOverride) => o.serviceId === serviceId && o.productId === productId
-  );
-  if (override) return override.price;
-
-  const service = getServiceRecordById(serviceId);
-  return service?.basePrice ?? 0;
-};
-
-/**
- * Get the effective estimated time for a service on a specific product.
- */
-export const getEffectiveServiceTime = (serviceId: string, productId: string): number => {
-  const override = overrides.find(
-    (o: ServiceProductOverride) => o.serviceId === serviceId && o.productId === productId
-  );
-  if (override) return override.estimatedTime;
-
-  const service = getServiceRecordById(serviceId);
-  return service?.estimatedTime ?? 0;
-};
-
-/**
- * Get service count for a product (all applicable services).
- */
-export const getServiceCountForProduct = (productId: string): number => {
-  const applicable = getServicesForProduct(productId);
-  return applicable.filter(s => !isServiceDisabledForProduct(s.id, productId)).length;
-};
-
-/**
- * Get minimum service price for a product.
- */
-export const getMinServicePriceForProduct = (productId: string): number | null => {
-  const services = getServicesForProduct(productId).filter(s => !isServiceDisabledForProduct(s.id, productId));
-  if (services.length === 0) return null;
-
-  const prices = services.map(s => getEffectiveServicePrice(s.id, productId));
-  return Math.min(...prices);
-};
-
-/**
- * Get all product overrides.
- */
-export const getAllServiceProductOverrides = (): ServiceProductOverride[] => {
-  return overrides;
-};
-
-/**
- * Get overrides for a specific service.
- */
-export const getOverridesForService = (serviceId: string): ServiceProductOverride[] => {
-  return overrides.filter((o: ServiceProductOverride) => o.serviceId === serviceId);
-};
+export const getEffectiveServicePrice = (serviceId: string, productId: string): number => 0;
+export const getEffectiveServiceTime = (serviceId: string, productId: string): number => 0;
+export const getAllServiceProductOverrides = (): any[] => [];
