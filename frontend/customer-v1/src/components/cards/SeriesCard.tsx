@@ -17,10 +17,8 @@ const SeriesCard = ({ series, index = 0, showProducts = true }: SeriesCardProps)
   const [products, setProducts] = useState<StorefrontProduct[]>([]);
 
   useEffect(() => {
-    if (showProducts) {
-      getStorefrontProductsBySeries(series.id).then(setProducts);
-    }
-  }, [series.id, showProducts]);
+    getStorefrontProductsBySeries(series.id).then(setProducts);
+  }, [series.id]);
 
   return (
     <motion.div
@@ -69,7 +67,7 @@ const SeriesCard = ({ series, index = 0, showProducts = true }: SeriesCardProps)
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-md overflow-hidden bg-secondary">
                         <Image 
-                          src={product.images[0]} 
+                          src={product.images[0] || '/mock-images/default/placeholder.png'} 
                           alt={product.name}
                           width={32}
                           height={32}
@@ -98,13 +96,15 @@ const SeriesCard = ({ series, index = 0, showProducts = true }: SeriesCardProps)
             </div>
           )}
 
-          <Link 
-            href={`/series/${series.id}`}
-            className="flex items-center text-primary font-medium text-sm hover:underline"
-          >
-            <span>View All Products</span>
-            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
+          {products.length > 0 && (
+            <Link 
+              href={`/series/${series.id}`}
+              className="flex items-center text-primary font-medium text-sm hover:underline"
+            >
+              <span>View All Products</span>
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          )}
         </div>
 
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">

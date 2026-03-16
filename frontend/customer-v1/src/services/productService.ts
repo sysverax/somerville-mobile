@@ -12,7 +12,7 @@ const normalizeProduct = (product: any): Product => {
     name: product.name,
     description: product.description,
     specifications: {},
-    iconImage: product.imageUrl ?? '/mock-images/default/placeholder.png',
+    iconImage: product.imageUrl || '/mock-images/default/placeholder.png',
     galleryImages: product.imageUrl ? [product.imageUrl] : [],
     isActive: product.isActive,
     createdAt: product.createdAt,
@@ -23,12 +23,12 @@ const normalizeProduct = (product: any): Product => {
 
 let productsPromise: Promise<Product[]> | null = null;
 
-export const getAllProducts = async (): Promise<Product[]> => {
+export const getAllProducts = async (sortOrder?: 'asc' | 'desc'): Promise<Product[]> => {
   if (productsPromise) return productsPromise;
 
   productsPromise = (async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/products`, {
+      const response = await fetch(`${API_BASE_URL}/api/products${sortOrder ? `?sortOrder=${sortOrder}` : ''}`, {
         headers: {
           'x-user-role': 'public',
         },
@@ -51,8 +51,8 @@ export const getAllProducts = async (): Promise<Product[]> => {
   return productsPromise;
 };
 
-export const getActiveProducts = async (): Promise<Product[]> => {
-  const all = await getAllProducts();
+export const getActiveProducts = async (sortOrder?: 'asc' | 'desc'): Promise<Product[]> => {
+  const all = await getAllProducts(sortOrder);
   return all.filter(p => p.isActive);
 };
 
@@ -86,23 +86,23 @@ export const getProductById = async (id: string): Promise<Product | undefined> =
   return promise;
 };
 
-export const getProductsBySeries = async (seriesId: string): Promise<Product[]> => {
-  const all = await getActiveProducts();
+export const getProductsBySeries = async (seriesId: string, sortOrder?: 'asc' | 'desc'): Promise<Product[]> => {
+  const all = await getActiveProducts(sortOrder);
   return all.filter(p => p.seriesId === seriesId);
 };
 
-export const getProductsByCategory = async (categoryId: string): Promise<Product[]> => {
-  const all = await getActiveProducts();
+export const getProductsByCategory = async (categoryId: string, sortOrder?: 'asc' | 'desc'): Promise<Product[]> => {
+  const all = await getActiveProducts(sortOrder);
   return all.filter(p => p.categoryId === categoryId);
 };
 
-export const getProductsByBrand = async (brandId: string): Promise<Product[]> => {
-  const all = await getActiveProducts();
+export const getProductsByBrand = async (brandId: string, sortOrder?: 'asc' | 'desc'): Promise<Product[]> => {
+  const all = await getActiveProducts(sortOrder);
   return all.filter(p => p.brandId === brandId);
 };
 
-export const searchProducts = async (query: string): Promise<Product[]> => {
-  const all = await getActiveProducts();
+export const searchProducts = async (query: string, sortOrder?: 'asc' | 'desc'): Promise<Product[]> => {
+  const all = await getActiveProducts(sortOrder);
   const lowerQuery = query.toLowerCase();
   return all.filter(p =>
     p.name.toLowerCase().includes(lowerQuery) ||
@@ -110,7 +110,7 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
   );
 };
 
-export const getFeaturedProducts = async (): Promise<Product[]> => {
-  const all = await getActiveProducts();
+export const getFeaturedProducts = async (sortOrder: 'asc' | 'desc' = 'asc'): Promise<Product[]> => {
+  const all = await getActiveProducts(sortOrder);
   return all.slice(0, 8);
 };

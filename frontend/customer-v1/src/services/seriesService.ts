@@ -13,19 +13,19 @@ const normalizeSeries = (series: any): Series => {
     isActive: series.isActive,
     createdAt: series.createdAt,
     updatedAt: series.updatedAt,
-    image: series.imageUrl ?? '/mock-images/default/placeholder.png',
+    image: series.imageUrl || '/mock-images/default/placeholder.png',
     imageUrl: series.imageUrl,
   };
 };
 
 let seriesPromise: Promise<Series[]> | null = null;
 
-export const getAllSeries = async (): Promise<Series[]> => {
+export const getAllSeries = async (sortOrder?: 'asc' | 'desc'): Promise<Series[]> => {
   if (seriesPromise) return seriesPromise;
 
   seriesPromise = (async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/series`, {
+      const response = await fetch(`${API_BASE_URL}/api/series${sortOrder ? `?sortOrder=${sortOrder}` : ''}`, {
         headers: {
           'x-user-role': 'public',
         },
@@ -48,8 +48,8 @@ export const getAllSeries = async (): Promise<Series[]> => {
   return seriesPromise;
 };
 
-export const getActiveSeries = async (): Promise<Series[]> => {
-  const all = await getAllSeries();
+export const getActiveSeries = async (sortOrder?: 'asc' | 'desc'): Promise<Series[]> => {
+  const all = await getAllSeries(sortOrder);
   return all.filter(s => s.isActive);
 };
 
@@ -83,18 +83,18 @@ export const getSeriesById = async (id: string): Promise<Series | undefined> => 
   return promise;
 };
 
-export const getSeriesByCategory = async (categoryId: string): Promise<Series[]> => {
-  const all = await getActiveSeries();
+export const getSeriesByCategory = async (categoryId: string, sortOrder?: 'asc' | 'desc'): Promise<Series[]> => {
+  const all = await getActiveSeries(sortOrder);
   return all.filter(s => s.categoryId === categoryId);
 };
 
-export const getSeriesByBrand = async (brandId: string): Promise<Series[]> => {
-  const all = await getActiveSeries();
+export const getSeriesByBrand = async (brandId: string, sortOrder?: 'asc' | 'desc'): Promise<Series[]> => {
+  const all = await getActiveSeries(sortOrder);
   return all.filter(s => s.brandId === brandId);
 };
 
-export const searchSeries = async (query: string): Promise<Series[]> => {
-  const all = await getActiveSeries();
+export const searchSeries = async (query: string, sortOrder?: 'asc' | 'desc'): Promise<Series[]> => {
+  const all = await getActiveSeries(sortOrder);
   const lowerQuery = query.toLowerCase();
   return all.filter(s =>
     s.name.toLowerCase().includes(lowerQuery) ||

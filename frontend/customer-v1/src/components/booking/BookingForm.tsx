@@ -23,7 +23,6 @@ import {
 import { toast } from "@/src/hooks/use-toast";
 import { cn } from "@/src/lib/utils";
 import {
-  getStorefrontProductById,
   getStorefrontServicesByProduct,
   addStorefrontBooking,
   type StorefrontProduct,
@@ -88,7 +87,11 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
   }, [selectedSeriesId, filterOptions.products]);
   
   const [productServices, setProductServices] = useState<StorefrontService[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<StorefrontProduct | null>(null);
+  
+  const selectedProduct = useMemo(() => {
+    if (!selectedProductId) return null;
+    return filterOptions.products.find(p => p.id === selectedProductId) || null;
+  }, [selectedProductId, filterOptions.products]);
 
   const [selectedServiceId, setSelectedServiceId] = useState(preSelectedServiceId || "");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -113,15 +116,14 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
     }
   }, [selectedProductId]);
 
-  useEffect(() => {
-    if (selectedProductId) {
-      getStorefrontProductById(selectedProductId).then(p => setSelectedProduct(p || null));
-    } else {
-      setSelectedProduct(null);
-    }
-  }, [selectedProductId]);
+  const availableServices = useMemo(() => {
+    return productServices.filter((s: StorefrontService) => !s.isParent);
+  }, [productServices]);
 
-  const phoneError = touched.phone && customerPhone && !/^\+?[\d\s\-()]{7,15}$/.test(customerPhone)
+
+
+  const cleanPhone = customerPhone.replace(/[\s\-().]/g, "");
+  const phoneError = touched.phone && customerPhone && !/^\+?[0-9]\d{6,14}$/.test(cleanPhone)
   ? "Enter a valid phone number"
   : touched.phone && !customerPhone
   ? "Phone is required"
@@ -148,25 +150,9 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
   // Fetched via hook: const { data: filteredCategories = [] } = useCategories(selectedBrandId);
 
 
-  const availableServices = useMemo(() => {
-    if (!selectedProductId) return [];
-
-    const parentServiceIds = new Set(
-      productServices
-        .map(s => s.parentServiceId)
-        .filter(Boolean)
-    );
-
-    return productServices.filter(s => {
-      if (parentServiceIds.has(s.serviceId)) return false;
-      if (!s.isVariant && s.price === 0 && parentServiceIds.size > 0) return false;
-      return true;
-    });
-  }, [selectedProductId, productServices]);
-
   const selectedService = useMemo(() => {
-    return availableServices.find(s => s.id === selectedServiceId) || productServices.find(s => s.id === selectedServiceId);
-  }, [selectedServiceId, availableServices, productServices]);
+    return availableServices.find((s: StorefrontService) => s.id === selectedServiceId);
+  }, [selectedServiceId, availableServices]);
 
   const handleBrandChange = (value: string) => {
     setSelectedBrandId(value);
@@ -221,42 +207,52 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
     }
 
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    addStorefrontBooking({
-      productId: selectedProductId,
-      serviceId: selectedService?.serviceId || selectedServiceId,
-      parentServiceId: selectedService?.parentServiceId ?? preSelectedParentServiceId ?? null,
-      price: selectedService?.price ?? preSelectedPrice,
-      estimatedTime: selectedService?.estimatedTime ?? preSelectedEstimatedTime,
-      date: dateStr,
-      time: selectedTime,
-      customerName: customerName,
-      customerPhone: customerPhone,
-      customerEmail: customerEmail,
-      status: "confirmed",
-    });
+    try {
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      await addStorefrontBooking({
+        productId: selectedProductId,
+        serviceId: selectedService?.id || selectedServiceId,
+        parentServiceId: selectedService?.parentServiceId ?? preSelectedParentServiceId ?? null,
+        price: selectedService?.price ?? preSelectedPrice,
+        estimatedTime: selectedService?.estimatedTime ?? preSelectedEstimatedTime,
+        date: dateStr,
+        time: selectedTime,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        customerEmail: customerEmail,
+        status: "pending",
+      });
 
-    toast({
-      title: "Booking Confirmed! 🎉",
-      description: `Your service has been scheduled for ${format(selectedDate, 'PPP')} at ${selectedTime}`,
-    });
+      toast({
+        title: "Booking Success",
+        description: "Your service booking has been created successfully",
+        variant: "success",
+      });
 
-    setSelectedBrandId("");
-    setSelectedCategoryId("");
-    setSelectedSeriesId("");
-    setSelectedProductId("");
-    setSelectedServiceId("");
-    setSelectedDate(undefined);
-    setSelectedTime("");
-    setCustomerName("");
-    setCustomerPhone("");
-    setCustomerEmail("");
-    setIsSubmitting(false);
-    setTouched({});
+      setSelectedBrandId("");
+      setSelectedCategoryId("");
+      setSelectedSeriesId("");
+      setSelectedProductId("");
+      setSelectedServiceId("");
+      setSelectedDate(undefined);
+      setSelectedTime("");
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerEmail("");
+      setTouched({});
 
-    onSuccess?.();
+      onSuccess?.();
+    } catch (error) {
+      console.error('Booking failed:', error);
+      toast({
+        title: "Booking Failed",
+        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
 
@@ -281,9 +277,13 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
             <SelectValue placeholder="Choose a brand" />
           </SelectTrigger>
           <SelectContent className="bg-background border-border z-50">
-            {brands.map(brand => (
-              <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
-            ))}
+            {brands.length > 0 ? (
+              brands.map(brand => (
+                <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+              ))
+            ) : (
+              <SelectItem value="none" disabled>No brands available</SelectItem>
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -297,9 +297,13 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
               <SelectValue placeholder="Choose a category" />
             </SelectTrigger>
             <SelectContent className="bg-background border-border z-50">
-              {filteredCategories.map(category => (
-                <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-              ))}
+              {filteredCategories.length > 0 ? (
+                filteredCategories.map(category => (
+                  <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                ))
+              ) : (
+                <SelectItem value="none" disabled>No categories available</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </motion.div>
@@ -314,9 +318,13 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
               <SelectValue placeholder="Choose a series" />
             </SelectTrigger>
             <SelectContent className="bg-background border-border z-50">
-              {filteredSeries.map(s => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
+              {filteredSeries.length > 0 ? (
+                filteredSeries.map(s => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))
+              ) : (
+                <SelectItem value="none" disabled>No series available</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </motion.div>
@@ -334,16 +342,20 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
               <SelectValue placeholder="Choose a product" />
             </SelectTrigger>
             <SelectContent className="bg-background border-border z-50">
-              {filteredProducts.map(product => (
-                <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
-              ))}
+              {filteredProducts.length > 0 ? (
+                filteredProducts.map(product => (
+                  <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
+                ))
+              ) : (
+                <SelectItem value="none" disabled>No products available</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </motion.div>
       )}
 
       {/* Service Selection */}
-      {selectedProductId && availableServices.length > 0 && (
+      {selectedProductId && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
           <Label htmlFor="service" className="flex items-center gap-2">
             <Wrench className="h-4 w-4 text-primary" />
@@ -354,14 +366,18 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
               <SelectValue placeholder="Choose a service" />
             </SelectTrigger>
             <SelectContent className="bg-background border-border z-50">
-              {availableServices.map(service => (
-                <SelectItem key={service.id} value={service.id}>
-                  <div className="flex items-center justify-between gap-4">
-                    <span>{service.name}</span>
-                    <span className="text-primary font-semibold">${service.price}</span>
-                  </div>
-                </SelectItem>
-              ))}
+              {availableServices.length > 0 ? (
+                availableServices.map((service: StorefrontService) => (
+                  <SelectItem key={service.id} value={service.id}>
+                    <div className="flex items-center justify-between gap-4">
+                      <span>{service.name}</span>
+                      <span className="text-primary font-semibold">${service.price}</span>
+                    </div>
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="none" disabled>No services available</SelectItem>
+              )}
             </SelectContent>
           </Select>
           {selectedService && (
@@ -372,11 +388,7 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
         </motion.div>
       )}
 
-      {selectedProductId && availableServices.length === 0 && (
-        <div className="p-4 rounded-lg bg-muted/50 text-center text-muted-foreground">
-          No services available for this product.
-        </div>
-      )}
+
 
       {/* Date Selection */}
       {selectedServiceId && (

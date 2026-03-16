@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState, Suspense, use, useEffect } from "react";
+import { useState, Suspense, use, useEffect, useMemo } from "react";
 import {
   getStorefrontBrandById,
   getStorefrontSeriesByCategory,
@@ -11,8 +11,8 @@ import {
   type StorefrontBrand,
   type StorefrontSeries,
 } from "@/src/services";
+import { useFilterOptions } from "@/src/hooks/useFilterOptions";
 import { useBrands } from "@/src/hooks/useBrands";
-import { useCategories } from "@/src/hooks/useCategories";
 import Layout from "@/src/components/layout/Layout";
 import CategoryCard from "@/src/components/cards/CategoryCard";
 import SeriesCard from "@/src/components/cards/SeriesCard";
@@ -26,15 +26,18 @@ type Props = {
 
 const BrandContent = ({ params }: Props) => {
    const resolvedParams = use(params);
-  // Get the first ID from the array (e.g., /brand/b3 -> id is ["b3"])
   const brandId = resolvedParams.id?.[0]; 
   const searchParams = useSearchParams();
-  const mode = searchParams?.get("mode") || "service"; // Default to "service" mode if not specified
+  const mode = searchParams?.get("mode") || "service"; 
   
-  const { data: brands = [] } = useBrands();
+  const { data: filterOptions } = useFilterOptions();
+  const { data: brands, loading: brandsLoading } = useBrands();
   const [brand, setBrand] = useState<StorefrontBrand | null>(null);
   const [loadingBrand, setLoadingBrand] = useState(true);
-  const { data: categories = [] } = useCategories(brandId);
+  const categories = useMemo(() => {
+    if (!brandId) return [];
+    return filterOptions.categories.filter(c => c.brandId === brandId);
+  }, [brandId, filterOptions.categories]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [filteredSeries, setFilteredSeries] = useState<StorefrontSeries[]>([]);
   const [loadingSeries, setLoadingSeries] = useState(false);
@@ -109,13 +112,22 @@ const BrandContent = ({ params }: Props) => {
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-              {brands.map((b, index) => (
-                <Link key={b.id} href={`/brand/${b.id}?mode=${mode}`}>
-                  <BrandCard brand={b} index={index} />
-                </Link>
-              ))}
-            </div>
+            {brandsLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+                {brands.map((b, index) => (
+                  <BrandCard 
+                    key={b.id} 
+                    brand={b} 
+                    index={index} 
+                    href={`/brand/${b.id}?mode=${mode}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 

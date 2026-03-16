@@ -101,6 +101,7 @@ const getAllProductsRepo = async (
   seriesId,
   categoryId,
   brandId,
+  sortOrder = "desc",
 ) => {
   const skip = (page - 1) * limit;
 
@@ -212,21 +213,21 @@ const getAllProductsRepo = async (
     },
 
     // ── 7. Apply all post-lookup filters in one $match ──
-    ...(Object.keys(postLookupFilters).length > 0
-      ? [{ $match: postLookupFilters }]
-      : []),
+...(Object.keys(postLookupFilters).length > 0
+  ? [{ $match: postLookupFilters }]
+  : []),
 
-    // ── 8. Facet — sort + paginate vs count in separate branches ──
-    {
-      $facet: {
-        products: [
-          { $sort: { createdAt: -1 } },
-          { $skip: skip },
-          { $limit: limit },
-        ],
-        total: [{ $count: "count" }],
-      },
-    },
+// ── 8. Facet — sort + paginate vs count in separate branches ──
+{
+  $facet: {
+    products: [
+      { $sort: { createdAt: sortOrder === "asc" ? 1 : -1 } },  // 👈 keeps sortOrder from feature branch
+      { $skip: skip },
+      { $limit: limit },
+    ],
+    total: [{ $count: "count" }],
+  },
+},
   ];
 
   const result = await Product.aggregate(pipeline);

@@ -274,7 +274,7 @@ const ProductDetailPage = ({ params }: Props) => {
                               className={`w-full text-left rounded-lg border p-3 transition-all ${selectedVariantsByParent[group.parent.serviceId] === variant.id ? "border-primary bg-primary/10" : "border-border"}`}
                             >
                               <div className="flex justify-between items-center">
-                                <span className="font-medium">{variant.name}</span>
+                                <span className="font-medium">{variant.name.replace(group.parent.name + " - ", "")}</span>
                                 <span className="font-bold text-primary">${variant.price}</span>
                               </div>
                             </button>
@@ -307,6 +307,9 @@ const ProductDetailPage = ({ params }: Props) => {
 
       <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Book a Service</DialogTitle>
+          </DialogHeader>
           {bookingDialogOpen && (
             <BookingForm
               preSelectedBrandId={brand?.id}

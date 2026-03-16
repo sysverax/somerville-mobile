@@ -7,7 +7,7 @@ export const useBrands = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getAllBrands().then(data => {
+    getAllBrands('asc').then(data => {
       const mapped = data.map(b => ({
         id: b.id,
         name: b.name,

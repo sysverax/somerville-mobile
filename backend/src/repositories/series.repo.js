@@ -79,7 +79,7 @@ const updateSeriesStatusRepo = async (id, isActive) => {
     .lean();
 };
 
-const getAllSeriesRepo = async (page, limit, userRole, categoryId, brandId) => {
+const getAllSeriesRepo = async (page, limit, userRole, categoryId, brandId, sortOrder = "desc") => {
   const skip = (page - 1) * limit;
 
   // ── 1. Build early match filter ──
@@ -152,12 +152,10 @@ const getAllSeriesRepo = async (page, limit, userRole, categoryId, brandId) => {
     ...(Object.keys(postLookupFilters).length > 0
       ? [{ $match: postLookupFilters }]
       : []),
-
-    // ── 7. Facet — sort + paginate vs count in separate branches ──
     {
       $facet: {
         series: [
-          { $sort: { createdAt: -1 } },
+          { $sort: { createdAt: sortOrder === "asc" ? 1 : -1 } }
           { $skip: skip },
           { $limit: limit },
         ],

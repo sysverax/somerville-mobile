@@ -1,16 +1,17 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Zap } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/src/components/ui/button";
 import {
-  getStorefrontLatestSeries,
   type StorefrontSeries,
   type StorefrontProduct,
 } from "@/src/services";
+import { useFilterOptions } from "@/src/hooks/useFilterOptions";
 import { useBrands } from "@/src/hooks/useBrands";
-import { useState, useEffect } from "react";
+import { useSeries } from "@/src/hooks/useSeries";
 import BrandCard from "@/src/components/cards/BrandCard";
 import SeriesCard from "@/src/components/cards/SeriesCard";
 import Layout from "@/src/components/layout/Layout";
@@ -18,23 +19,11 @@ import ProductFilterCard from "@/src/components/home/ProductFilterCard";
 import ServiceInfoCards from "@/src/components/home/ServiceInfoCards";
 
 const Index = () => {
-  const { data: brands = [] } = useBrands();
-  const [latestSeries, setLatestSeries] = useState<StorefrontSeries[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: filterOptions, loading: filterLoading } = useFilterOptions();
+  const { data: brands, loading: brandsLoading } = useBrands();
+  const { data: allSeries, loading: seriesLoading } = useSeries();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const series = await getStorefrontLatestSeries();
-        setLatestSeries(series);
-      } catch (error) {
-        console.error("Failed to fetch home page data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const latestSeries = useMemo(() => allSeries.slice(0, 3), [allSeries]);
 
   return (
     <Layout>
@@ -126,18 +115,29 @@ const Index = () => {
             <p className="text-muted-foreground max-w-2xl mx-auto">Choose your device brand to explore our repair services</p>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-            {brands.map((brand, index) => (
-              <BrandCard key={brand.id} brand={brand} index={index} />
-            ))}
-          </div>
+          {brandsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+              {brands.map((brand, index) => (
+                <BrandCard 
+                  key={brand.id} 
+                  brand={brand} 
+                  index={index} 
+                  href={`/brand/${brand.id}?mode=service`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
       {/* Product Filter Section */}
       <section className="py-12 bg-gradient-dark">
         <div className="container mx-auto px-4">
-          <ProductFilterCard />
+          <ProductFilterCard options={filterOptions} loading={filterLoading} />
         </div>
       </section>
 
@@ -157,7 +157,7 @@ const Index = () => {
           </motion.div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {latestSeries.slice(0, 3).map((s, index) => (
+            {latestSeries.map((s, index) => (
               <SeriesCard key={s.id} series={s} index={index} showProducts={false} />
             ))}
           </div>

@@ -87,6 +87,7 @@ export interface StorefrontService {
   duration: string;
   price: number;
   isAvailable: boolean;
+  isParent?: boolean;
 }
 
 export interface BookingSlot {
@@ -114,7 +115,7 @@ export interface StorefrontBooking {
 // ---- Brand helpers ----
 
 export const getStorefrontBrands = async (): Promise<StorefrontBrand[]> => {
-  const brands = await getActiveBrands();
+  const brands = await getActiveBrands('asc');
   return brands.map(b => ({
     id: b.id,
     name: b.name,
@@ -139,7 +140,7 @@ export const getStorefrontBrandById = async (id: string): Promise<StorefrontBran
 // ---- Category helpers ----
 
 export const getStorefrontCategories = async (): Promise<StorefrontCategory[]> => {
-  const categories = await getActiveCategories();
+  const categories = await getActiveCategories('asc');
   return categories.map(c => ({
     id: c.id,
     brandId: c.brandId,
@@ -150,7 +151,7 @@ export const getStorefrontCategories = async (): Promise<StorefrontCategory[]> =
 };
 
 export const getStorefrontCategoriesByBrand = async (brandId: string): Promise<StorefrontCategory[]> => {
-  const categories = await getCategoriesByBrand(brandId);
+  const categories = await getCategoriesByBrand(brandId, 'asc');
   return categories.map(c => ({
     id: c.id,
     brandId: c.brandId,
@@ -174,8 +175,8 @@ export const getStorefrontCategoryById = async (id: string): Promise<StorefrontC
 
 // ---- Series helpers ----
 
-export const getStorefrontSeries = async (): Promise<StorefrontSeries[]> => {
-  const series = await getActiveSeries();
+export const getStorefrontSeries = async (sortOrder: 'asc' | 'desc' = 'asc'): Promise<StorefrontSeries[]> => {
+  const series = await getActiveSeries(sortOrder);
   return series.map(s => ({
     id: s.id,
     categoryId: s.categoryId,
@@ -187,7 +188,7 @@ export const getStorefrontSeries = async (): Promise<StorefrontSeries[]> => {
 };
 
 export const getStorefrontSeriesByCategory = async (categoryId: string): Promise<StorefrontSeries[]> => {
-  const series = await getSeriesByCategory(categoryId);
+  const series = await getSeriesByCategory(categoryId, 'asc');
   return series.map(s => ({
     id: s.id,
     categoryId: s.categoryId,
@@ -278,7 +279,7 @@ const mapProduct = (p: any): StorefrontProduct | null => {
 };
 
 export const getStorefrontProducts = async (): Promise<StorefrontProduct[]> => {
-  const products = await getActiveProducts();
+  const products = await getActiveProducts('asc');
   return products.map(mapProduct).filter(Boolean) as StorefrontProduct[];
 };
 
@@ -288,22 +289,22 @@ export const getStorefrontProductById = async (id: string): Promise<StorefrontPr
 };
 
 export const getStorefrontProductsBySeries = async (seriesId: string): Promise<StorefrontProduct[]> => {
-  const products = await getRawProductsBySeries(seriesId);
+  const products = await getRawProductsBySeries(seriesId, 'asc');
   return products.map(mapProduct).filter(Boolean) as StorefrontProduct[];
 };
 
 export const storefrontSearchProducts = async (query: string): Promise<StorefrontProduct[]> => {
-  const products = await rawSearchProducts(query);
+  const products = await rawSearchProducts(query, 'asc');
   return products.map(mapProduct).filter(Boolean) as StorefrontProduct[];
 };
 
 export const getStorefrontFeaturedProducts = async (): Promise<StorefrontProduct[]> => {
-  const products = await rawFeaturedProducts();
+  const products = await rawFeaturedProducts('asc');
   return products.map(mapProduct).filter(Boolean) as StorefrontProduct[];
 };
 
 export const getStorefrontLatestSeries = async (): Promise<StorefrontSeries[]> => {
-  return getStorefrontSeries();
+  return getStorefrontSeries('desc');
 };
 
 // ---- Service helpers ----
@@ -326,6 +327,23 @@ export const getStorefrontServicesByProduct = async (productId: string): Promise
   
   backendServices.forEach((svc: any) => {
     if (svc.variants && svc.variants.length > 0) {
+      // Add the parent service as a non-variant marker for grouping in UI
+      flattened.push({
+        id: svc.id,
+        serviceId: svc.serviceId || svc.id,
+        productId,
+        parentServiceId: null,
+        isVariant: false,
+        isParent: true,
+        level: svc.level,
+        name: svc.name,
+        description: svc.description,
+        estimatedTime: 0,
+        duration: '',
+        price: 0,
+        isAvailable: true,
+      });
+
       svc.variants.forEach((v: any) => {
         flattened.push({
           id: v.id,
@@ -333,8 +351,9 @@ export const getStorefrontServicesByProduct = async (productId: string): Promise
           productId,
           parentServiceId: v.parentServiceId || svc.id,
           isVariant: true,
+          isParent: false,
           level: v.level || svc.level,
-          name: `${svc.name} - ${v.name}`,
+          name: `${svc.name} - ${v.name}`, // Standard full name for flat lists
           description: v.description || svc.description,
           estimatedTime: v.estimatedTime,
           duration: formatDuration(v.estimatedTime),
@@ -349,6 +368,7 @@ export const getStorefrontServicesByProduct = async (productId: string): Promise
         productId,
         parentServiceId: svc.parentServiceId || null,
         isVariant: svc.isVariant || false,
+        isParent: false,
         level: svc.level,
         name: svc.name,
         description: svc.description,
@@ -364,17 +384,14 @@ export const getStorefrontServicesByProduct = async (productId: string): Promise
 };
 
 export const getAllStorefrontServices = async (): Promise<StorefrontService[]> => {
-  const products = await getActiveProducts();
+  const products = await getActiveProducts('asc');
   const servicePromises = products.map(p => getStorefrontServicesByProduct(p.id));
   const results = await Promise.all(servicePromises);
   return results.flat();
 };
 
-// DEPRECATED: Sync functions returning 0/null as they need API calls now
 export const getStorefrontMinServicePrice = (productId: string): number | null => null;
 export const getStorefrontServiceCount = (productId: string): number => 0;
-
-// ---- Booking helpers ----
 
 export const addStorefrontBooking = async (booking: Omit<StorefrontBooking, 'id' | 'createdAt'>): Promise<StorefrontBooking> => {
   const result = await rawAddBooking(booking as any);
