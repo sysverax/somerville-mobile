@@ -82,6 +82,7 @@ const updateSeriesStatusRepo = async (id, isActive) => {
 const getAllSeriesRepo = async (page, limit, userRole, categoryId, brandId, sortOrder = "desc") => {
   const skip = (page - 1) * limit;
 
+  // ── 1. Build early match filter ──
   const matchFilter = {};
   if (userRole !== USER_ROLES.ADMIN) {
     matchFilter.isActive = true;
@@ -90,57 +91,82 @@ const getAllSeriesRepo = async (page, limit, userRole, categoryId, brandId, sort
     matchFilter.categoryId = new mongoose.Types.ObjectId(categoryId);
   }
 
+  // ── 2. Build brand filter (applied after both lookups) ──
+  const postLookupFilters = {};
+  if (brandId) {
+    postLookupFilters["categoryId.brandId._id"] = new mongoose.Types.ObjectId(
+      brandId,
+    );
+  }
+  if (userRole !== USER_ROLES.ADMIN) {
+    postLookupFilters["categoryId.isActive"] = true;
+    postLookupFilters["categoryId.brandId.isActive"] = true;
+  }
+
   const pipeline = [
+    // ── 3. Filter series early (hits index) ──
     { $match: matchFilter },
+
+    // ── 4. Join category — fetch only needed fields ──
     {
       $lookup: {
         from: "categories",
         localField: "categoryId",
         foreignField: "_id",
         as: "categoryId",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              isActive: 1,
+              brandId: 1, // 👈 only what we need
+            },
+          },
+        ],
       },
     },
     { $unwind: "$categoryId" },
+
+    // ── 5. Join brand from category — fetch only needed fields ──
     {
       $lookup: {
         from: "brands",
         localField: "categoryId.brandId",
         foreignField: "_id",
         as: "categoryId.brandId",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              isActive: 1, // 👈 only what we need
+            },
+          },
+        ],
       },
     },
     { $unwind: "$categoryId.brandId" },
-    ...(brandId
-      ? [
-          {
-            $match: {
-              "categoryId.brandId._id": new mongoose.Types.ObjectId(brandId),
-            },
-          },
-        ]
+
+    // ── 6. Apply all post-lookup filters in one $match ──
+    ...(Object.keys(postLookupFilters).length > 0
+      ? [{ $match: postLookupFilters }]
       : []),
-    ...(userRole !== USER_ROLES.ADMIN
-      ? [
-          {
-            $match: {
-              "categoryId.isActive": true,
-              "categoryId.brandId.isActive": true,
-            },
-          },
-        ]
-      : []),
-    { $sort: { createdAt: sortOrder === "asc" ? 1 : -1 } },
     {
       $facet: {
-        series: [{ $skip: skip }, { $limit: limit }],
+        series: [
+          { $sort: { createdAt: sortOrder === "asc" ? 1 : -1 } }
+          { $skip: skip },
+          { $limit: limit },
+        ],
         total: [{ $count: "count" }],
       },
     },
   ];
 
   const result = await Series.aggregate(pipeline);
-  const series = result[0].series;
-  const totalSeries = result[0].total[0]?.count || 0;
+  const series = result[0]?.series ?? [];
+  const totalSeries = result[0]?.total[0]?.count ?? 0;
 
   return { series, totalSeries };
 };
@@ -158,20 +184,26 @@ const getSeriesByCategoryIdRepo = async (categoryId) => {
 const deleteSeriesByCategoryIdRepo = async (categoryId, session = null) => {
   return Series.deleteMany(
     { categoryId: new mongoose.Types.ObjectId(categoryId) },
-    { session }
+    { session },
   );
 };
 
 const getSeriesByCategoryIdsRepo = async (categoryIds) => {
   return Series.find({
-    categoryId: { $in: categoryIds.map((id) => new mongoose.Types.ObjectId(id)) },
+    categoryId: {
+      $in: categoryIds.map((id) => new mongoose.Types.ObjectId(id)),
+    },
   }).lean();
 };
 
 const deleteSeriesByCategoryIdsRepo = async (categoryIds, session = null) => {
   return Series.deleteMany(
-    { categoryId: { $in: categoryIds.map((id) => new mongoose.Types.ObjectId(id)) } },
-    { session }
+    {
+      categoryId: {
+        $in: categoryIds.map((id) => new mongoose.Types.ObjectId(id)),
+      },
+    },
+    { session },
   );
 };
 
