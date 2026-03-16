@@ -1,9 +1,10 @@
-import { categories } from '@/src/mock-data/categories';
 import type { Category, CategoryDocument } from '@/src/types';
 
-const normalizeCategory = (category: CategoryDocument): Category => ({
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+
+const normalizeCategory = (category: any): Category => ({
   id: category.id,
-  brandId: category.brandId,
+  brandId: category.brand?.id || category.brandId || '',
   name: category.name,
   description: category.description,
   isActive: category.isActive,
@@ -13,27 +14,80 @@ const normalizeCategory = (category: CategoryDocument): Category => ({
   imageUrl: category.imageUrl,
 });
 
-export const getAllCategories = (): Category[] => {
-  return categories.map(normalizeCategory);
+let categoriesPromise: Promise<Category[]> | null = null;
+
+export const getAllCategories = async (): Promise<Category[]> => {
+  if (categoriesPromise) return categoriesPromise;
+
+  categoriesPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/categories`, {
+        headers: {
+          'x-user-role': 'public',
+        },
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const json = await response.json();
+      const categories: CategoryDocument[] = json.data?.categories || [];
+      return categories.map(normalizeCategory);
+    } catch (error) {
+      console.error('Failed to fetch categories from API:', error);
+      categoriesPromise = null;
+      return [];
+    }
+  })();
+
+  return categoriesPromise;
 };
 
-export const getActiveCategories = (): Category[] => {
-  return categories.filter(c => c.isActive).map(normalizeCategory);
+export const getActiveCategories = async (): Promise<Category[]> => {
+  const all = await getAllCategories();
+  return all.filter(c => c.isActive);
 };
 
-export const getCategoryById = (id: string): Category | undefined => {
-  const category = categories.find(c => c.id === id);
-  return category ? normalizeCategory(category) : undefined;
+const categoryCache = new Map<string, Promise<Category | undefined>>();
+
+export const getCategoryById = async (id: string): Promise<Category | undefined> => {
+  if (categoryCache.has(id)) return categoryCache.get(id)!;
+
+  const promise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/categories/${id}`, {
+        headers: {
+          'x-user-role': 'public',
+        },
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const json = await response.json();
+      const category: CategoryDocument = json.data;
+      return category ? normalizeCategory(category) : undefined;
+    } catch (error) {
+      console.error(`Failed to fetch category ${id}:`, error);
+      categoryCache.delete(id);
+      return undefined;
+    }
+  })();
+
+  categoryCache.set(id, promise);
+  return promise;
 };
 
-export const getCategoriesByBrand = (brandId: string): Category[] => {
-  return categories.filter(c => c.brandId === brandId && c.isActive).map(normalizeCategory);
+export const getCategoriesByBrand = async (brandId: string): Promise<Category[]> => {
+  const all = await getActiveCategories();
+  return all.filter(c => c.brandId === brandId);
 };
 
-export const searchCategories = (query: string): Category[] => {
+export const searchCategories = async (query: string): Promise<Category[]> => {
+  const all = await getActiveCategories();
   const lowerQuery = query.toLowerCase();
-  return categories.filter(c =>
+  return all.filter(c =>
     c.name.toLowerCase().includes(lowerQuery) ||
     c.description.toLowerCase().includes(lowerQuery)
-  ).map(normalizeCategory);
+  );
 };

@@ -52,9 +52,9 @@ const BrandCard = ({ brand, index = 0 }: BrandCardProps) => {
         >
           <p
             ref={textRef}
-            className="text-muted-foreground text-sm mt-1 line-clamp-2"
+            className="text-muted-foreground text-sm line-clamp-2 h-[2.5rem] overflow-hidden"
           >
-            {brand.description}
+            {brand.description || " "}
           </p>
 
           {showTooltip && (

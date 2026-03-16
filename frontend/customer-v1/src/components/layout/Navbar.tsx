@@ -6,13 +6,15 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Search, Menu, X, ChevronDown, Calendar, Info, Phone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getStorefrontBrands, getStorefrontCategoriesByBrand } from "@/src/services";
+import { useFilterOptions } from "@/src/hooks/useFilterOptions";
 import logo from "@/public/logo.jpeg";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 
 const Navbar = () => {
-  const brands = getStorefrontBrands();
+  const { data: filterOptions } = useFilterOptions();
+  const brands = filterOptions.brands;
+  const categories = filterOptions.categories;
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
@@ -38,7 +40,7 @@ const router = useRouter();
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 gap-4">
+        <div className="flex items-center h-16 gap-8">
           <Link href="/" className="flex items-center gap-2 shrink-0">
             <Image src={logo} alt="Somerville Mobile" width={36} height={36} className="h-9 w-9 rounded-lg object-cover" />
             <span className="font-bold text-base hidden xl:block whitespace-nowrap">
@@ -46,9 +48,9 @@ const router = useRouter();
             </span>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1 mr-auto">
             {brands.map((brand) => {
-              const brandCategories = getStorefrontCategoriesByBrand(brand.id);
+              const brandCategories = categories.filter(c => c.brandId === brand.id);
               return (
                 <div
                   key={brand.id}
@@ -215,7 +217,7 @@ const router = useRouter();
               </Link>
               
               {brands.map((brand) => {
-                const brandCategories = getStorefrontCategoriesByBrand(brand.id);
+                const brandCategories = categories.filter(c => c.brandId === brand.id);
                 const isExpanded = mobileExpandedBrand === brand.id;
                 
                 return (

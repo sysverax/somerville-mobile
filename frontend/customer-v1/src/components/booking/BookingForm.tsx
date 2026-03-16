@@ -23,16 +23,12 @@ import {
 import { toast } from "@/src/hooks/use-toast";
 import { cn } from "@/src/lib/utils";
 import {
-  getStorefrontBrands,
-  getStorefrontCategoriesByBrand,
-  getStorefrontSeriesByCategory,
-  getStorefrontProductsBySeries,
-  getStorefrontProductById,
-  getAllStorefrontServices,
+  getStorefrontServicesByProduct,
   addStorefrontBooking,
   type StorefrontProduct,
   type StorefrontService,
 } from "@/src/services";
+import { useFilterOptions } from "@/src/hooks/useFilterOptions";
 
 interface BookingFormProps {
   preSelectedBrandId?: string; 
@@ -66,13 +62,37 @@ const generateTimeSlots = () => {
 const TIME_SLOTS = generateTimeSlots();
 
 const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeriesId, preSelectedProductId, preSelectedServiceId, preSelectedParentServiceId, preSelectedPrice, preSelectedEstimatedTime, onSuccess }: BookingFormProps) => {
-  const brands = getStorefrontBrands();
-  const allServices = getAllStorefrontServices();
-
+  const { data: filterOptions, loading: filtersLoading } = useFilterOptions();
+  
   const [selectedBrandId, setSelectedBrandId] = useState(preSelectedBrandId || "");
   const [selectedCategoryId, setSelectedCategoryId] = useState(preSelectedCategoryId || "");
   const [selectedSeriesId, setSelectedSeriesId] = useState(preSelectedSeriesId || "");
   const [selectedProductId, setSelectedProductId] = useState(preSelectedProductId || "");
+
+  const brands = filterOptions.brands;
+  
+  const filteredCategories = useMemo(() => {
+    if (!selectedBrandId) return [];
+    return filterOptions.categories.filter(c => c.brandId === selectedBrandId);
+  }, [selectedBrandId, filterOptions.categories]);
+
+  const filteredSeries = useMemo(() => {
+    if (!selectedCategoryId) return [];
+    return filterOptions.series.filter(s => s.categoryId === selectedCategoryId);
+  }, [selectedCategoryId, filterOptions.series]);
+
+  const filteredProducts = useMemo(() => {
+    if (!selectedSeriesId) return [];
+    return filterOptions.products.filter(p => p.seriesId === selectedSeriesId);
+  }, [selectedSeriesId, filterOptions.products]);
+  
+  const [productServices, setProductServices] = useState<StorefrontService[]>([]);
+  
+  const selectedProduct = useMemo(() => {
+    if (!selectedProductId) return null;
+    return filterOptions.products.find(p => p.id === selectedProductId) || null;
+  }, [selectedProductId, filterOptions.products]);
+
   const [selectedServiceId, setSelectedServiceId] = useState(preSelectedServiceId || "");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState("");
@@ -82,6 +102,19 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [touched, setTouched] = useState<{ phone?: boolean; email?: boolean }>({});
+
+  // No longer fetching all services at once for performance
+  // useEffect(() => {
+  //   getAllStorefrontServices().then(setAllServices);
+  // }, []);
+
+  useEffect(() => {
+    if (selectedProductId) {
+      getStorefrontServicesByProduct(selectedProductId).then(setProductServices);
+    } else {
+      setProductServices([]);
+    }
+  }, [selectedProductId]);
 
   const phoneError = touched.phone && customerPhone && !/^\+?[\d\s\-()]{7,15}$/.test(customerPhone)
   ? "Enter a valid phone number"
@@ -107,24 +140,11 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
     if (preSelectedServiceId) setSelectedServiceId(preSelectedServiceId);
   }, [preSelectedBrandId, preSelectedCategoryId, preSelectedSeriesId, preSelectedProductId, preSelectedServiceId]);
 
-  const filteredCategories = useMemo(() => {
-    if (!selectedBrandId) return [];
-    return getStorefrontCategoriesByBrand(selectedBrandId);
-  }, [selectedBrandId]);
+  // Fetched via hook: const { data: filteredCategories = [] } = useCategories(selectedBrandId);
 
-  const filteredSeries = useMemo(() => {
-    if (!selectedCategoryId) return [];
-    return getStorefrontSeriesByCategory(selectedCategoryId);
-  }, [selectedCategoryId]);
-
-  const filteredProducts = useMemo(() => {
-    if (!selectedSeriesId) return [];
-    return getStorefrontProductsBySeries(selectedSeriesId);
-  }, [selectedSeriesId]);
 
   const availableServices = useMemo(() => {
     if (!selectedProductId) return [];
-    const productServices = allServices.filter(s => s.productId === selectedProductId);
 
     const parentServiceIds = new Set(
       productServices
@@ -137,11 +157,11 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
       if (!s.isVariant && s.price === 0 && parentServiceIds.size > 0) return false;
       return true;
     });
-  }, [selectedProductId, allServices]);
+  }, [selectedProductId, productServices]);
 
   const selectedService = useMemo(() => {
-    return availableServices.find(s => s.id === selectedServiceId) || allServices.find(s => s.id === selectedServiceId);
-  }, [selectedServiceId, availableServices, allServices]);
+    return availableServices.find(s => s.id === selectedServiceId) || productServices.find(s => s.id === selectedServiceId);
+  }, [selectedServiceId, availableServices, productServices]);
 
   const handleBrandChange = (value: string) => {
     setSelectedBrandId(value);
@@ -196,45 +216,50 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
     }
 
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      await addStorefrontBooking({
+        productId: selectedProductId,
+        serviceId: selectedService?.serviceId || selectedServiceId,
+        parentServiceId: selectedService?.parentServiceId ?? preSelectedParentServiceId ?? null,
+        price: selectedService?.price ?? preSelectedPrice,
+        estimatedTime: selectedService?.estimatedTime ?? preSelectedEstimatedTime,
+        date: dateStr,
+        time: selectedTime,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        customerEmail: customerEmail,
+        status: "pending", // Default to pending as it will go to the server
+      });
 
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    addStorefrontBooking({
-      productId: selectedProductId,
-      serviceId: selectedService?.serviceId || selectedServiceId,
-      parentServiceId: selectedService?.parentServiceId ?? preSelectedParentServiceId ?? null,
-      price: selectedService?.price ?? preSelectedPrice,
-      estimatedTime: selectedService?.estimatedTime ?? preSelectedEstimatedTime,
-      date: dateStr,
-      time: selectedTime,
-      customerName: customerName,
-      customerPhone: customerPhone,
-      customerEmail: customerEmail,
-      status: "confirmed",
-    });
+      toast({
+        title: "Booking Confirmed! 🎉",
+        description: `Your service has been scheduled for ${format(selectedDate, 'PPP')} at ${selectedTime}`,
+      });
 
-    toast({
-      title: "Booking Confirmed! 🎉",
-      description: `Your service has been scheduled for ${format(selectedDate, 'PPP')} at ${selectedTime}`,
-    });
-
-    setSelectedBrandId("");
-    setSelectedCategoryId("");
-    setSelectedSeriesId("");
-    setSelectedProductId("");
-    setSelectedServiceId("");
-    setSelectedDate(undefined);
-    setSelectedTime("");
-    setCustomerName("");
-    setCustomerPhone("");
-    setCustomerEmail("");
-    setIsSubmitting(false);
-    setTouched({});
-
-    onSuccess?.();
+      setSelectedBrandId("");
+      setSelectedCategoryId("");
+      setSelectedSeriesId("");
+      setSelectedProductId("");
+      setSelectedServiceId("");
+      setSelectedDate(undefined);
+      setSelectedTime("");
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerEmail("");
+      setTouched({});
+      onSuccess?.();
+    } catch (error: any) {
+      toast({
+        title: "Booking Failed",
+        description: error.message || "Something went wrong while creating your booking.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const selectedProduct = selectedProductId ? getStorefrontProductById(selectedProductId) : null;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
