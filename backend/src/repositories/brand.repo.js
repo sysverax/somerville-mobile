@@ -11,7 +11,7 @@ const createBrandRepo = async (payload) => {
   });
 };
 
-const getAllBrandsRepo = async (page, limit, userRole) => {
+const getAllBrandsRepo = async (page, limit, userRole, sortOrder = "desc") => {
   const skip = (page - 1) * limit;
   let filter = {};
   if (userRole !== USER_ROLES.ADMIN) {
@@ -19,7 +19,10 @@ const getAllBrandsRepo = async (page, limit, userRole) => {
   }
 
   const [brands, totalBrands] = await Promise.all([
-    Brand.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Brand.find(filter)
+      .sort({ createdAt: sortOrder === "asc" ? 1 : -1 })
+      .skip(skip)
+      .limit(limit),
     Brand.countDocuments(filter),
   ]);
   return { brands, totalBrands };

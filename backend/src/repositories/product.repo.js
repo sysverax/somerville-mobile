@@ -101,6 +101,7 @@ const getAllProductsRepo = async (
   seriesId,
   categoryId,
   brandId,
+  sortOrder = "desc",
 ) => {
   const skip = (page - 1) * limit;
 
@@ -190,7 +191,7 @@ const getAllProductsRepo = async (
           },
         ]
       : []),
-    { $sort: { createdAt: -1 } },
+    { $sort: { createdAt: sortOrder === "asc" ? 1 : -1 } },
     {
       $facet: {
         products: [{ $skip: skip }, { $limit: limit }],

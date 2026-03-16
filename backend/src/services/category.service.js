@@ -148,6 +148,7 @@ const getAllCategoriesService = async (getAllCategoriesRequestDto, logger) => {
   logger.info("Fetching categories with pagination", {
     page: getAllCategoriesRequestDto.page,
     limit: getAllCategoriesRequestDto.limit,
+    sortOrder: getAllCategoriesRequestDto.sortOrder,
     userRole: getAllCategoriesRequestDto.userRole,
     brandId: getAllCategoriesRequestDto.brandId,
   });
@@ -157,6 +158,7 @@ const getAllCategoriesService = async (getAllCategoriesRequestDto, logger) => {
       getAllCategoriesRequestDto.limit,
       getAllCategoriesRequestDto.userRole,
       getAllCategoriesRequestDto.brandId,
+      getAllCategoriesRequestDto.sortOrder,
     );
   return new categoryResponseDto.GetAllCategoriesResponseDTO(
     categories,

@@ -79,7 +79,7 @@ const updateSeriesStatusRepo = async (id, isActive) => {
     .lean();
 };
 
-const getAllSeriesRepo = async (page, limit, userRole, categoryId, brandId) => {
+const getAllSeriesRepo = async (page, limit, userRole, categoryId, brandId, sortOrder = "desc") => {
   const skip = (page - 1) * limit;
 
   const matchFilter = {};
@@ -129,7 +129,7 @@ const getAllSeriesRepo = async (page, limit, userRole, categoryId, brandId) => {
           },
         ]
       : []),
-    { $sort: { createdAt: -1 } },
+    { $sort: { createdAt: sortOrder === "asc" ? 1 : -1 } },
     {
       $facet: {
         series: [{ $skip: skip }, { $limit: limit }],

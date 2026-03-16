@@ -16,12 +16,12 @@ const normalizeCategory = (category: any): Category => ({
 
 let categoriesPromise: Promise<Category[]> | null = null;
 
-export const getAllCategories = async (): Promise<Category[]> => {
+export const getAllCategories = async (sortOrder?: 'asc' | 'desc'): Promise<Category[]> => {
   if (categoriesPromise) return categoriesPromise;
 
   categoriesPromise = (async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/categories`, {
+      const response = await fetch(`${API_BASE_URL}/api/categories${sortOrder ? `?sortOrder=${sortOrder}` : ''}`, {
         headers: {
           'x-user-role': 'public',
         },
@@ -43,8 +43,8 @@ export const getAllCategories = async (): Promise<Category[]> => {
   return categoriesPromise;
 };
 
-export const getActiveCategories = async (): Promise<Category[]> => {
-  const all = await getAllCategories();
+export const getActiveCategories = async (sortOrder?: 'asc' | 'desc'): Promise<Category[]> => {
+  const all = await getAllCategories(sortOrder);
   return all.filter(c => c.isActive);
 };
 
@@ -78,13 +78,13 @@ export const getCategoryById = async (id: string): Promise<Category | undefined>
   return promise;
 };
 
-export const getCategoriesByBrand = async (brandId: string): Promise<Category[]> => {
-  const all = await getActiveCategories();
+export const getCategoriesByBrand = async (brandId: string, sortOrder?: 'asc' | 'desc'): Promise<Category[]> => {
+  const all = await getActiveCategories(sortOrder);
   return all.filter(c => c.brandId === brandId);
 };
 
-export const searchCategories = async (query: string): Promise<Category[]> => {
-  const all = await getActiveCategories();
+export const searchCategories = async (query: string, sortOrder?: 'asc' | 'desc'): Promise<Category[]> => {
+  const all = await getActiveCategories(sortOrder);
   const lowerQuery = query.toLowerCase();
   return all.filter(c =>
     c.name.toLowerCase().includes(lowerQuery) ||

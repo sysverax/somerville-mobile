@@ -90,7 +90,8 @@ class GetAllBrandsRequestDTO {
   constructor(query, userRole) {
     this.page = query.page ? parseInt(query.page, 10) : 1;
     this.limit = query.limit ? parseInt(query.limit, 10) : 10;
-    this.userRole = userRole; // Pass user role for potential role-based access control
+    this.sortOrder = query.sortOrder || "desc";
+    this.userRole = userRole;
   }
   validate() {
     if (isNaN(this.page) || this.page < 1) {
@@ -105,6 +106,13 @@ class GetAllBrandsRequestDTO {
         "Invalid limit value",
         "The 'limit' query parameter must be a positive integer between 1 and 100.",
         "Provide a valid limit value and try again.",
+      );
+    }
+    if (this.sortOrder && !["asc", "desc"].includes(this.sortOrder)) {
+      throw new appError.BadRequestError(
+        "Invalid sort order",
+        "The 'sortOrder' query parameter must be either 'asc' or 'desc'.",
+        "Provide a valid sort order and try again.",
       );
     }
   }
