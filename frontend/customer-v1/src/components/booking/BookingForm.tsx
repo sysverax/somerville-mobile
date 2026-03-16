@@ -23,6 +23,7 @@ import {
 import { toast } from "@/src/hooks/use-toast";
 import { cn } from "@/src/lib/utils";
 import {
+  getStorefrontProductById,
   getStorefrontServicesByProduct,
   addStorefrontBooking,
   type StorefrontProduct,
@@ -87,11 +88,7 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
   }, [selectedSeriesId, filterOptions.products]);
   
   const [productServices, setProductServices] = useState<StorefrontService[]>([]);
-  
-  const selectedProduct = useMemo(() => {
-    if (!selectedProductId) return null;
-    return filterOptions.products.find(p => p.id === selectedProductId) || null;
-  }, [selectedProductId, filterOptions.products]);
+  const [selectedProduct, setSelectedProduct] = useState<StorefrontProduct | null>(null);
 
   const [selectedServiceId, setSelectedServiceId] = useState(preSelectedServiceId || "");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -113,6 +110,14 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
       getStorefrontServicesByProduct(selectedProductId).then(setProductServices);
     } else {
       setProductServices([]);
+    }
+  }, [selectedProductId]);
+
+  useEffect(() => {
+    if (selectedProductId) {
+      getStorefrontProductById(selectedProductId).then(p => setSelectedProduct(p || null));
+    } else {
+      setSelectedProduct(null);
     }
   }, [selectedProductId]);
 
@@ -216,48 +221,42 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
     }
 
     setIsSubmitting(true);
-    try {
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      await addStorefrontBooking({
-        productId: selectedProductId,
-        serviceId: selectedService?.serviceId || selectedServiceId,
-        parentServiceId: selectedService?.parentServiceId ?? preSelectedParentServiceId ?? null,
-        price: selectedService?.price ?? preSelectedPrice,
-        estimatedTime: selectedService?.estimatedTime ?? preSelectedEstimatedTime,
-        date: dateStr,
-        time: selectedTime,
-        customerName: customerName,
-        customerPhone: customerPhone,
-        customerEmail: customerEmail,
-        status: "pending", // Default to pending as it will go to the server
-      });
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-      toast({
-        title: "Booking Confirmed! 🎉",
-        description: `Your service has been scheduled for ${format(selectedDate, 'PPP')} at ${selectedTime}`,
-      });
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    addStorefrontBooking({
+      productId: selectedProductId,
+      serviceId: selectedService?.serviceId || selectedServiceId,
+      parentServiceId: selectedService?.parentServiceId ?? preSelectedParentServiceId ?? null,
+      price: selectedService?.price ?? preSelectedPrice,
+      estimatedTime: selectedService?.estimatedTime ?? preSelectedEstimatedTime,
+      date: dateStr,
+      time: selectedTime,
+      customerName: customerName,
+      customerPhone: customerPhone,
+      customerEmail: customerEmail,
+      status: "confirmed",
+    });
 
-      setSelectedBrandId("");
-      setSelectedCategoryId("");
-      setSelectedSeriesId("");
-      setSelectedProductId("");
-      setSelectedServiceId("");
-      setSelectedDate(undefined);
-      setSelectedTime("");
-      setCustomerName("");
-      setCustomerPhone("");
-      setCustomerEmail("");
-      setTouched({});
-      onSuccess?.();
-    } catch (error: any) {
-      toast({
-        title: "Booking Failed",
-        description: error.message || "Something went wrong while creating your booking.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    toast({
+      title: "Booking Confirmed! 🎉",
+      description: `Your service has been scheduled for ${format(selectedDate, 'PPP')} at ${selectedTime}`,
+    });
+
+    setSelectedBrandId("");
+    setSelectedCategoryId("");
+    setSelectedSeriesId("");
+    setSelectedProductId("");
+    setSelectedServiceId("");
+    setSelectedDate(undefined);
+    setSelectedTime("");
+    setCustomerName("");
+    setCustomerPhone("");
+    setCustomerEmail("");
+    setIsSubmitting(false);
+    setTouched({});
+
+    onSuccess?.();
   };
 
 

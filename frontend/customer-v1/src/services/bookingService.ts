@@ -1,6 +1,6 @@
 import type { Booking, BookingSlot } from '@/src/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
 /**
  * Generate booking slots for the next 14 days.

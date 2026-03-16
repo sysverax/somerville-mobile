@@ -81,6 +81,6 @@ export const getServicesForProduct = (productId: string): ServiceRecordResolved[
   return [];
 };
 
-export const getEffecticeServicePrice = (serviceId: string, productId: string): number => 0;
+export const getEffectiveServicePrice = (serviceId: string, productId: string): number => 0;
 export const getEffectiveServiceTime = (serviceId: string, productId: string): number => 0;
 export const getAllServiceProductOverrides = (): any[] => [];
