@@ -34,7 +34,7 @@ const BrandCard = ({ brand, index = 0 }: BrandCardProps) => {
       >
         <div className="w-20 h-20 mx-auto mb-4 rounded-2xl overflow-hidden bg-secondary/50 flex items-center justify-center">
           <Image
-            src={brand.logo}
+            src={brand.logo || '/mock-images/default/placeholder.png'}
             alt={brand.name}
             width={80}
             height={80}

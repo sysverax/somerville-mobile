@@ -13,7 +13,7 @@ const normalizeSeries = (series: any): Series => {
     isActive: series.isActive,
     createdAt: series.createdAt,
     updatedAt: series.updatedAt,
-    image: series.imageUrl ?? '/mock-images/default/placeholder.png',
+    image: series.imageUrl || '/mock-images/default/placeholder.png',
     imageUrl: series.imageUrl,
   };
 };

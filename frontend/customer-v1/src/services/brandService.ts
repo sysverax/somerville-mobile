@@ -9,8 +9,8 @@ const normalizeBrand = (brand: BrandDocument): Brand => ({
   isActive: brand.isActive,
   createdAt: brand.createdAt,
   updatedAt: brand.updatedAt,
-  iconImage: brand.iconImageUrl ?? '/mock-images/default/placeholder.png',
-  mainImage: brand.bannerImageUrl ?? brand.iconImageUrl ?? '/mock-images/default/placeholder.png',
+  iconImage: brand.iconImageUrl || '/mock-images/default/placeholder.png',
+  mainImage: brand.bannerImageUrl || brand.iconImageUrl || '/mock-images/default/placeholder.png',
   iconImageUrl: brand.iconImageUrl,
   bannerImageUrl: brand.bannerImageUrl,
 });

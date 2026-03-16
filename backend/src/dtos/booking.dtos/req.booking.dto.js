@@ -80,7 +80,7 @@ class CreateBookingRequestDTO {
         "Provide a valid phone number and try again.",
       );
     }
-    const phoneRegex = /^\+?[1-9]\d{6,14}$/;
+    const phoneRegex = /^\+?[0-9]\d{6,14}$/;
     if (!phoneRegex.test(this.phone.replace(/[\s\-().]/g, ""))) {
       throw new appError.BadRequestError(
         "Invalid phone number format",

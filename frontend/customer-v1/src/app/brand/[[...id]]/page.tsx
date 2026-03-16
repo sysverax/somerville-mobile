@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState, Suspense, use, useEffect } from "react";
+import { useState, Suspense, use, useEffect, useMemo } from "react";
 import {
   getStorefrontBrandById,
   getStorefrontSeriesByCategory,
@@ -11,8 +11,7 @@ import {
   type StorefrontBrand,
   type StorefrontSeries,
 } from "@/src/services";
-import { useBrands } from "@/src/hooks/useBrands";
-import { useCategories } from "@/src/hooks/useCategories";
+import { useFilterOptions } from "@/src/hooks/useFilterOptions";
 import Layout from "@/src/components/layout/Layout";
 import CategoryCard from "@/src/components/cards/CategoryCard";
 import SeriesCard from "@/src/components/cards/SeriesCard";
@@ -26,15 +25,18 @@ type Props = {
 
 const BrandContent = ({ params }: Props) => {
    const resolvedParams = use(params);
-  // Get the first ID from the array (e.g., /brand/b3 -> id is ["b3"])
   const brandId = resolvedParams.id?.[0]; 
   const searchParams = useSearchParams();
-  const mode = searchParams?.get("mode") || "service"; // Default to "service" mode if not specified
+  const mode = searchParams?.get("mode") || "service"; 
   
-  const { data: brands = [] } = useBrands();
+  const { data: filterOptions } = useFilterOptions();
+  const brands = filterOptions.brands;
   const [brand, setBrand] = useState<StorefrontBrand | null>(null);
   const [loadingBrand, setLoadingBrand] = useState(true);
-  const { data: categories = [] } = useCategories(brandId);
+  const categories = useMemo(() => {
+    if (!brandId) return [];
+    return filterOptions.categories.filter(c => c.brandId === brandId);
+  }, [brandId, filterOptions.categories]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [filteredSeries, setFilteredSeries] = useState<StorefrontSeries[]>([]);
   const [loadingSeries, setLoadingSeries] = useState(false);

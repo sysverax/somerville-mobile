@@ -12,7 +12,7 @@ const normalizeProduct = (product: any): Product => {
     name: product.name,
     description: product.description,
     specifications: {},
-    iconImage: product.imageUrl ?? '/mock-images/default/placeholder.png',
+    iconImage: product.imageUrl || '/mock-images/default/placeholder.png',
     galleryImages: product.imageUrl ? [product.imageUrl] : [],
     isActive: product.isActive,
     createdAt: product.createdAt,

@@ -10,7 +10,7 @@ const normalizeCategory = (category: any): Category => ({
   isActive: category.isActive,
   createdAt: category.createdAt,
   updatedAt: category.updatedAt,
-  image: category.imageUrl ?? '/mock-images/default/placeholder.png',
+  image: category.imageUrl || '/mock-images/default/placeholder.png',
   imageUrl: category.imageUrl,
 });
 

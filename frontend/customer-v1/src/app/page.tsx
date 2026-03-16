@@ -1,16 +1,17 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Zap } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/src/components/ui/button";
 import {
-  getStorefrontLatestSeries,
   type StorefrontSeries,
   type StorefrontProduct,
 } from "@/src/services";
+import { useFilterOptions } from "@/src/hooks/useFilterOptions";
 import { useBrands } from "@/src/hooks/useBrands";
-import { useState, useEffect } from "react";
+import { useSeries } from "@/src/hooks/useSeries";
 import BrandCard from "@/src/components/cards/BrandCard";
 import SeriesCard from "@/src/components/cards/SeriesCard";
 import Layout from "@/src/components/layout/Layout";
@@ -18,23 +19,11 @@ import ProductFilterCard from "@/src/components/home/ProductFilterCard";
 import ServiceInfoCards from "@/src/components/home/ServiceInfoCards";
 
 const Index = () => {
-  const { data: brands = [] } = useBrands();
-  const [latestSeries, setLatestSeries] = useState<StorefrontSeries[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: filterOptions, loading: filterLoading } = useFilterOptions();
+  const { data: brands, loading: brandsLoading } = useBrands();
+  const { data: allSeries, loading: seriesLoading } = useSeries();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const series = await getStorefrontLatestSeries();
-        setLatestSeries(series);
-      } catch (error) {
-        console.error("Failed to fetch home page data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const latestSeries = useMemo(() => allSeries.slice(0, 3), [allSeries]);
 
   return (
     <Layout>
@@ -137,7 +126,7 @@ const Index = () => {
       {/* Product Filter Section */}
       <section className="py-12 bg-gradient-dark">
         <div className="container mx-auto px-4">
-          <ProductFilterCard />
+          <ProductFilterCard options={filterOptions} loading={filterLoading} />
         </div>
       </section>
 
@@ -157,7 +146,7 @@ const Index = () => {
           </motion.div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {latestSeries.slice(0, 3).map((s, index) => (
+            {latestSeries.map((s, index) => (
               <SeriesCard key={s.id} series={s} index={index} showProducts={false} />
             ))}
           </div>
