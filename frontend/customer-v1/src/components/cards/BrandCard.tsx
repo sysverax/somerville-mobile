@@ -9,9 +9,10 @@ import type { StorefrontBrand } from "@/src/services";
 interface BrandCardProps {
   brand: StorefrontBrand;
   index?: number;
+  href?: string;
 }
 
-const BrandCard = ({ brand, index = 0 }: BrandCardProps) => {
+const BrandCard = ({ brand, index = 0, href }: BrandCardProps) => {
   const textRef = useRef<HTMLParagraphElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -29,7 +30,7 @@ const BrandCard = ({ brand, index = 0 }: BrandCardProps) => {
       transition={{ delay: index * 0.1, duration: 0.5 }}
     >
       <Link
-        href={`/brand/${brand.id}`}
+        href={href || `/brand/${brand.id}`}
         className="group block p-6 rounded-2xl bg-gradient-card shadow-card glass-hover text-center"
       >
         <div className="w-20 h-20 mx-auto mb-4 rounded-2xl overflow-hidden bg-secondary/50 flex items-center justify-center">

@@ -12,6 +12,7 @@ import {
   type StorefrontSeries,
 } from "@/src/services";
 import { useFilterOptions } from "@/src/hooks/useFilterOptions";
+import { useBrands } from "@/src/hooks/useBrands";
 import Layout from "@/src/components/layout/Layout";
 import CategoryCard from "@/src/components/cards/CategoryCard";
 import SeriesCard from "@/src/components/cards/SeriesCard";
@@ -30,7 +31,7 @@ const BrandContent = ({ params }: Props) => {
   const mode = searchParams?.get("mode") || "service"; 
   
   const { data: filterOptions } = useFilterOptions();
-  const brands = filterOptions.brands;
+  const { data: brands, loading: brandsLoading } = useBrands();
   const [brand, setBrand] = useState<StorefrontBrand | null>(null);
   const [loadingBrand, setLoadingBrand] = useState(true);
   const categories = useMemo(() => {
@@ -111,13 +112,22 @@ const BrandContent = ({ params }: Props) => {
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-              {brands.map((b, index) => (
-                <Link key={b.id} href={`/brand/${b.id}?mode=${mode}`}>
-                  <BrandCard brand={b} index={index} />
-                </Link>
-              ))}
-            </div>
+            {brandsLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+                {brands.map((b, index) => (
+                  <BrandCard 
+                    key={b.id} 
+                    brand={b} 
+                    index={index} 
+                    href={`/brand/${b.id}?mode=${mode}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 

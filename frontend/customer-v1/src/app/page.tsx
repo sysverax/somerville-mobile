@@ -115,11 +115,22 @@ const Index = () => {
             <p className="text-muted-foreground max-w-2xl mx-auto">Choose your device brand to explore our repair services</p>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-            {brands.map((brand, index) => (
-              <BrandCard key={brand.id} brand={brand} index={index} />
-            ))}
-          </div>
+          {brandsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+              {brands.map((brand, index) => (
+                <BrandCard 
+                  key={brand.id} 
+                  brand={brand} 
+                  index={index} 
+                  href={`/brand/${brand.id}?mode=service`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
