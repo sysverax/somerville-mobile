@@ -91,7 +91,6 @@ const ServicesPage = () => {
   const [deactivateTarget, setDeactivateTarget] = useState<ServiceRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ServiceRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ name?: boolean; brandId?: boolean; categoryId?: boolean; seriesId?: boolean; productId?: boolean; basePrice?: boolean; estimatedTime?: boolean }>({});
@@ -432,17 +431,14 @@ const ServicesPage = () => {
 
   const handleDeactivate = async () => {
     if (deactivateTarget) {
-      setTogglingId(deactivateTarget.id);
       try {
         await updateServiceStatus(deactivateTarget.id, !deactivateTarget.isActive);
         toast({ title: `Service ${deactivateTarget.isActive ? 'deactivated' : 'activated'} successfully`, variant: 'success' });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to update service status';
         toast({ title: message, variant: 'destructive' });
-      } finally {
-        setTogglingId(null);
-        setDeactivateTarget(null);
       }
+      setDeactivateTarget(null);
     }
   };
 
@@ -534,7 +530,6 @@ const ServicesPage = () => {
   };
 
   const toggleServiceForProduct = async (productServiceId: string, isActive: boolean) => {
-    setTogglingId(productServiceId);
     try {
       await productServiceService.updateProductServiceStatus(productServiceId, isActive);
       if (mainTab === 'by-product' && byProductSelected) {
@@ -550,8 +545,6 @@ const ServicesPage = () => {
         description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive' 
       });
-    } finally {
-      setTogglingId(null);
     }
   };
 
@@ -692,13 +685,7 @@ const ServicesPage = () => {
             <p className="font-medium text-sm">{label}</p>
             <p className="text-xs text-muted-foreground mt-1">{sublabel}</p>
           </div>
-          <div className="w-10 flex justify-center items-center">
-            {togglingId === productServiceId ? (
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            ) : (
-              <Switch checked={!isDisabledProp} onCheckedChange={(checked) => toggleServiceForProduct(productServiceId, checked)} />
-            )}
-          </div>
+          <Switch checked={!isDisabledProp} onCheckedChange={(checked) => toggleServiceForProduct(productServiceId, checked)} />
         </div>
         {!isDisabledProp && (
           <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
@@ -895,13 +882,7 @@ const ServicesPage = () => {
                             <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
                           </td>
                           <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
-                            <div className="w-10 flex justify-center items-center">
-                              {togglingId === s.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                              ) : (
-                                <Switch checked={s.isActive} onCheckedChange={() => setDeactivateTarget(s)} />
-                              )}
-                            </div>
+                            <Switch checked={s.isActive} onCheckedChange={() => setDeactivateTarget(s)} />
                           </td>
                           <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
                             <div className="flex justify-end gap-1">
@@ -935,23 +916,12 @@ const ServicesPage = () => {
                               <Badge variant={v.isActive ? 'default' : 'secondary'} className="text-xs">{v.isActive ? 'Active' : 'Inactive'}</Badge>
                             </td>
                             <td className="py-2 px-4" onClick={e => e.stopPropagation()}>
-                              <div className="w-10 flex justify-center items-center">
-                                {togglingId === v.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                                ) : (
-                                  <Switch checked={v.isActive} onCheckedChange={async () => {
-                                    setTogglingId(v.id);
-                                    try {
-                                      await updateServiceStatus(v.id, !v.isActive);
-                                    } catch (error) {
-                                      const message = error instanceof Error ? error.message : 'Failed to update variant status';
-                                      toast({ title: message, variant: 'destructive' });
-                                    } finally {
-                                      setTogglingId(null);
-                                    }
-                                  }} />
-                                )}
-                              </div>
+                              <Switch checked={v.isActive} onCheckedChange={() => {
+                                updateServiceStatus(v.id, !v.isActive).catch((error) => {
+                                  const message = error instanceof Error ? error.message : 'Failed to update variant status';
+                                  toast({ title: message, variant: 'destructive' });
+                                });
+                              }} />
                             </td>
                             <td className="py-2 px-4 text-right cursor-default" onClick={e => e.stopPropagation()}>
                               <div className="flex justify-end gap-1">

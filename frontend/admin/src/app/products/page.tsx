@@ -80,7 +80,6 @@ const ProductsPage = () => {
   const [specVal, setSpecVal] = useState('');
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ brandId?: boolean; categoryId?: boolean; seriesId?: boolean; name?: boolean; iconImage?: boolean }>({});
-  const [togglingId, setTogglingId] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
   const scrollToFirstError = () => {
@@ -257,28 +256,14 @@ const ProductsPage = () => {
                     {productServices.length} service(s) available
                   </div>
                 )}
-                  <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs">Active</Label>
-                      <div className="w-10 flex justify-center items-center">
-                        {togglingId === p.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        ) : (
-                          <Switch checked={p.isActive} onCheckedChange={async () => {
-                            setTogglingId(p.id);
-                            try {
-                              await toggleActive(p.id);
-                            } catch (error) {
-                              const message = error instanceof Error ? error.message : 'Failed to update product status';
-                              toast({ title: message, variant: 'destructive' });
-                            } finally {
-                              setTogglingId(null);
-                            }
-                          }} disabled={isLoading} />
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-1">
+                <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                  <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={p.isActive} onCheckedChange={() => {
+                    toggleActive(p.id).catch((error) => {
+                      const message = error instanceof Error ? error.message : 'Failed to update product status';
+                      toast({ title: message, variant: 'destructive' });
+                    });
+                  }} disabled={isLoading} /></div>
+                  <div className="flex gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openServiceOverrides(p)} disabled={isLoading} title="Manage service overrides"><Wrench className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(p)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
@@ -341,25 +326,12 @@ const ProductsPage = () => {
                     <TableCell className="text-sm text-muted-foreground">{productServices.length} service(s)</TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden xl:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
-                    <TableCell>
-                      <div className="w-10 flex justify-center items-center">
-                        {togglingId === p.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        ) : (
-                          <Switch checked={p.isActive} onCheckedChange={async () => {
-                            setTogglingId(p.id);
-                            try {
-                              await toggleActive(p.id);
-                            } catch (error) {
-                              const message = error instanceof Error ? error.message : 'Failed to update product status';
-                              toast({ title: message, variant: 'destructive' });
-                            } finally {
-                              setTogglingId(null);
-                            }
-                          }} disabled={isLoading} />
-                        )}
-                      </div>
-                    </TableCell>
+                    <TableCell><Switch checked={p.isActive} onCheckedChange={() => {
+                      toggleActive(p.id).catch((error) => {
+                        const message = error instanceof Error ? error.message : 'Failed to update product status';
+                        toast({ title: message, variant: 'destructive' });
+                      });
+                    }} disabled={isLoading} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openServiceOverrides(p)} disabled={isLoading} title="Service overrides"><Wrench className="h-3.5 w-3.5" /></Button>
