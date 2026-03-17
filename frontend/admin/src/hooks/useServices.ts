@@ -47,6 +47,11 @@ export const useServices = (initialFilters: GetServicesFilters = {}) => {
     setServices(prev => prev.map(s => s.id === id ? { ...s, isActive } : s));
   }, []);
 
+  const deleteService = useCallback(async (id: string): Promise<void> => {
+    await serviceService.delete(id);
+    await fetchServices();
+  }, [fetchServices]);
+
   // Variant helpers (derived from local state)
   const getVariants = useCallback((parentId: string) => {
     return services.filter(s => s.parentServiceId === parentId && s.isVariant);
@@ -69,6 +74,7 @@ export const useServices = (initialFilters: GetServicesFilters = {}) => {
     createService,
     updateService,
     updateServiceStatus,
+    deleteService,
     getVariants,
     hasVariants,
     getParentServices,

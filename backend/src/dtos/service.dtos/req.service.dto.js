@@ -701,10 +701,34 @@ class GetServiceByIdRequestDTO {
   }
 }
 
+class DeleteServiceRequestDTO {
+  constructor(params) {
+    this.id = params.id;
+  }
+
+  validate() {
+    if (!this.id) {
+      throw new appError.BadRequestError(
+        "Service id is required",
+        "The 'id' parameter is required to delete a service.",
+        "Provide a valid service id and try again.",
+      );
+    }
+    if (!mongoose.Types.ObjectId.isValid(this.id)) {
+      throw new appError.BadRequestError(
+        "Invalid service id format",
+        "Provided service id is not a valid MongoDB ObjectId.",
+        "Provide a valid service id and try again.",
+      );
+    }
+  }
+}
+
 module.exports = {
   CreateServiceRequestDTO,
   UpdateServiceRequestDTO,
   UpdateServiceStatusRequestDTO,
   GetAllServicesRequestDTO,
   GetServiceByIdRequestDTO,
+  DeleteServiceRequestDTO,
 };

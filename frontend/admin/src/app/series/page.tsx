@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSeriesData } from '@/hooks/useSeries';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
@@ -70,6 +70,15 @@ const SeriesPage = () => {
   const [form, setForm] = useState({ categoryId: '', brandId: '', name: '', image: null as string | null, description: '' });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ brandId?: boolean; categoryId?: boolean; name?: boolean; image?: boolean }>({});
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+
+  const scrollToFirstError = () => {
+    setTimeout(() => {
+      const firstError = formRef.current?.querySelector('[data-error="true"]');
+      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  };
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -103,25 +112,7 @@ const SeriesPage = () => {
     if (brandErr || categoryErr || nameErr || imageErr) {
       setFormErrors({ brandId: brandErr, categoryId: categoryErr, name: nameErr, image: imageErr });
       setTouched({ brandId: true, categoryId: true, name: true, image: true });
-      
-      // Scroll to first error field
-      setTimeout(() => {
-        const errorFields = ['brandId', 'categoryId', 'name', 'image'];
-        const firstError = errorFields.find(field => 
-          field === 'brandId' && brandErr ||
-          field === 'categoryId' && categoryErr ||
-          field === 'name' && nameErr ||
-          field === 'image' && imageErr
-        );
-        
-        if (firstError) {
-          const element = document.querySelector(`[data-field="${firstError}"]`);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }
-      }, 100);
-      
+      scrollToFirstError();
       return;
     }
     setIsLoading(true);
@@ -213,12 +204,26 @@ const SeriesPage = () => {
                 <VisibilityBadge visibility={computeSeriesVisibility(s, getCategory(s.category?.id || s.categoryId), getBrand(s.brand?.id || s.brandId))} />
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={s.isActive} onCheckedChange={() => {
-                  toggleActive(s.id).catch((error) => {
-                    const message = error instanceof Error ? error.message : 'Failed to update series status';
-                    toast({ title: message, variant: 'destructive' });
-                  });
-                }} disabled={isLoading} /></div>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs">Active</Label>
+                  <div className="w-10 flex justify-center items-center">
+                    {togglingId === s.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    ) : (
+                      <Switch checked={s.isActive} onCheckedChange={async () => {
+                        setTogglingId(s.id);
+                        try {
+                          await toggleActive(s.id);
+                        } catch (error) {
+                          const message = error instanceof Error ? error.message : 'Failed to update series status';
+                          toast({ title: message, variant: 'destructive' });
+                        } finally {
+                          setTogglingId(null);
+                        }
+                      }} disabled={isLoading} />
+                    )}
+                  </div>
+                </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(s)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
@@ -233,10 +238,10 @@ const SeriesPage = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[60px]">Image</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="w-14">Brand</TableHead>
+                <TableHead className='w-[230px]'>Name</TableHead>
+                <TableHead className="w-[100px]">Brand</TableHead>
                 <TableHead className="w-14">Category</TableHead>
-                <TableHead className="hidden md:table-cell w-16">Description</TableHead>
+                <TableHead className="hidden md:table-cell">Description</TableHead>
                 <TableHead className="w-14">Visibility</TableHead>
                 <TableHead className="w-20 hidden lg:table-cell">Hidden Reason</TableHead>
                 <TableHead className="w-14">Active</TableHead>
@@ -276,12 +281,25 @@ const SeriesPage = () => {
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[100px]"><TruncatedText text={s.description} /></TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
-                    <TableCell><Switch checked={s.isActive} onCheckedChange={() => {
-                      toggleActive(s.id).catch((error) => {
-                        const message = error instanceof Error ? error.message : 'Failed to update series status';
-                        toast({ title: message, variant: 'destructive' });
-                      });
-                    }} disabled={isLoading} /></TableCell>
+                    <TableCell>
+                      <div className="w-10 flex justify-center items-center">
+                        {togglingId === s.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        ) : (
+                          <Switch checked={s.isActive} onCheckedChange={async () => {
+                            setTogglingId(s.id);
+                            try {
+                              await toggleActive(s.id);
+                            } catch (error) {
+                              const message = error instanceof Error ? error.message : 'Failed to update series status';
+                              toast({ title: message, variant: 'destructive' });
+                            } finally {
+                              setTogglingId(null);
+                            }
+                          }} disabled={isLoading} />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -301,8 +319,8 @@ const SeriesPage = () => {
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
         <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="flex flex-col max-h-[90vh]">
           <DialogHeader><DialogTitle>{editing ? 'Edit Series' : 'Add Series'}</DialogTitle></DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
-            <div className="space-y-2 mx-1" data-field="brandId">
+          <div ref={formRef} className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
+            <div className="space-y-2 mx-1" data-error={!!formErrors.brandId}>
               <Label>Brand *</Label>
               <Select value={form.brandId} onValueChange={v => {
                 setForm(f => ({ ...f, brandId: v, categoryId: '' }));
@@ -317,7 +335,7 @@ const SeriesPage = () => {
               </Select>
               {formErrors.brandId && <p className="text-xs text-destructive">{formErrors.brandId}</p>}
             </div>
-            <div className="space-y-2 mx-1" data-field="categoryId">
+            <div className="space-y-2 mx-1" data-error={!!formErrors.categoryId}>
               <Label>Category *</Label>
               <Select value={form.categoryId}
                 onValueChange={v => {
@@ -336,7 +354,7 @@ const SeriesPage = () => {
               </Select>
               {formErrors.categoryId && <p className="text-xs text-destructive">{formErrors.categoryId}</p>}
             </div>
-            <div className="space-y-2 mx-1" data-field="name">
+            <div className="space-y-2 mx-1" data-error={!!formErrors.name}>
               <Label>Name *</Label>
               <Input
                 value={form.name}
@@ -354,7 +372,7 @@ const SeriesPage = () => {
               {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
             </div>
             <div className="space-y-2 mx-1"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} disabled={isLoading} /></div>
-            <div className="space-y-2 mx-1" data-field="image">
+            <div className="space-y-2 mx-1" data-error={!!formErrors.image}>
               <Label>Image *</Label>
               <ImageUpload
                 value={form.image}

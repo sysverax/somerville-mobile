@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCategories } from '@/hooks/useCategories';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
@@ -63,6 +63,15 @@ const CategoriesPage = () => {
   const [form, setForm] = useState({ brandId: '', name: '', image: null as string | null, description: '' });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ brandId?: boolean; name?: boolean; image?: boolean }>({});
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+
+  const scrollToFirstError = () => {
+    setTimeout(() => {
+      const firstError = formRef.current?.querySelector('[data-error="true"]');
+      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  };
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -92,6 +101,7 @@ const CategoriesPage = () => {
     if (brandErr || nameErr || imageErr) {
       setFormErrors({ brandId: brandErr, name: nameErr, image: imageErr });
       setTouched({ brandId: true, name: true, image: true });
+      scrollToFirstError();
       return;
     }
     setIsLoading(true);
@@ -174,12 +184,26 @@ const CategoriesPage = () => {
                 <VisibilityBadge visibility={computeCategoryVisibility(cat, getBrand(cat.brandId))} />
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={cat.isActive} onCheckedChange={() => {
-                  toggleActive(cat.id).catch((error) => {
-                    const message = error instanceof Error ? error.message : 'Failed to update category status';
-                    toast({ title: message, variant: 'destructive' });
-                  });
-                }} disabled={isLoading} /></div>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs">Active</Label>
+                  <div className="w-10 flex justify-center items-center">
+                    {togglingId === cat.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    ) : (
+                      <Switch checked={cat.isActive} onCheckedChange={async () => {
+                        setTogglingId(cat.id);
+                        try {
+                          await toggleActive(cat.id);
+                        } catch (error) {
+                          const message = error instanceof Error ? error.message : 'Failed to update category status';
+                          toast({ title: message, variant: 'destructive' });
+                        } finally {
+                          setTogglingId(null);
+                        }
+                      }} disabled={isLoading} />
+                    )}
+                  </div>
+                </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(cat)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
@@ -233,12 +257,25 @@ const CategoriesPage = () => {
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px]"><TruncatedText text={cat.description} /></TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
-                    <TableCell><Switch checked={cat.isActive} onCheckedChange={() => {
-                      toggleActive(cat.id).catch((error) => {
-                        const message = error instanceof Error ? error.message : 'Failed to update category status';
-                        toast({ title: message, variant: 'destructive' });
-                      });
-                    }} disabled={isLoading} /></TableCell>
+                    <TableCell>
+                      <div className="w-10 flex justify-center items-center">
+                        {togglingId === cat.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        ) : (
+                          <Switch checked={cat.isActive} onCheckedChange={async () => {
+                            setTogglingId(cat.id);
+                            try {
+                              await toggleActive(cat.id);
+                            } catch (error) {
+                              const message = error instanceof Error ? error.message : 'Failed to update category status';
+                              toast({ title: message, variant: 'destructive' });
+                            } finally {
+                              setTogglingId(null);
+                            }
+                          }} disabled={isLoading} />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -258,8 +295,8 @@ const CategoriesPage = () => {
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
         <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader><DialogTitle>{editing ? 'Edit Category' : 'Add Category'}</DialogTitle></DialogHeader>
-          <div className="space-y-4 min-w-0 w-full">
-            <div className="space-y-2">
+          <div ref={formRef} className="space-y-4 min-w-0 w-full">
+            <div className="space-y-2" data-error={!!formErrors.brandId}>
               <Label>Brand *</Label>
               <Select value={form.brandId} onValueChange={v => { setForm(f => ({ ...f, brandId: v })); setTouched(prev => ({ ...prev, brandId: true })); setFormErrors(prev => ({ ...prev, brandId: validateBrand(v) })); }}>
                 <SelectTrigger disabled={isLoading || !!editing}><SelectValue placeholder="Select Brand" /></SelectTrigger>
@@ -270,7 +307,7 @@ const CategoriesPage = () => {
               </Select>
               {formErrors.brandId && <p className="text-xs text-destructive">{formErrors.brandId}</p>}
             </div>
-            <div className="space-y-2"><Label>Name *</Label>
+            <div className="space-y-2" data-error={!!formErrors.name}><Label>Name *</Label>
               <Input
                 value={form.name}
                 onChange={e => {
@@ -287,7 +324,7 @@ const CategoriesPage = () => {
               {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
             </div>
             <div className="space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} disabled={isLoading} /></div>
-            <div className="space-y-2">
+            <div className="space-y-2" data-error={!!formErrors.image}>
               <Label>Image *</Label>
               <ImageUpload
                 value={form.image}

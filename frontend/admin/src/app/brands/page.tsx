@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useBrands } from '@/hooks/useBrands';
 import { Brand } from '@/types';
@@ -55,6 +55,15 @@ const BrandsPage = () => {
   const [requestError, setRequestError] = useState<string | null>(null);
   const [touched, setTouched] = useState<{ name?: boolean; iconImage?: boolean }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+
+  const scrollToFirstError = () => {
+    setTimeout(() => {
+      const firstError = formRef.current?.querySelector('[data-error="true"]');
+      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  };
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -77,6 +86,7 @@ const BrandsPage = () => {
     const iconErr = validateIcon(form.iconImage);
     if (nameErr || iconErr) {
       setFormErrors({ name: nameErr, iconImage: iconErr });
+      scrollToFirstError();
       return;
     }
     setRequestError(null);
@@ -155,12 +165,23 @@ const BrandsPage = () => {
               <div className="flex items-center justify-between pt-2 border-t border-border/50">
                 <div className="flex items-center gap-2">
                   <Label className="text-xs">Active</Label>
-                  <Switch checked={brand.isActive} onCheckedChange={() => {
-                    toggleActive(brand.id).catch((error) => {
-                      const message = error instanceof Error ? error.message : 'Failed to update brand status';
-                      toast({ title: message, variant: 'destructive' });
-                    });
-                  }} disabled={isLoading} />
+                  <div className="w-11 flex justify-center items-center">
+                    {togglingId === brand.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    ) : (
+                      <Switch checked={brand.isActive} onCheckedChange={async () => {
+                        setTogglingId(brand.id);
+                        try {
+                          await toggleActive(brand.id);
+                        } catch (error) {
+                          const message = error instanceof Error ? error.message : 'Failed to update brand status';
+                          toast({ title: message, variant: 'destructive' });
+                        } finally {
+                          setTogglingId(null);
+                        }
+                      }} disabled={isLoading} />
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -212,12 +233,25 @@ const BrandsPage = () => {
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px]"><TruncatedText text={brand.description} /></TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
-                    <TableCell><Switch checked={brand.isActive} onCheckedChange={() => {
-                      toggleActive(brand.id).catch((error) => {
-                        const message = error instanceof Error ? error.message : 'Failed to update brand status';
-                        toast({ title: message, variant: 'destructive' });
-                      });
-                    }} disabled={isLoading} /></TableCell>
+                    <TableCell>
+                      <div className="w-11 flex justify-center items-center" onClick={e => e.stopPropagation()}>
+                        {togglingId === brand.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        ) : (
+                          <Switch checked={brand.isActive} onCheckedChange={async () => {
+                            setTogglingId(brand.id);
+                            try {
+                              await toggleActive(brand.id);
+                            } catch (error) {
+                              const message = error instanceof Error ? error.message : 'Failed to update brand status';
+                              toast({ title: message, variant: 'destructive' });
+                            } finally {
+                              setTogglingId(null);
+                            }
+                          }} disabled={isLoading} />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -233,26 +267,28 @@ const BrandsPage = () => {
       )}
 
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
-        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="max-h-[90vh] flex flex-col">
           <DialogHeader><DialogTitle>{editing ? 'Edit Brand' : 'Add Brand'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2"><Label>Brand Name *</Label><Input value={form.name}
-              onChange={e => {
-                const val = e.target.value;
-                setForm(f => ({ ...f, name: val }));
-                if (touched.name) {
-                  setFormErrors(prev => ({ ...prev, name: validateName(val) }));
-                }
-              }}
-              onBlur={handleNameBlur}
-              disabled={isLoading} />
+          <div ref={formRef} className="space-y-4 flex-1 overflow-y-auto pr-2 scrollbar-hide">
+            <div className="space-y-2" data-error={!!formErrors.name}>
+              <Label>Brand Name *</Label>
+              <Input value={form.name}
+                onChange={e => {
+                  const val = e.target.value;
+                  setForm(f => ({ ...f, name: val }));
+                  if (touched.name) {
+                    setFormErrors(prev => ({ ...prev, name: validateName(val) }));
+                  }
+                }}
+                onBlur={handleNameBlur}
+                disabled={isLoading} />
               {formErrors.name && (
                 <p className="text-xs text-destructive">{formErrors.name}</p>
               )}
             </div>
             <div className="space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} disabled={isLoading} /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-2" data-error={!!formErrors.iconImage}>
                 <Label>Icon Image *</Label>
                 <ImageUpload value={form.iconImage} onChange={handleIconChange} size={120} />
                 {formErrors.iconImage && (

@@ -257,5 +257,15 @@ export const serviceService = {
     serviceCache = serviceCache.map(s => (s.id === id ? { ...s, isActive } : s));
   },
 
+  delete: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/services/${id}`, {
+      method: 'DELETE',
+      headers: { 'x-user-role': 'admin' },
+      credentials: 'include',
+    });
+    await parseResponse<{ serviceId: string }>(response);
+    serviceCache = serviceCache.filter(s => s.id !== id && s.parentServiceId !== id);
+  },
+
   getCount: (): number => serviceCache.length,
 };
