@@ -1,20 +1,11 @@
-/**
- * Storefront service: provides UI-ready data shapes by combining
- * raw mock-data with stock, service, and pricing logic.
- * 
- * This is the main service layer for storefront pages.
- */
-
 import { getActiveBrands, getBrandById } from './brandService';
 import { getActiveCategories, getCategoriesByBrand, getCategoryById } from './categoryService';
 import { getActiveSeries, getSeriesByCategory, getSeriesById } from './seriesService';
 import { getActiveProducts, getProductById as getRawProductById, getProductsBySeries as getRawProductsBySeries, searchProducts as rawSearchProducts, getFeaturedProducts as rawFeaturedProducts } from './productService';
 import { getStockByProduct } from './stockService';
-import { getServicesForProduct, getServicesForProductFromAPI } from './serviceService';
-import { generateBookingSlots, addBooking as rawAddBooking } from './bookingService';
+import { getServicesForProductFromAPI } from './serviceService';
+import { addBooking as rawAddBooking } from './bookingService';
 import type { Booking } from '@/src/types';
-
-// ---- Storefront interfaces ----
 
 export type StockCondition = 'new' | 'refurbished' | 'used';
 

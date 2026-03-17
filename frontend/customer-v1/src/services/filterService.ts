@@ -32,21 +32,19 @@ export const getFilterOptions = async (): Promise<FilterOptions> => {
 
       // Map to storefront types
       return {
-        brands: data.brands, // Already close to StorefrontBrand
+        brands: data.brands,
         categories: data.categories.map((c: any) => ({
           ...c,
-          image: '/mock-images/default/placeholder.png' // Default image for options
+          image: [c.image]
         })),
         series: data.series.map((s: any) => ({
           ...s,
-          banner: '/mock-images/default/placeholder.png',
-          releaseYear: 2024
         })),
         products: data.products.map((p: any) => ({
           ...p,
           description: '',
           specifications: {},
-          images: p.iconImage ? [p.iconImage] : ['/mock-images/default/placeholder.png'],
+          images: [p.iconImage],
           price: 0,
           stock: 1,
           sku: p.id.toUpperCase()
