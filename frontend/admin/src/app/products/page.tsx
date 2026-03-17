@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useProducts } from '@/hooks/useProducts';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
@@ -80,6 +80,14 @@ const ProductsPage = () => {
   const [specVal, setSpecVal] = useState('');
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ brandId?: boolean; categoryId?: boolean; seriesId?: boolean; name?: boolean; iconImage?: boolean }>({});
+  const formRef = useRef<HTMLDivElement>(null);
+
+  const scrollToFirstError = () => {
+    setTimeout(() => {
+      const firstError = formRef.current?.querySelector('[data-error="true"]');
+      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  };
 
   // Service overrides dialog
   const [serviceProduct, setServiceProduct] = useState<Product | null>(null);
@@ -119,6 +127,7 @@ const ProductsPage = () => {
     if (brandErr || categoryErr || seriesErr || nameErr || imageErr) {
       setFormErrors({ brandId: brandErr, categoryId: categoryErr, seriesId: seriesErr, name: nameErr, iconImage: imageErr });
       setTouched({ brandId: true, categoryId: true, seriesId: true, name: true, iconImage: true });
+      scrollToFirstError();
       return;
     }
     setIsLoading(true);
@@ -344,10 +353,10 @@ const ProductsPage = () => {
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
         <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="flex flex-col max-h-[90vh]">
           <DialogHeader><DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
+          <div ref={formRef} className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
             {/* Brand / Category / Series */}
             <div className="grid grid-cols-3 gap-2 mx-1">
-              <div className="space-y-1">
+              <div className="space-y-1" data-error={!!formErrors.brandId}>
                 <Label className="text-xs">Brand *</Label>
                 <Select
                   value={form.brandId}
@@ -365,7 +374,7 @@ const ProductsPage = () => {
                 </Select>
                 {formErrors.brandId && <p className="text-xs text-destructive">{formErrors.brandId}</p>}
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1" data-error={!!formErrors.categoryId}>
                 <Label className="text-xs">Category *</Label>
                 <Select
                   value={form.categoryId}
@@ -386,7 +395,7 @@ const ProductsPage = () => {
                 </Select>
                 {formErrors.categoryId && <p className="text-xs text-destructive">{formErrors.categoryId}</p>}
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1" data-error={!!formErrors.seriesId}>
                 <Label className="text-xs">Series *</Label>
                 <Select
                   value={form.seriesId}
@@ -410,8 +419,7 @@ const ProductsPage = () => {
             </div>
 
             {/* Name */}
-            <div className="space-y-2 mx-1">
-              <Label>Name *</Label>
+            <div className="space-y-2 mx-1" data-error={!!formErrors.name}>
               <Input
                 value={form.name}
                 onChange={e => {
@@ -435,7 +443,7 @@ const ProductsPage = () => {
             </div>
 
             {/* Product Image */}
-            <div className="space-y-2">
+            <div className="space-y-2" data-error={!!formErrors.iconImage}>
               <Label>Product Image *</Label>
               <ImageUpload
                 value={form.iconImage}

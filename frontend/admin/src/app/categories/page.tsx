@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useCategories } from '@/hooks/useCategories';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
@@ -63,6 +63,14 @@ const CategoriesPage = () => {
   const [form, setForm] = useState({ brandId: '', name: '', image: null as string | null, description: '' });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ brandId?: boolean; name?: boolean; image?: boolean }>({});
+  const formRef = useRef<HTMLDivElement>(null);
+
+  const scrollToFirstError = () => {
+    setTimeout(() => {
+      const firstError = formRef.current?.querySelector('[data-error="true"]');
+      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  };
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -92,6 +100,7 @@ const CategoriesPage = () => {
     if (brandErr || nameErr || imageErr) {
       setFormErrors({ brandId: brandErr, name: nameErr, image: imageErr });
       setTouched({ brandId: true, name: true, image: true });
+      scrollToFirstError();
       return;
     }
     setIsLoading(true);
@@ -258,8 +267,8 @@ const CategoriesPage = () => {
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
         <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader><DialogTitle>{editing ? 'Edit Category' : 'Add Category'}</DialogTitle></DialogHeader>
-          <div className="space-y-4 min-w-0 w-full">
-            <div className="space-y-2">
+          <div ref={formRef} className="space-y-4 min-w-0 w-full">
+            <div className="space-y-2" data-error={!!formErrors.brandId}>
               <Label>Brand *</Label>
               <Select value={form.brandId} onValueChange={v => { setForm(f => ({ ...f, brandId: v })); setTouched(prev => ({ ...prev, brandId: true })); setFormErrors(prev => ({ ...prev, brandId: validateBrand(v) })); }}>
                 <SelectTrigger disabled={isLoading || !!editing}><SelectValue placeholder="Select Brand" /></SelectTrigger>
@@ -270,7 +279,7 @@ const CategoriesPage = () => {
               </Select>
               {formErrors.brandId && <p className="text-xs text-destructive">{formErrors.brandId}</p>}
             </div>
-            <div className="space-y-2"><Label>Name *</Label>
+            <div className="space-y-2" data-error={!!formErrors.name}><Label>Name *</Label>
               <Input
                 value={form.name}
                 onChange={e => {
@@ -287,7 +296,7 @@ const CategoriesPage = () => {
               {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
             </div>
             <div className="space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} disabled={isLoading} /></div>
-            <div className="space-y-2">
+            <div className="space-y-2" data-error={!!formErrors.image}>
               <Label>Image *</Label>
               <ImageUpload
                 value={form.image}

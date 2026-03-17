@@ -205,10 +205,49 @@ const getServiceByIdController = async (req, res, next) => {
   }
 };
 
+const deleteServiceController = async (req, res, next) => {
+  try {
+    req.logger.info("Delete service request received", {
+      serviceId: req.params.id,
+    });
+    
+    const deleteServiceDto = new serviceRequestDto.DeleteServiceRequestDTO(req.params);
+    deleteServiceDto.validate();
+
+    const response = await serviceService.deleteServiceService(
+      deleteServiceDto,
+      req.logger,
+    );
+
+    return res.status(200).json({
+      message: "Service deleted successfully",
+      data: response,
+      error: null,
+    });
+  } catch (error) {
+    req.logger.error("Delete service request failed", {
+      error: error.message,
+    });
+
+    if (error instanceof appError.AppError) {
+      return next(error);
+    }
+
+    return next(
+      new appError.InternalServerError(
+        "Delete service failed",
+        "An unexpected error occurred while deleting the service.",
+        "Please try again later.",
+      ),
+    );
+  }
+};
+
 module.exports = {
   createServiceController,
   updateServiceController,
   updateServiceStatusController,
   getAllServicesController,
   getServiceByIdController,
+  deleteServiceController,
 };

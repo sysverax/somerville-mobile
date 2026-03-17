@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useSeriesData } from '@/hooks/useSeries';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
@@ -70,6 +70,14 @@ const SeriesPage = () => {
   const [form, setForm] = useState({ categoryId: '', brandId: '', name: '', image: null as string | null, description: '' });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ brandId?: boolean; categoryId?: boolean; name?: boolean; image?: boolean }>({});
+  const formRef = useRef<HTMLDivElement>(null);
+
+  const scrollToFirstError = () => {
+    setTimeout(() => {
+      const firstError = formRef.current?.querySelector('[data-error="true"]');
+      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  };
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -103,25 +111,7 @@ const SeriesPage = () => {
     if (brandErr || categoryErr || nameErr || imageErr) {
       setFormErrors({ brandId: brandErr, categoryId: categoryErr, name: nameErr, image: imageErr });
       setTouched({ brandId: true, categoryId: true, name: true, image: true });
-      
-      // Scroll to first error field
-      setTimeout(() => {
-        const errorFields = ['brandId', 'categoryId', 'name', 'image'];
-        const firstError = errorFields.find(field => 
-          field === 'brandId' && brandErr ||
-          field === 'categoryId' && categoryErr ||
-          field === 'name' && nameErr ||
-          field === 'image' && imageErr
-        );
-        
-        if (firstError) {
-          const element = document.querySelector(`[data-field="${firstError}"]`);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }
-      }, 100);
-      
+      scrollToFirstError();
       return;
     }
     setIsLoading(true);
@@ -233,10 +223,10 @@ const SeriesPage = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[60px]">Image</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="w-14">Brand</TableHead>
+                <TableHead className='w-[230px]'>Name</TableHead>
+                <TableHead className="w-[100px]">Brand</TableHead>
                 <TableHead className="w-14">Category</TableHead>
-                <TableHead className="hidden md:table-cell w-16">Description</TableHead>
+                <TableHead className="hidden md:table-cell">Description</TableHead>
                 <TableHead className="w-14">Visibility</TableHead>
                 <TableHead className="w-20 hidden lg:table-cell">Hidden Reason</TableHead>
                 <TableHead className="w-14">Active</TableHead>
@@ -301,8 +291,8 @@ const SeriesPage = () => {
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
         <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="flex flex-col max-h-[90vh]">
           <DialogHeader><DialogTitle>{editing ? 'Edit Series' : 'Add Series'}</DialogTitle></DialogHeader>
-          <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
-            <div className="space-y-2 mx-1" data-field="brandId">
+          <div ref={formRef} className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
+            <div className="space-y-2 mx-1" data-error={!!formErrors.brandId}>
               <Label>Brand *</Label>
               <Select value={form.brandId} onValueChange={v => {
                 setForm(f => ({ ...f, brandId: v, categoryId: '' }));
@@ -317,7 +307,7 @@ const SeriesPage = () => {
               </Select>
               {formErrors.brandId && <p className="text-xs text-destructive">{formErrors.brandId}</p>}
             </div>
-            <div className="space-y-2 mx-1" data-field="categoryId">
+            <div className="space-y-2 mx-1" data-error={!!formErrors.categoryId}>
               <Label>Category *</Label>
               <Select value={form.categoryId}
                 onValueChange={v => {
@@ -336,7 +326,7 @@ const SeriesPage = () => {
               </Select>
               {formErrors.categoryId && <p className="text-xs text-destructive">{formErrors.categoryId}</p>}
             </div>
-            <div className="space-y-2 mx-1" data-field="name">
+            <div className="space-y-2 mx-1" data-error={!!formErrors.name}>
               <Label>Name *</Label>
               <Input
                 value={form.name}
@@ -354,7 +344,7 @@ const SeriesPage = () => {
               {formErrors.name && <p className="text-xs text-destructive">{formErrors.name}</p>}
             </div>
             <div className="space-y-2 mx-1"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} disabled={isLoading} /></div>
-            <div className="space-y-2 mx-1" data-field="image">
+            <div className="space-y-2 mx-1" data-error={!!formErrors.image}>
               <Label>Image *</Label>
               <ImageUpload
                 value={form.image}

@@ -63,7 +63,7 @@ type FormErrors = { name?: string; brandId?: string; categoryId?: string; series
 
 const ServicesPage = () => {
   const { toast } = useToast();
-  const { services, total, createService, updateService, updateServiceStatus, getVariants, hasVariants, isLoading: servicesLoading, error: servicesError, refresh } = useServices();
+  const { services, total, createService, updateService, updateServiceStatus, deleteService, getVariants, hasVariants, isLoading: servicesLoading, error: servicesError, refresh } = useServices();
   const { brands, categories, series: seriesList, products, isLoading: optionsLoading } = useFilterOptions();
   const initialLoading = servicesLoading || optionsLoading;
 
@@ -89,6 +89,8 @@ const ServicesPage = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editing, setEditing] = useState<ServiceRecord | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<ServiceRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ServiceRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ name?: boolean; brandId?: boolean; categoryId?: boolean; seriesId?: boolean; productId?: boolean; basePrice?: boolean; estimatedTime?: boolean }>({});
@@ -437,6 +439,22 @@ const ServicesPage = () => {
         toast({ title: message, variant: 'destructive' });
       }
       setDeactivateTarget(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (deleteTarget) {
+      setIsDeleting(true);
+      try {
+        await deleteService(deleteTarget.id);
+        toast({ title: 'Service deleted successfully', variant: 'success' });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to delete service';
+        toast({ title: message, variant: 'destructive' });
+      } finally {
+        setIsDeleting(false);
+        setDeleteTarget(null);
+      }
     }
   };
 
@@ -868,8 +886,11 @@ const ServicesPage = () => {
                           </td>
                           <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
                             <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => openEdit(s)}>
                                 <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteTarget(s)}>
+                                <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </div>
                           </td>
@@ -906,6 +927,9 @@ const ServicesPage = () => {
                               <div className="flex justify-end gap-1">
                                 <Button variant="ghost" size="icon" className="h-7 w-7 opacity-40 pointer-events-none" disabled>
                                   <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget(v)}>
+                                  <Trash2 className="h-3 w-3" />
                                 </Button>
                               </div>
                             </td>
@@ -1283,7 +1307,7 @@ const ServicesPage = () => {
 
               {!form.hasVariants && (
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div className="space-y-2" data-error={!!formErrors.basePrice}>
                     <Label>Base Price ($) *</Label>
                     <Input
                       type="number"
@@ -1305,7 +1329,7 @@ const ServicesPage = () => {
                     />
                     {formErrors.basePrice && <p className="text-xs text-destructive">{formErrors.basePrice}</p>}
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2" data-error={!!formErrors.estimatedTime}>
                     <Label>Est. Time (min) *</Label>
                     <Input
                       type="number"
@@ -1351,7 +1375,7 @@ const ServicesPage = () => {
                           <Trash2 className="h-3 w-3 text-destructive" />
                         </Button>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2" data-error={!!variantErrors[index]?.name}>
                         <Input
                           placeholder="Variant name (e.g. Original Screen)"
                           value={vi.name}
@@ -1366,7 +1390,7 @@ const ServicesPage = () => {
                         <Input placeholder="Description (optional)" value={vi.description} onChange={e => updateVariantItem(index, 'description', e.target.value)} disabled={initialLoading || isSaving} />
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1" data-error={!!formErrors.basePrice}>
+                        <div className="space-y-1" data-error={!!variantErrors[index]?.basePrice}>
                           <Label className="text-xs">Base Price ($)</Label>
                           <Input
                             type="text"
@@ -1383,7 +1407,7 @@ const ServicesPage = () => {
                           />
                           {variantErrors[index]?.basePrice && <p className="text-xs text-destructive">{variantErrors[index].basePrice}</p>}
                         </div>
-                        <div className="space-y-1" data-error={!!formErrors.estimatedTime}>
+                        <div className="space-y-1" data-error={!!variantErrors[index]?.estimatedTime}>
                           <Label className="text-xs">Est. Time (min)</Label>
                           <Input
                             type="text"
@@ -1537,6 +1561,32 @@ const ServicesPage = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeactivate}>
               {deactivateTarget?.isActive ? 'Deactivate' : 'Activate'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete confirm */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Delete Service?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete <strong className="text-foreground">{deleteTarget?.name}</strong> and all associated product services.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }} 
+              className="bg-destructive hover:bg-destructive/90 text-white"
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -571,10 +571,82 @@ const getServiceByIdService = async (getServiceByIdRequestDto) => {
   );
 };
 
+const deleteServiceService = async (deleteServiceRequestDto, logger) => {
+  const { id: serviceId } = deleteServiceRequestDto;
+  const service = await serviceRepo.getServiceByIdRepo(serviceId);
+  if (!service) {
+    throw new appError.NotFoundError(
+      "Service not found",
+      "The service with the provided ID does not exist.",
+      "Provide a valid service ID and try again.",
+    );
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    let serviceIdsToDelete = [serviceId];
+
+    if (service.isParent) {
+      const variants = await serviceRepo.getVariantsByParentServiceIdRepo(
+        serviceId,
+        session,
+      );
+      if (variants.length > 0) {
+        const variantIds = variants.map((v) => v._id.toString());
+        serviceIdsToDelete = [...serviceIdsToDelete, ...variantIds];
+        
+        logger.info("Service is parent, adding its variants to deletion list", {
+          parentId: serviceId,
+          variantCount: variants.length,
+        });
+      }
+    }
+
+    // 1. Delete ProductServices related to these services
+    await productServiceRepo.deleteProductServicesByServiceIdsRepo(
+      serviceIdsToDelete,
+      session,
+    );
+    logger.info("Product services deleted", {
+      affectedServiceIds: serviceIdsToDelete,
+    });
+
+    // 2. Delete the services themselves (parent and/or variants)
+    await serviceRepo.deleteServicesByIdsRepo(serviceIdsToDelete, session);
+    logger.info("Services deleted", {
+      serviceIds: serviceIdsToDelete,
+    });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    logger.info("Delete service transaction committed successfully", {
+      serviceId,
+    });
+
+    return { serviceId };
+  } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+    session.endSession();
+
+    logger.error("Delete service transaction rolled back", {
+      error: error.message,
+      serviceId,
+    });
+
+    throw error;
+  }
+};
+
 module.exports = {
   createServiceService,
   updateServiceService,
   updateServiceStatusService,
   getAllServicesService,
   getServiceByIdService,
+  deleteServiceService,
 };

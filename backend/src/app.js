@@ -16,6 +16,7 @@ const serviceRoutes = require("./routes/service.route");
 const productServiceRoutes = require("./routes/productService.route");
 const bookingRoutes = require("./routes/booking.route");
 const filterRoutes = require("./routes/filter.route");
+const dashboardRoutes = require("./routes/dashboard.route");
 
 const testLogger = {
   info: () => {},
@@ -78,6 +79,7 @@ const app = (logger = testLogger) => {
   expressApp.use("/api/product-services", productServiceRoutes);
   expressApp.use("/api/bookings", bookingRoutes);
   expressApp.use("/api/filters", filterRoutes);
+  expressApp.use("/api/dashboard", dashboardRoutes);
 
   expressApp.use(invalidJsonHandler);
   expressApp.use(errorHandler);

@@ -38,4 +38,10 @@ router.patch(
   serviceController.updateServiceStatusController,
 );
 
+router.delete(
+  "/:id",
+  validateAdmin,
+  serviceController.deleteServiceController,
+);
+
 module.exports = router;

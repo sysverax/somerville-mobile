@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useBrands } from '@/hooks/useBrands';
 import { Brand } from '@/types';
@@ -55,6 +55,14 @@ const BrandsPage = () => {
   const [requestError, setRequestError] = useState<string | null>(null);
   const [touched, setTouched] = useState<{ name?: boolean; iconImage?: boolean }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
+
+  const scrollToFirstError = () => {
+    setTimeout(() => {
+      const firstError = formRef.current?.querySelector('[data-error="true"]');
+      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  };
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -77,6 +85,7 @@ const BrandsPage = () => {
     const iconErr = validateIcon(form.iconImage);
     if (nameErr || iconErr) {
       setFormErrors({ name: nameErr, iconImage: iconErr });
+      scrollToFirstError();
       return;
     }
     setRequestError(null);
@@ -235,24 +244,26 @@ const BrandsPage = () => {
       <Dialog open={isFormOpen} onOpenChange={handleClose}>
         <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader><DialogTitle>{editing ? 'Edit Brand' : 'Add Brand'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2"><Label>Brand Name *</Label><Input value={form.name}
-              onChange={e => {
-                const val = e.target.value;
-                setForm(f => ({ ...f, name: val }));
-                if (touched.name) {
-                  setFormErrors(prev => ({ ...prev, name: validateName(val) }));
-                }
-              }}
-              onBlur={handleNameBlur}
-              disabled={isLoading} />
+          <div ref={formRef} className="space-y-4">
+            <div className="space-y-2" data-error={!!formErrors.name}>
+              <Label>Brand Name *</Label>
+              <Input value={form.name}
+                onChange={e => {
+                  const val = e.target.value;
+                  setForm(f => ({ ...f, name: val }));
+                  if (touched.name) {
+                    setFormErrors(prev => ({ ...prev, name: validateName(val) }));
+                  }
+                }}
+                onBlur={handleNameBlur}
+                disabled={isLoading} />
               {formErrors.name && (
                 <p className="text-xs text-destructive">{formErrors.name}</p>
               )}
             </div>
             <div className="space-y-2"><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} disabled={isLoading} /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-2" data-error={!!formErrors.iconImage}>
                 <Label>Icon Image *</Label>
                 <ImageUpload value={form.iconImage} onChange={handleIconChange} size={120} />
                 {formErrors.iconImage && (
