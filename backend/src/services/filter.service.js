@@ -26,6 +26,7 @@ const getFilterOptionsService = async (userRole, logger) => {
       id: c._id.toString(),
       name: c.name,
       brandId: c.brandId ? c.brandId.toString() : '',
+      image: c.imageUrl,
       isActive: c.isActive,
     })),
     series: series.map((s) => ({
