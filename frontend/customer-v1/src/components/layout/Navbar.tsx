@@ -40,7 +40,7 @@ const router = useRouter();
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center h-16 gap-8">
+        <div className="flex items-center h-16 justify-between">
           <Link href="/" className="flex items-center gap-2 shrink-0">
             <Image src={logo} alt="Somerville Mobile" width={36} height={36} className="h-9 w-9 rounded-lg object-cover" />
             <span className="font-bold text-base hidden xl:block whitespace-nowrap">
@@ -48,7 +48,7 @@ const router = useRouter();
             </span>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-1 mr-auto">
+          <div className="hidden lg:flex items-center gap-1 flex-1 mx-8">
             {brands.map((brand) => {
               const brandCategories = categories.filter(c => c.brandId === brand.id);
               return (
@@ -124,7 +124,7 @@ const router = useRouter();
             })}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="hidden lg:flex items-center gap-2">
             <Link href="/about">
               <Button variant="ghost" className="text-muted-foreground hover:text-foreground hidden lg:flex items-center gap-2">
                 <Info className="h-4 w-4" />
@@ -145,17 +145,28 @@ const router = useRouter();
             >
               <Search className="h-5 w-5" />
             </Button>
-            <Link href="/booking" className="hidden sm:block">
+            <Link href="/booking">
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-4">
                 <Calendar className="h-4 w-4 mr-2" />
                 Book Now
               </Button>
             </Link>
+          </div>
+
+          <div className="lg:hidden flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSearch(!showSearch)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Search className="h-5 w-5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsOpen(!isOpen)}
-              className="lg:hidden text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground"
             >
               {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>

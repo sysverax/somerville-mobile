@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Wrench, 
   Battery, 
@@ -10,7 +11,9 @@ import {
   HardDrive,
   Clock,
   Award,
-  CheckCircle
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
 const services = [
@@ -53,8 +56,38 @@ const services = [
 ];
 
 const ServiceInfoCards = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
+
+  const handlePrevious = () => {
+    setDirection(-1);
+    setCurrentIndex((prev) => (prev === 0 ? services.length - 1 : prev - 1));
+  };
+
+  const handleNext = () => {
+    setDirection(1);
+    setCurrentIndex((prev) => (prev === services.length - 1 ? 0 : prev + 1));
+  };
+
+  const variants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 300 : -300,
+      opacity: 0
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1
+    },
+    exit: (direction: number) => ({
+      zIndex: 0,
+      x: direction < 0 ? 300 : -300,
+      opacity: 0
+    })
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-12">
       {/* Section Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -69,32 +102,80 @@ const ServiceInfoCards = () => {
         </p>
       </motion.div>
 
-      {/* Service Cards Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {services.map((service, index) => (
-          <motion.div
-            key={service.title}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: index * 0.1 }}
-            className="group p-6 rounded-2xl bg-gradient-card shadow-card glass-hover"
-          >
-            <div className="w-12 h-12 mb-4 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-              <service.icon className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="text-xl font-bold mb-2">{service.title}</h3>
-            <p className="text-muted-foreground text-sm mb-4">{service.description}</p>
-            <ul className="space-y-2">
-              {service.features.map(feature => (
-                <li key={feature} className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="h-4 w-4 text-primary" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-        ))}
+      {/* Service Carousel */}
+      <div className="relative max-w-4xl mx-auto">
+        <div className="relative overflow-hidden min-h-[350px] flex items-center justify-center">
+          <AnimatePresence initial={false} custom={direction} mode="popLayout">
+            <motion.div
+              key={currentIndex}
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                x: { type: "spring", stiffness: 600, damping: 50 },
+                opacity: { duration: 0.15 }
+              }}
+              className="w-full flex-shrink-0"
+            >
+              <div className="group p-8 sm:p-12 rounded-2xl bg-gradient-card shadow-card border border-border/50 relative overflow-hidden">
+                {/* Instagram-style Count Badge (Top Right) */}
+                <div className="absolute top-4 right-4 px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-medium text-white/70 z-20 border border-white/5 shadow-sm select-none tracking-wider">
+                  {currentIndex + 1} / {services.length}
+                </div>
+
+                <div className="space-y-6 relative z-10 px-2">
+                  {/* Icon and Name in One Row */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors shrink-0">
+                      {(() => {
+                        const Icon = services[currentIndex].icon;
+                        return <Icon className="h-6 w-6 text-primary" />;
+                      })()}
+                    </div>
+                    <h3 className="text-xl font-bold group-hover:text-primary transition-colors">
+                      {services[currentIndex].title}
+                    </h3>
+                  </div>
+                  
+                  {/* Description and Features below */}
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      {services[currentIndex].description}
+                    </p>
+                    
+                    <div className="grid sm:grid-cols-3 gap-2">
+                      {services[currentIndex].features.map(feature => (
+                        <div key={feature} className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="h-4 w-4 text-primary" />
+                          <span>{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Navigation Buttons (Inside Card) */}
+                <button
+                  onClick={handlePrevious}
+                  className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors z-20"
+                  aria-label="Previous service"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+
+                <button
+                  onClick={handleNext}
+                  className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors z-20"
+                  aria-label="Next service"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Trust Badges */}
@@ -102,16 +183,16 @@ const ServiceInfoCards = () => {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="grid sm:grid-cols-3 gap-4 pt-8"
+        className="grid sm:grid-cols-3 gap-4 pt-12 border-t border-border/10"
       >
         {[
           { icon: Clock, title: "Fast Turnaround", subtitle: "Most repairs same day" },
           { icon: Award, title: "Certified Technicians", subtitle: "Factory trained experts" },
           { icon: Shield, title: "Warranty Included", subtitle: "90-day service guarantee" },
-        ].map((badge, index) => (
+        ].map((badge) => (
           <div 
             key={badge.title}
-            className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-primary/10"
+            className="flex items-center gap-4 p-5 rounded-xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors"
           >
             <div className="p-3 rounded-lg bg-primary/10">
               <badge.icon className="h-6 w-6 text-primary" />
