@@ -101,6 +101,7 @@ const getAllProductsRepo = async (
   seriesId,
   categoryId,
   brandId,
+  search,
   sortOrder = "desc",
 ) => {
   const skip = (page - 1) * limit;
@@ -112,6 +113,9 @@ const getAllProductsRepo = async (
   }
   if (seriesId) {
     matchFilter.seriesId = new mongoose.Types.ObjectId(seriesId);
+  }
+  if (search) {
+    matchFilter.name = { $regex: search, $options: "i" };
   }
 
   // ── 2. Build post-lookup filters in one object ──
@@ -143,23 +147,11 @@ const getAllProductsRepo = async (
         foreignField: "_id",
         as: "seriesId",
         pipeline: [
-          {
-            $project: {
-              _id: 1,
-              name: 1,
-              isActive: 1,
-              categoryId: 1,
-            },
-          },
+          { $project: { _id: 1, name: 1, isActive: 1, categoryId: 1 } },
         ],
       },
     },
-    {
-      $unwind: {
-        path: "$seriesId",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
+    { $unwind: { path: "$seriesId", preserveNullAndEmptyArrays: true } },
 
     // ── 5. Join category — fetch only needed fields ──
     {
@@ -168,16 +160,7 @@ const getAllProductsRepo = async (
         localField: "seriesId.categoryId",
         foreignField: "_id",
         as: "seriesId.categoryId",
-        pipeline: [
-          {
-            $project: {
-              _id: 1,
-              name: 1,
-              isActive: 1,
-              brandId: 1,
-            },
-          },
-        ],
+        pipeline: [{ $project: { _id: 1, name: 1, isActive: 1, brandId: 1 } }],
       },
     },
     {
@@ -194,15 +177,7 @@ const getAllProductsRepo = async (
         localField: "seriesId.categoryId.brandId",
         foreignField: "_id",
         as: "seriesId.categoryId.brandId",
-        pipeline: [
-          {
-            $project: {
-              _id: 1,
-              name: 1,
-              isActive: 1,
-            },
-          },
-        ],
+        pipeline: [{ $project: { _id: 1, name: 1, isActive: 1 } }],
       },
     },
     {
@@ -213,21 +188,48 @@ const getAllProductsRepo = async (
     },
 
     // ── 7. Apply all post-lookup filters in one $match ──
-...(Object.keys(postLookupFilters).length > 0
-  ? [{ $match: postLookupFilters }]
-  : []),
+    ...(Object.keys(postLookupFilters).length > 0
+      ? [{ $match: postLookupFilters }]
+      : []),
 
-// ── 8. Facet — sort + paginate vs count in separate branches ──
-{
-  $facet: {
-    products: [
-      { $sort: { createdAt: sortOrder === "asc" ? 1 : -1 } },  // 👈 keeps sortOrder from feature branch
-      { $skip: skip },
-      { $limit: limit },
-    ],
-    total: [{ $count: "count" }],
-  },
-},
+    // ── 8. Join product_services for service counts (from HEAD) ──
+    {
+      $lookup: {
+        from: "product_services",
+        localField: "_id",
+        foreignField: "productId",
+        as: "services_data",
+      },
+    },
+
+    // ── 9. Compute service counts (from HEAD) ──
+    {
+      $addFields: {
+        activeServiceCount: {
+          $size: {
+            $filter: {
+              input: "$services_data",
+              as: "svc",
+              cond: { $eq: ["$$svc.isActive", true] },
+            },
+          },
+        },
+        totalServiceCount: { $size: "$services_data" },
+      },
+    },
+
+    // ── 10. Facet — sort + paginate vs count in separate branches ──
+    {
+      $facet: {
+        products: [
+          { $sort: { createdAt: sortOrder === "asc" ? 1 : -1 } }, // 👈 sortOrder from main
+          { $skip: skip },
+          { $limit: limit },
+          { $project: { services_data: 0 } }, // 👈 cleanup from HEAD
+        ],
+        total: [{ $count: "count" }],
+      },
+    },
   ];
 
   const result = await Product.aggregate(pipeline);

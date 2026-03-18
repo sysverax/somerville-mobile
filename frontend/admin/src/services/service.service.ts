@@ -84,6 +84,7 @@ export type UpdateServiceInput = {
     estimatedTime: number;
     isActive?: boolean;
   }>;
+  isParent?: boolean;
 };
 
 export type GetServicesFilters = {
@@ -232,6 +233,7 @@ export const serviceService = {
     if (input.variants !== undefined) payload.variants = input.variants;
     if (input.removeVariants !== undefined) payload.removeVariants = input.removeVariants;
     if (input.newVariants !== undefined) payload.newVariants = input.newVariants;
+    if (input.isParent !== undefined) payload.isParent = input.isParent;
 
     const response = await fetch(`${API_BASE_URL}/api/services/${id}`, {
       method: 'PATCH',

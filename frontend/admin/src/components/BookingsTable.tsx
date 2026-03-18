@@ -1,6 +1,7 @@
 import { Booking } from '@/types';
 import { Loader2 } from 'lucide-react';
 import EmptyState from '@/components/EmptyState';
+import { formatDateTime, formatDate, formatTime } from '@/utils/dateUtils';
 
 interface BookingsTableProps {
   bookings: Booking[];
@@ -42,8 +43,8 @@ const BookingsTable = ({ bookings, loading = false, compact = false, onRowClick 
               className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
               onClick={() => onRowClick?.(b)}
             >
-              <td className="py-3 px-4">{b.date}</td>
-              <td className="py-3 px-4">{b.timeSlot}</td>
+              <td className="py-3 px-4">{formatDate(b.date)}</td>
+              <td className="py-3 px-4">{formatTime(b.timeSlot)}</td>
               <td className="py-3 px-4">{b.customerName}</td>
               {!compact && (
                 <td className="py-3 px-4 hidden md:table-cell">
@@ -71,7 +72,7 @@ const BookingsTable = ({ bookings, loading = false, compact = false, onRowClick 
               )}
               <td className="py-3 px-4">{b.productName}</td>
               <td className="py-3 px-4">{b.serviceName}</td>
-              {!compact && <td className="py-3 px-4">{b.createdAt}</td>}
+              {!compact && <td className="py-3 px-4">{formatDateTime(b.createdAt)}</td>}
             </tr>
           ))}
           {bookings.length === 0 && (
