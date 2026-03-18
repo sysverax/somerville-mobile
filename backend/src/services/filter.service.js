@@ -4,13 +4,16 @@ const Series = require("../models/series");
 const Product = require("../models/product");
 
 const getFilterOptionsService = async (userRole, logger) => {
-  logger.info("Service: Getting all filter options for admin");
+  const isAdmin = userRole === "admin";
+  logger.info(`Service: Getting all filter options for ${isAdmin ? "admin" : "public"}`);
+
+  const query = isAdmin ? {} : { isActive: true };
 
   const [brands, categories, series, products] = await Promise.all([
-    Brand.find({}).sort({ name: 1 }).lean(),
-    Category.find({}).sort({ name: 1 }).lean(),
-    Series.find({}).sort({ name: 1 }).lean(),
-    Product.find({}).sort({ name: 1 }).lean(),
+    Brand.find(query).sort({ name: 1 }).lean(),
+    Category.find(query).sort({ name: 1 }).lean(),
+    Series.find(query).sort({ name: 1 }).lean(),
+    Product.find(query).sort({ name: 1 }).lean(),
   ]);
 
   return {
@@ -23,6 +26,7 @@ const getFilterOptionsService = async (userRole, logger) => {
       id: c._id.toString(),
       name: c.name,
       brandId: c.brandId ? c.brandId.toString() : '',
+      image: c.imageUrl,
       isActive: c.isActive,
     })),
     series: series.map((s) => ({

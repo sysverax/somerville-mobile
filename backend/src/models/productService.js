@@ -35,4 +35,10 @@ const productServiceSchema = new mongoose.Schema(
   },
 );
 
+productServiceSchema.index({ serviceId: 1 });
+productServiceSchema.index({ productId: 1 });
+productServiceSchema.index({ serviceId: 1, productId: 1 });
+productServiceSchema.index({ serviceId: 1, isDefault: 1 });
+productServiceSchema.index({ serviceId: 1, isDefault: 1, isActive: 1 });
+
 module.exports = mongoose.model("ProductService", productServiceSchema);

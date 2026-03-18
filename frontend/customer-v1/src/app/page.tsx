@@ -1,25 +1,41 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ArrowRight, Zap } from "lucide-react";
+import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowRight, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/src/components/ui/button";
 import {
-  getStorefrontBrands,
-  getStorefrontLatestSeries,
-  getStorefrontFeaturedProducts,
+  type StorefrontSeries,
+  type StorefrontProduct,
 } from "@/src/services";
+import { useFilterOptions } from "@/src/hooks/useFilterOptions";
+import { useBrands } from "@/src/hooks/useBrands";
+import { useSeries } from "@/src/hooks/useSeries";
 import BrandCard from "@/src/components/cards/BrandCard";
 import SeriesCard from "@/src/components/cards/SeriesCard";
-import ProductCard from "@/src/components/cards/ProductCard";
 import Layout from "@/src/components/layout/Layout";
 import ProductFilterCard from "@/src/components/home/ProductFilterCard";
 import ServiceInfoCards from "@/src/components/home/ServiceInfoCards";
 
 const Index = () => {
-  const brands = getStorefrontBrands();
-  const latestSeries = getStorefrontLatestSeries();
-  const featuredProducts = getStorefrontFeaturedProducts();
+  const { data: filterOptions, loading: filterLoading } = useFilterOptions();
+  const { data: brands, loading: brandsLoading } = useBrands();
+  const { data: allSeries, loading: seriesLoading } = useSeries();
+  const [currentSeriesIndex, setCurrentSeriesIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
+
+  const latestSeries = useMemo(() => allSeries.slice(0, 3), [allSeries]);
+
+  const handlePrevious = () => {
+    setDirection(-1);
+    setCurrentSeriesIndex((prev) => (prev === 0 ? latestSeries.length - 1 : prev - 1));
+  };
+
+  const handleNext = () => {
+    setDirection(1);
+    setCurrentSeriesIndex((prev) => (prev === latestSeries.length - 1 ? 0 : prev + 1));
+  };
 
   return (
     <Layout>
@@ -38,9 +54,15 @@ const Index = () => {
               transition={{ duration: 0.8 }}
               className="space-y-8"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+              <div className="flex flex-wrap gap-3">
+                {/* <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
                 <Zap className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium text-primary">New Arrivals Available</span>
+                </div> */}
+                <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+                  <Zap className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Fast Repair Service</span>
+                </div>
               </div>
 
               <h1 className="text-5xl md:text-7xl font-bold leading-tight">
@@ -53,19 +75,16 @@ const Index = () => {
                 genuine accessories, and professional service all in one place.
               </p>
 
-              <div className="flex flex-wrap gap-4">
-                {/* TODO: If need shop now please uncomment the following section */}
-                {/*Shop feature */}
-                {/* <Link href="/brand?mode=shop">
-                  <Button size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 animate-pulse-glow">
-                    Shop Now
+              <div className="flex flex-row flex-wrap gap-4">
+                <Link href="/brand?mode=service">
+                  <Button size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 animate-pulse-glow w-52">
+                    Explore Repair Services  
                     <ArrowRight className="h-5 w-5" />
                   </Button>
-                </Link> */}
-                <Link href="/brand?mode=service">
-                  <Button size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 animate-pulse-glow">
-                    Repair Service
-                    <ArrowRight className="h-5 w-5" />
+                </Link>
+                <Link href="/booking">
+                  <Button size="lg" variant="outline" className="bg-transparent border-gray-400/50 hover:bg-gray-50/80 hover:border-gray-500/70 gap-2 w-52">
+                    Book Service Slot
                   </Button>
                 </Link>
               </div>
@@ -115,28 +134,63 @@ const Index = () => {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            {/* TODO: If need shop now please uncomment the following section and remove service related h2 and p*/}
-            {/* Shop feature */}
-            {/* <h2 className="text-3xl md:text-4xl font-bold mb-4">Shop by Brand</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Explore our curated selection of premium mobile devices from the world's leading brands
-            </p> */}
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Select Your Device Brand</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">Choose your device brand to explore our repair services</p>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-            {brands.map((brand, index) => (
-              <BrandCard key={brand.id} brand={brand} index={index} />
-            ))}
-          </div>
+          {brandsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <>
+              {/* MOBILE: Horizontal scroll with arrows */}
+              <div className="md:hidden relative">
+                <div 
+                  id="brand-scroll-container"
+                  className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide scroll-smooth snap-x px-10"
+                >
+                  <style jsx>{`
+                    .scrollbar-hide::-webkit-scrollbar { display: none; }
+                    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+                  `}</style>
+                  {brands.map((brand, index) => (
+                    <div key={brand.id} className="flex-shrink-0 w-32 snap-start">
+                      <BrandCard brand={brand} index={index} href={`/brand/${brand.id}?mode=service`} />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => { const c = document.getElementById('brand-scroll-container'); if (c) c.scrollBy({ left: -300, behavior: 'smooth' }); }}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                  aria-label="Scroll left"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => { const c = document.getElementById('brand-scroll-container'); if (c) c.scrollBy({ left: 300, behavior: 'smooth' }); }}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                  aria-label="Scroll right"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* DESKTOP: Responsive grid, no scroll */}
+              <div className="hidden md:grid grid-cols-4 lg:grid-cols-5 gap-6">
+                {brands.map((brand, index) => (
+                  <BrandCard key={brand.id} brand={brand} index={index} href={`/brand/${brand.id}?mode=service`} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </section>
 
       {/* Product Filter Section */}
       <section className="py-12 bg-gradient-dark">
         <div className="container mx-auto px-4">
-          <ProductFilterCard />
+          <ProductFilterCard options={filterOptions} loading={filterLoading} />
         </div>
       </section>
 
@@ -153,49 +207,94 @@ const Index = () => {
               <h2 className="text-3xl md:text-4xl font-bold mb-2">Latest Series</h2>
               <p className="text-muted-foreground">Discover the newest product lines</p>
             </div>
-            {/* <Button variant="outline" className="hidden md:flex gap-2">
-              View All
-              <ArrowRight className="h-4 w-4" />
-            </Button> */}
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {latestSeries.slice(0, 3).map((s, index) => (
-              <SeriesCard key={s.id} series={s} index={index} />
-            ))}
+          <div className="relative w-full">
+            {latestSeries.length > 0 && (
+              <>
+                {/* MOBILE: Single card carousel */}
+                <div className="md:hidden">
+                  <div className="relative">
+                    <div className="overflow-hidden rounded-2xl flex items-center justify-center">
+                      <AnimatePresence initial={false} custom={direction} mode="popLayout">
+                        <motion.div
+                          key={currentSeriesIndex}
+                          custom={direction}
+                          initial={{ opacity: 0, x: direction > 0 ? 300 : -300 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: direction > 0 ? -300 : 300 }}
+                          transition={{ 
+                            x: { type: "spring", stiffness: 600, damping: 50 },
+                            opacity: { duration: 0.15 }
+                          }}
+                          className="w-full flex-shrink-0"
+                        >
+                          <div className="relative">
+                            <SeriesCard 
+                              key={latestSeries[currentSeriesIndex].id} 
+                              series={latestSeries[currentSeriesIndex]} 
+                              index={0} 
+                              showProducts={false} 
+                            />
+                            
+                            <button
+                              onClick={handlePrevious}
+                              className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                              aria-label="Previous series"
+                            >
+                              <ChevronLeft className="h-5 w-5" />
+                            </button>
+                            
+                            <button
+                              onClick={handleNext}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                              aria-label="Next series"
+                            >
+                              <ChevronRight className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Series Indicators */}
+                    <div className="flex justify-center gap-2 mt-6">
+                      {latestSeries.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setDirection(index > currentSeriesIndex ? 1 : -1);
+                            setCurrentSeriesIndex(index);
+                          }}
+                          className={`w-2 h-2 rounded-full transition-all ${
+                            index === currentSeriesIndex 
+                              ? "bg-primary w-8" 
+                              : "bg-gray-400 hover:bg-gray-600"
+                          }`}
+                          aria-label={`Go to series ${index + 1}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* DESKTOP: Grid of all series */}
+                <div className="hidden md:grid md:grid-cols-3 gap-6">
+                  {latestSeries.map((series, index) => (
+                    <SeriesCard
+                      key={series.id}
+                      series={series}
+                      index={index}
+                      showProducts={false}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
 
-      {/* TODO: If need shop now please uncomment the following section */}
-      {/* TODO: Featured Products Section */}
-      {/* <section className="py-20 bg-gradient-dark">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="flex items-center justify-between mb-12"
-          >
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-2">Featured Products</h2>
-              <p className="text-muted-foreground">Handpicked devices for you</p>
-            </div>
-            <Button variant="outline" className="hidden md:flex gap-2">
-              View All
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </motion.div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} />
-            ))}
-          </div>
-        </div>
-      </section> */}
-
-      {/* TODO: If need shop now please change classname as py-20 */}
       {/* Services Section */}
       <section className="py-20 bg-gradient-dark">
         <div className="container mx-auto px-4">

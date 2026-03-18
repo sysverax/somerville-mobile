@@ -31,4 +31,10 @@ const categorySchema = new mongoose.Schema(
   },
 );
 
+// Define indexes for the categories collection
+categorySchema.index({ brandId: 1 });
+categorySchema.index({ isActive: 1 });
+categorySchema.index({ createdAt: -1 });
+categorySchema.index({ brandId: 1, isActive: 1, createdAt: -1 });
+
 module.exports = mongoose.model("Category", categorySchema);

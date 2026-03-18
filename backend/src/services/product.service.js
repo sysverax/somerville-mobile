@@ -211,6 +211,7 @@ const getAllProductsService = async (getAllProductsRequestDto, logger) => {
   logger.info("Fetching products with pagination", {
     page: getAllProductsRequestDto.page,
     limit: getAllProductsRequestDto.limit,
+    sortOrder: getAllProductsRequestDto.sortOrder,
     userRole: getAllProductsRequestDto.userRole,
     seriesId: getAllProductsRequestDto.seriesId,
     categoryId: getAllProductsRequestDto.categoryId,
@@ -225,6 +226,7 @@ const getAllProductsService = async (getAllProductsRequestDto, logger) => {
     getAllProductsRequestDto.categoryId,
     getAllProductsRequestDto.brandId,
     getAllProductsRequestDto.search,
+    getAllProductsRequestDto.sortOrder,
   );
 
   return new productResponseDto.GetAllProductsResponseDTO(

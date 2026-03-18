@@ -8,7 +8,12 @@ import {
   getStorefrontProductsBySeries,
   getStorefrontCategoryById,
   getStorefrontBrandById,
+  type StorefrontBrand,
+  type StorefrontCategory,
+  type StorefrontSeries,
+  type StorefrontProduct,
 } from "@/src/services";
+import { useState, useEffect } from "react";
 import Layout from "@/src/components/layout/Layout";
 import ProductCard from "@/src/components/cards/ProductCard";
 
@@ -18,10 +23,54 @@ type Props = {
 
 const SeriesPage = ({ params }: Props) => {
   const { id: seriesId } = use(params);
-  const series = getStorefrontSeriesById(seriesId || "");
-  const products = getStorefrontProductsBySeries(seriesId || "");
-  const category = series ? getStorefrontCategoryById(series.categoryId) : null;
-  const brand = category ? getStorefrontBrandById(category.brandId) : null;
+  
+  const [series, setSeries] = useState<StorefrontSeries | null>(null);
+  const [products, setProducts] = useState<StorefrontProduct[]>([]);
+  const [category, setCategory] = useState<StorefrontCategory | null>(null);
+  const [brand, setBrand] = useState<StorefrontBrand | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!seriesId) return;
+
+    setLoading(true);
+    const fetchData = async () => {
+      try {
+        const s = await getStorefrontSeriesById(seriesId);
+        setSeries(s || null);
+        
+        if (s) {
+          const [prods, cat] = await Promise.all([
+            getStorefrontProductsBySeries(seriesId),
+            getStorefrontCategoryById(s.categoryId)
+          ]);
+          setProducts(prods);
+          setCategory(cat || null);
+          
+          if (cat) {
+            const b = await getStorefrontBrandById(cat.brandId);
+            setBrand(b || null);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch series data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [seriesId]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="min-h-[60vh] flex items-center justify-center bg-gradient-dark">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
 
   if (!series) {
     return (

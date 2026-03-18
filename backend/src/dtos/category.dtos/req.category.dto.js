@@ -225,6 +225,7 @@ class GetAllCategoriesRequestDTO {
     this.page = query.page ? parseInt(query.page, 10) : 1;
     this.limit = query.limit ? parseInt(query.limit, 10) : 10;
     this.brandId = query.brandId || null;
+    this.sortOrder = query.sortOrder || "desc";
     this.userRole = userRole;
   }
   validate() {
@@ -247,6 +248,13 @@ class GetAllCategoriesRequestDTO {
         "Invalid Brand ID format",
         "The 'brandId' query parameter must be a valid MongoDB ObjectId.",
         "Provide a valid brand ID and try again.",
+      );
+    }
+    if (this.sortOrder && !["asc", "desc"].includes(this.sortOrder)) {
+      throw new appError.BadRequestError(
+        "Invalid sort order",
+        "The 'sortOrder' query parameter must be either 'asc' or 'desc'.",
+        "Provide a valid sort order and try again.",
       );
     }
   }

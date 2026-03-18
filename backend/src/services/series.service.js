@@ -140,6 +140,7 @@ const getAllSeriesService = async (getAllSeriesRequestDto, logger) => {
   logger.info("Fetching series with pagination", {
     page: getAllSeriesRequestDto.page,
     limit: getAllSeriesRequestDto.limit,
+    sortOrder: getAllSeriesRequestDto.sortOrder,
     userRole: getAllSeriesRequestDto.userRole,
     categoryId: getAllSeriesRequestDto.categoryId,
     brandId: getAllSeriesRequestDto.brandId,
@@ -150,6 +151,7 @@ const getAllSeriesService = async (getAllSeriesRequestDto, logger) => {
     getAllSeriesRequestDto.userRole,
     getAllSeriesRequestDto.categoryId,
     getAllSeriesRequestDto.brandId,
+    getAllSeriesRequestDto.sortOrder,
   );
   return new seriesResponseDto.GetAllSeriesResponseDTO(
     series,

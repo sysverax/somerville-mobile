@@ -240,6 +240,7 @@ class GetAllProductsRequestDTO {
     this.categoryId = query.categoryId;
     this.brandId = query.brandId;
     this.search = query.search || "";
+    this.sortOrder = query.sortOrder || "desc";
   }
 
   validate() {
@@ -280,6 +281,14 @@ class GetAllProductsRequestDTO {
         "Invalid brand id format",
         "Provided brand id is not a valid MongoDB ObjectId.",
         "Provide a valid brand id and try again.",
+      );
+    }
+
+    if (this.sortOrder && !["asc", "desc"].includes(this.sortOrder)) {
+      throw new appError.BadRequestError(
+        "Invalid sort order",
+        "The 'sortOrder' query parameter must be either 'asc' or 'desc'.",
+        "Provide a valid sort order and try again.",
       );
     }
   }

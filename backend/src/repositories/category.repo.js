@@ -50,7 +50,7 @@ const updateCategoryStatusRepo = async (id, isActive) => {
     .lean();
 };
 
-const getAllCategoriesRepo = async (page, limit, userRole, brandId) => {
+const getAllCategoriesRepo = async (page, limit, userRole, brandId, sortOrder = "desc") => {
   const skip = (page - 1) * limit;
 
   const matchFilter = {};
@@ -81,7 +81,7 @@ const getAllCategoriesRepo = async (page, limit, userRole, brandId) => {
           },
         ]
       : []),
-    { $sort: { createdAt: -1 } },
+    { $sort: { createdAt: sortOrder === "asc" ? 1 : -1 } },
     {
       $facet: {
         categories: [{ $skip: skip }, { $limit: limit }],

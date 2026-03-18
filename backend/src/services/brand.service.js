@@ -53,12 +53,14 @@ const getAllBrandsService = async (getAllBradsRequestDto, logger) => {
   logger.info("Fetching brands with pagination", {
     page: getAllBradsRequestDto.page,
     limit: getAllBradsRequestDto.limit,
+    sortOrder: getAllBradsRequestDto.sortOrder,
     userRole: getAllBradsRequestDto.userRole,
   });
   const { brands, totalBrands } = await brandRepo.getAllBrandsRepo(
     getAllBradsRequestDto.page,
     getAllBradsRequestDto.limit,
     getAllBradsRequestDto.userRole,
+    getAllBradsRequestDto.sortOrder,
   );
   return new brandResponseDto.GetAllBrandsResponseDTO(
     brands,

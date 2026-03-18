@@ -7,3 +7,4 @@ export * from './stockService';
 export * from './serviceService';
 export * from './bookingService';
 export * from './storefrontService';
+export * from './filterService';

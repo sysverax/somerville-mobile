@@ -1,24 +1,44 @@
 "use client"; 
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";       
 import Image from "next/image";      
 import { useRouter } from "next/navigation";
 import { Search, Menu, X, ChevronDown, Calendar, Info, Phone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getStorefrontBrands, getStorefrontCategoriesByBrand } from "@/src/services";
+import { useFilterOptions } from "@/src/hooks/useFilterOptions";
 import logo from "@/public/logo.jpeg";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 
 const Navbar = () => {
-  const brands = getStorefrontBrands();
+  const { data: filterOptions } = useFilterOptions();
+  const brands = filterOptions.brands;
+  const categories = filterOptions.categories;
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [activeBrand, setActiveBrand] = useState<string | null>(null);
   const [mobileExpandedBrand, setMobileExpandedBrand] = useState<string | null>(null);
-const router = useRouter();
+  const searchRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  // Close search when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearch(false);
+      }
+    };
+
+    if (showSearch) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSearch]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +58,7 @@ const router = useRouter();
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 gap-4">
+        <div className="flex items-center h-16 justify-between">
           <Link href="/" className="flex items-center gap-2 shrink-0">
             <Image src={logo} alt="Somerville Mobile" width={36} height={36} className="h-9 w-9 rounded-lg object-cover" />
             <span className="font-bold text-base hidden xl:block whitespace-nowrap">
@@ -46,9 +66,9 @@ const router = useRouter();
             </span>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1 flex-1 mx-8">
             {brands.map((brand) => {
-              const brandCategories = getStorefrontCategoriesByBrand(brand.id);
+              const brandCategories = categories.filter(c => c.brandId === brand.id);
               return (
                 <div
                   key={brand.id}
@@ -63,60 +83,66 @@ const router = useRouter();
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                     }`}
                   >
-                    {brand.name}
-                    {brandCategories.length > 0 && (
+                      {brand.name}
                       <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
                         activeBrand === brand.id ? "rotate-180" : ""
                       }`} />
-                    )}
-                  </button>
+                    </button>
 
-                  <AnimatePresence>
-                    {activeBrand === brand.id && brandCategories.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute top-full left-0 pt-2 min-w-[220px]"
-                      >
-                        <div className="bg-card/95 backdrop-blur-xl rounded-xl border border-border shadow-xl p-2">
-                          {brandCategories.map((category) => (
-                            <button
-                              key={category.id}
-                              onClick={() => handleCategoryClick(category.id)}
-                              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-secondary/50 transition-colors group text-left"
-                            >
-                              <div className="w-10 h-10  flex-shrink-0 rounded-lg overflow-hidden bg-secondary">
-                                <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+                    <AnimatePresence>
+                      {activeBrand === brand.id && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute top-full left-0 pt-2 min-w-[220px]"
+                        >
+                          <div className="bg-card/95 backdrop-blur-xl rounded-xl border border-border shadow-xl p-2">
+                            {brandCategories.length > 0 ? (
+                              brandCategories.map((category) => (
+                                <button
+                                  key={category.id}
+                                  onClick={() => handleCategoryClick(category.id)}
+                                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-secondary/50 transition-colors group text-left"
+                                >
+                                  <div className="w-10 h-10  flex-shrink-0 rounded-lg overflow-hidden bg-secondary">
+                                    <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm group-hover:text-primary transition-colors">
+                                      {category.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground line-clamp-1">
+                                      {category.description}
+                                    </p>
+                                  </div>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="px-4 py-4 text-center">
+                                <p className="text-sm text-muted-foreground whitespace-nowrap">No categories available</p>
                               </div>
-                              <div>
-                                <p className="font-medium text-sm group-hover:text-primary transition-colors">
-                                  {category.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground line-clamp-1">
-                                  {category.description}
-                                </p>
-                              </div>
-                            </button>
-                          ))}
-                          <Link
-                            href={`/brand/${brand.id}`}
-                            onClick={() => setActiveBrand(null)}
-                            className="block w-full text-center text-sm text-primary font-medium px-4 py-2 mt-2 rounded-lg hover:bg-primary/10 transition-colors border-t border-border whitespace-nowrap"
-                          >
-                            View All {brand.name} →
-                          </Link>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                            )}
+                            {brandCategories.length > 0 && (
+                              <Link
+                                href={`/brand/${brand.id}`}
+                                onClick={() => setActiveBrand(null)}
+                                className="block w-full text-center text-sm text-primary font-medium px-4 py-2 mt-2 rounded-lg hover:bg-primary/10 transition-colors border-t border-border whitespace-nowrap"
+                              >
+                                View All {brand.name} →
+                              </Link>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                 </div>
               );
             })}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="hidden lg:flex items-center gap-2">
             <Link href="/about">
               <Button variant="ghost" className="text-muted-foreground hover:text-foreground hidden lg:flex items-center gap-2">
                 <Info className="h-4 w-4" />
@@ -137,17 +163,28 @@ const router = useRouter();
             >
               <Search className="h-5 w-5" />
             </Button>
-            <Link href="/booking" className="hidden sm:block">
+            <Link href="/booking">
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-4">
                 <Calendar className="h-4 w-4 mr-2" />
                 Book Now
               </Button>
             </Link>
+          </div>
+
+          <div className="lg:hidden flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSearch(!showSearch)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Search className="h-5 w-5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsOpen(!isOpen)}
-              className="lg:hidden text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground"
             >
               {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
@@ -157,6 +194,7 @@ const router = useRouter();
         <AnimatePresence>
           {showSearch && (
             <motion.div
+              ref={searchRef}
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -215,7 +253,7 @@ const router = useRouter();
               </Link>
               
               {brands.map((brand) => {
-                const brandCategories = getStorefrontCategoriesByBrand(brand.id);
+                const brandCategories = categories.filter(c => c.brandId === brand.id);
                 const isExpanded = mobileExpandedBrand === brand.id;
                 
                 return (
@@ -225,15 +263,13 @@ const router = useRouter();
                       className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary/50 rounded-lg transition-all duration-200"
                     >
                       <span>{brand.name}</span>
-                      {brandCategories.length > 0 && (
-                        <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
-                          isExpanded ? "rotate-180" : ""
-                        }`} />
-                      )}
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${
+                        isExpanded ? "rotate-180" : ""
+                      }`} />
                     </button>
                     
                     <AnimatePresence>
-                      {isExpanded && brandCategories.length > 0 && (
+                      {isExpanded && (
                         <motion.div
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
@@ -241,25 +277,31 @@ const router = useRouter();
                           className="overflow-hidden"
                         >
                           <div className="pl-4 pb-2 space-y-1">
-                            {brandCategories.map((category) => (
-                              <button
-                                key={category.id}
-                                onClick={() => handleCategoryClick(category.id)}
-                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/30 rounded-lg transition-colors"
+                            {brandCategories.length > 0 ? (
+                              brandCategories.map((category) => (
+                                <button
+                                  key={category.id}
+                                  onClick={() => handleCategoryClick(category.id)}
+                                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/30 rounded-lg transition-colors"
+                                >
+                                  <div className="w-8 h-8 rounded-md overflow-hidden bg-secondary">
+                                    <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+                                  </div>
+                                  <span>{category.name}</span>
+                                </button>
+                              ))
+                            ) : (
+                              <p className="px-4 py-4 text-xs text-muted-foreground italic">No categories available</p>
+                            )}
+                            {brandCategories.length > 0 && (
+                              <Link
+                                href={`/brand/${brand.id}`}
+                                onClick={() => setIsOpen(false)}
+                                className="block text-sm text-primary font-medium px-4 py-2 hover:underline"
                               >
-                                <div className="w-8 h-8 rounded-md overflow-hidden bg-secondary">
-                                  <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
-                                </div>
-                                <span>{category.name}</span>
-                              </button>
-                            ))}
-                            <Link
-                              href={`/brand/${brand.id}`}
-                              onClick={() => setIsOpen(false)}
-                              className="block text-sm text-primary font-medium px-4 py-2 hover:underline"
-                            >
-                              View All {brand.name} →
-                            </Link>
+                                View All {brand.name} →
+                              </Link>
+                            )}
                           </div>
                         </motion.div>
                       )}

@@ -3,13 +3,16 @@ import { motion } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState, Suspense, use } from "react";
+import { useState, Suspense, use, useEffect, useMemo } from "react";
 import {
-  getStorefrontBrands,
   getStorefrontBrandById,
-  getStorefrontCategoriesByBrand,
   getStorefrontSeriesByCategory,
+  getStorefrontSeries,
+  type StorefrontBrand,
+  type StorefrontSeries,
 } from "@/src/services";
+import { useFilterOptions } from "@/src/hooks/useFilterOptions";
+import { useBrands } from "@/src/hooks/useBrands";
 import Layout from "@/src/components/layout/Layout";
 import CategoryCard from "@/src/components/cards/CategoryCard";
 import SeriesCard from "@/src/components/cards/SeriesCard";
@@ -23,17 +26,71 @@ type Props = {
 
 const BrandContent = ({ params }: Props) => {
    const resolvedParams = use(params);
-  // Get the first ID from the array (e.g., /brand/b3 -> id is ["b3"])
   const brandId = resolvedParams.id?.[0]; 
   const searchParams = useSearchParams();
-  const mode = searchParams?.get("mode") || "service"; // Default to "service" mode if not specified
+  const mode = searchParams?.get("mode") || "service"; 
   
-  const brands = getStorefrontBrands();
-  const brand = getStorefrontBrandById(brandId || "");
-  const categories = getStorefrontCategoriesByBrand(brandId || "");
+  const { data: filterOptions } = useFilterOptions();
+  const { data: brands, loading: brandsLoading } = useBrands();
+  const [brand, setBrand] = useState<StorefrontBrand | null>(null);
+  const [loadingBrand, setLoadingBrand] = useState(true);
+  const categories = useMemo(() => {
+    if (!brandId) return [];
+    return filterOptions.categories.filter(c => c.brandId === brandId);
+  }, [brandId, filterOptions.categories]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [filteredSeries, setFilteredSeries] = useState<StorefrontSeries[]>([]);
+  const [loadingSeries, setLoadingSeries] = useState(false);
 
-  // If no brand selected, show brand selection page
+  useEffect(() => {
+    if (brandId) {
+      setLoadingBrand(true);
+      getStorefrontBrandById(brandId).then(data => {
+        setBrand(data || null);
+        setLoadingBrand(false);
+      });
+    } else {
+      setLoadingBrand(false);
+    }
+  }, [brandId]);
+
+  useEffect(() => {
+    const fetchSeries = async () => {
+      setLoadingSeries(true);
+      try {
+        if (selectedCategory) {
+          const series = await getStorefrontSeriesByCategory(selectedCategory);
+          setFilteredSeries(series);
+        } else if (brandId && categories.length > 0) {
+          // Fetch all series for all categories of this brand
+          const allSeriesPromises = categories.map(cat => getStorefrontSeriesByCategory(cat.id));
+          const allSeriesResults = await Promise.all(allSeriesPromises);
+          setFilteredSeries(allSeriesResults.flat());
+        } else {
+          setFilteredSeries([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch series:", error);
+      } finally {
+        setLoadingSeries(false);
+      }
+    };
+
+    fetchSeries();
+  }, [selectedCategory, brandId, categories]);
+
+  // Handle loading state
+  if (loadingBrand && brandId) {
+    return (
+      <Layout>
+        <div className="min-h-[60vh] flex items-center justify-center bg-gradient-dark">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // If no brand selected or not found, show brand selection page
   if (!brandId || !brand) {
     return (
       <Layout>
@@ -55,13 +112,22 @@ const BrandContent = ({ params }: Props) => {
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-              {brands.map((b, index) => (
-                <Link key={b.id} href={`/brand/${b.id}?mode=${mode}`}>
-                  <BrandCard brand={b} index={index} />
-                </Link>
-              ))}
-            </div>
+            {brandsLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+                {brands.map((b, index) => (
+                  <BrandCard 
+                    key={b.id} 
+                    brand={b} 
+                    index={index} 
+                    href={`/brand/${b.id}?mode=${mode}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -69,10 +135,6 @@ const BrandContent = ({ params }: Props) => {
       </Layout>
     );
   }
-
-  const filteredSeries = selectedCategory 
-    ? getStorefrontSeriesByCategory(selectedCategory)
-    : categories.flatMap(cat => getStorefrontSeriesByCategory(cat.id));
 
   return (
     <Layout>
@@ -169,11 +231,22 @@ const BrandContent = ({ params }: Props) => {
               : "All Product Series"
             }
           </motion.h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSeries.map((s, index) => (
-              <SeriesCard key={s.id} series={s} index={index} />
-            ))}
-          </div>
+          
+          {loadingSeries ? (
+            <div className="flex justify-center py-12">
+               <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : filteredSeries.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredSeries.map((s, index) => (
+                <SeriesCard key={s.id} series={s} index={index} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              No product series available.
+            </div>
+          )}
         </div>
       </section>
 

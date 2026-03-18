@@ -7,7 +7,11 @@ import {
   getStorefrontCategoryById,
   getStorefrontSeriesByCategory,
   getStorefrontBrandById,
+  type StorefrontBrand,
+  type StorefrontCategory,
+  type StorefrontSeries,
 } from "@/src/services";
+import { useState, useEffect } from "react";
 import Layout from "@/src/components/layout/Layout";
 import SeriesCard from "@/src/components/cards/SeriesCard";
 
@@ -17,9 +21,47 @@ type Props = {
 
 const CategoryPage = ({ params }: Props) => {
   const { id: categoryId } = use(params); 
-  const category = getStorefrontCategoryById(categoryId || "");
-  const seriesList = getStorefrontSeriesByCategory(categoryId || "");
-  const brand = category ? getStorefrontBrandById(category.brandId) : null;
+  const [category, setCategory] = useState<StorefrontCategory | null>(null);
+  const [seriesList, setSeriesList] = useState<StorefrontSeries[]>([]);
+  const [brand, setBrand] = useState<StorefrontBrand | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!categoryId) return;
+
+    setLoading(true);
+    const fetchData = async () => {
+      try {
+        const cat = await getStorefrontCategoryById(categoryId);
+        setCategory(cat || null);
+        
+        if (cat) {
+          const [series, brandData] = await Promise.all([
+            getStorefrontSeriesByCategory(categoryId),
+            getStorefrontBrandById(cat.brandId)
+          ]);
+          setSeriesList(series);
+          setBrand(brandData || null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch category data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [categoryId]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="min-h-[60vh] flex items-center justify-center bg-gradient-dark">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
 
   if (!category) {
     return (

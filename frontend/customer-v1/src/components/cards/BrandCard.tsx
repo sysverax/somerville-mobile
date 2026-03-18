@@ -9,9 +9,10 @@ import type { StorefrontBrand } from "@/src/services";
 interface BrandCardProps {
   brand: StorefrontBrand;
   index?: number;
+  href?: string;
 }
 
-const BrandCard = ({ brand, index = 0 }: BrandCardProps) => {
+const BrandCard = ({ brand, index = 0, href }: BrandCardProps) => {
   const textRef = useRef<HTMLParagraphElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -29,32 +30,32 @@ const BrandCard = ({ brand, index = 0 }: BrandCardProps) => {
       transition={{ delay: index * 0.1, duration: 0.5 }}
     >
       <Link
-        href={`/brand/${brand.id}`}
-        className="group block p-6 rounded-2xl bg-gradient-card shadow-card glass-hover text-center"
+        href={href || `/brand/${brand.id}`}
+        className="group block py-6 px-3 md:px-6 rounded-2xl bg-gradient-card shadow-card glass-hover text-center"
       >
         <div className="w-20 h-20 mx-auto mb-4 rounded-2xl overflow-hidden bg-secondary/50 flex items-center justify-center">
           <Image
-            src={brand.logo}
+            src={brand.logo || '/mock-images/default/placeholder.png'}
             alt={brand.name}
             width={80}
             height={80}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           />
         </div>
-        <h3 className="font-bold text-lg group-hover:text-primary transition-colors">
+        <h3 className="font-bold text-sm md:text-lg group-hover:text-primary transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
           {brand.name}
         </h3>
 
         <div
-          className="relative"
+          className="relative hidden md:block"
           onMouseEnter={() => isTruncated && setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
         >
           <p
             ref={textRef}
-            className="text-muted-foreground text-sm mt-1 line-clamp-2"
+            className="text-muted-foreground text-sm line-clamp-2 h-[2.5rem] overflow-hidden"
           >
-            {brand.description}
+            {brand.description || " "}
           </p>
 
           {showTooltip && (
