@@ -31,7 +31,7 @@ const BrandCard = ({ brand, index = 0, href }: BrandCardProps) => {
     >
       <Link
         href={href || `/brand/${brand.id}`}
-        className="group block p-6 rounded-2xl bg-gradient-card shadow-card glass-hover text-center"
+        className="group block py-6 px-3 md:px-6 rounded-2xl bg-gradient-card shadow-card glass-hover text-center"
       >
         <div className="w-20 h-20 mx-auto mb-4 rounded-2xl overflow-hidden bg-secondary/50 flex items-center justify-center">
           <Image
@@ -42,12 +42,12 @@ const BrandCard = ({ brand, index = 0, href }: BrandCardProps) => {
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           />
         </div>
-        <h3 className="font-bold text-lg group-hover:text-primary transition-colors">
+        <h3 className="font-bold text-sm md:text-lg group-hover:text-primary transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
           {brand.name}
         </h3>
 
         <div
-          className="relative"
+          className="relative hidden md:block"
           onMouseEnter={() => isTruncated && setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
         >

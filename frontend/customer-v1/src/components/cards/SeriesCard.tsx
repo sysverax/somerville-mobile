@@ -21,12 +21,7 @@ const SeriesCard = ({ series, index = 0, showProducts = true }: SeriesCardProps)
   }, [series.id]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1, duration: 0.5 }}
-      className="group"
-    >
+    <div className="group">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-card shadow-card border border-border/50">
         <div className="relative h-44 overflow-hidden">
           <img
@@ -34,12 +29,6 @@ const SeriesCard = ({ series, index = 0, showProducts = true }: SeriesCardProps)
             alt={series.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent" />
-          <div className="absolute top-4 left-4">
-            <span className="text-xs font-medium text-primary bg-primary/10 backdrop-blur-sm px-3 py-1 rounded-full border border-primary/20">
-              {series.releaseYear}
-            </span>
-          </div>
         </div>
 
         <div className="p-5">
@@ -111,7 +100,8 @@ const SeriesCard = ({ series, index = 0, showProducts = true }: SeriesCardProps)
           <div className="absolute inset-0 bg-primary/5" />
         </div>
       </div>
-    </motion.div>
+    </div>
+
   );
 };
 
