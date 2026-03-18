@@ -143,51 +143,46 @@ const Index = () => {
               <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
-            <div className="relative">
-              {/* Brand Scroll List */}
-              <div 
-                id="brand-scroll-container"
-                className="flex overflow-x-auto gap-4 md:gap-8 pb-4 scrollbar-hide scroll-smooth snap-x px-10"
-              >
-                <style jsx>{`
-                  .scrollbar-hide::-webkit-scrollbar { display: none; }
-                  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-                `}</style>
-                {brands.map((brand, index) => (
-                  <div key={brand.id} className="flex-shrink-0 w-32 md:w-44 snap-start">
-                    <BrandCard 
-                      brand={brand} 
-                      index={index} 
-                      href={`/brand/${brand.id}?mode=service`}
-                    />
-                  </div>
-                ))}
+            <>
+              {/* MOBILE: Horizontal scroll with arrows */}
+              <div className="md:hidden relative">
+                <div 
+                  id="brand-scroll-container"
+                  className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide scroll-smooth snap-x px-10"
+                >
+                  <style jsx>{`
+                    .scrollbar-hide::-webkit-scrollbar { display: none; }
+                    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+                  `}</style>
+                  {brands.map((brand, index) => (
+                    <div key={brand.id} className="flex-shrink-0 w-32 snap-start">
+                      <BrandCard brand={brand} index={index} href={`/brand/${brand.id}?mode=service`} />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => { const c = document.getElementById('brand-scroll-container'); if (c) c.scrollBy({ left: -300, behavior: 'smooth' }); }}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                  aria-label="Scroll left"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => { const c = document.getElementById('brand-scroll-container'); if (c) c.scrollBy({ left: 300, behavior: 'smooth' }); }}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                  aria-label="Scroll right"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
               </div>
 
-              {/* Left Arrow (on card) */}
-              <button
-                onClick={() => {
-                  const container = document.getElementById('brand-scroll-container');
-                  if (container) container.scrollBy({ left: -300, behavior: 'smooth' });
-                }}
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
-                aria-label="Scroll left"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-
-              {/* Right Arrow (on card) */}
-              <button
-                onClick={() => {
-                  const container = document.getElementById('brand-scroll-container');
-                  if (container) container.scrollBy({ left: 300, behavior: 'smooth' });
-                }}
-                className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
-                aria-label="Scroll right"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
+              {/* DESKTOP: Responsive grid, no scroll */}
+              <div className="hidden md:grid grid-cols-4 lg:grid-cols-5 gap-6">
+                {brands.map((brand, index) => (
+                  <BrandCard key={brand.id} brand={brand} index={index} href={`/brand/${brand.id}?mode=service`} />
+                ))}
+              </div>
+            </>
           )}
         </div>
       </section>
@@ -216,68 +211,85 @@ const Index = () => {
 
           <div className="relative w-full">
             {latestSeries.length > 0 && (
-              <div className="relative">
-                <div className="overflow-hidden rounded-2xl flex items-center justify-center">
-                  <AnimatePresence initial={false} custom={direction} mode="popLayout">
-                    <motion.div
-                      key={currentSeriesIndex}
-                      custom={direction}
-                      initial={{ opacity: 0, x: direction > 0 ? 300 : -300 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: direction > 0 ? -300 : 300 }}
-                      transition={{ 
-                        x: { type: "spring", stiffness: 600, damping: 50 },
-                        opacity: { duration: 0.15 }
-                      }}
-                      className="w-full flex-shrink-0"
-                    >
-                      <div className="relative">
-                        <SeriesCard 
-                          key={latestSeries[currentSeriesIndex].id} 
-                          series={latestSeries[currentSeriesIndex]} 
-                          index={0} 
-                          showProducts={false} 
+              <>
+                {/* MOBILE: Single card carousel */}
+                <div className="md:hidden">
+                  <div className="relative">
+                    <div className="overflow-hidden rounded-2xl flex items-center justify-center">
+                      <AnimatePresence initial={false} custom={direction} mode="popLayout">
+                        <motion.div
+                          key={currentSeriesIndex}
+                          custom={direction}
+                          initial={{ opacity: 0, x: direction > 0 ? 300 : -300 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: direction > 0 ? -300 : 300 }}
+                          transition={{ 
+                            x: { type: "spring", stiffness: 600, damping: 50 },
+                            opacity: { duration: 0.15 }
+                          }}
+                          className="w-full flex-shrink-0"
+                        >
+                          <div className="relative">
+                            <SeriesCard 
+                              key={latestSeries[currentSeriesIndex].id} 
+                              series={latestSeries[currentSeriesIndex]} 
+                              index={0} 
+                              showProducts={false} 
+                            />
+                            
+                            <button
+                              onClick={handlePrevious}
+                              className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                              aria-label="Previous series"
+                            >
+                              <ChevronLeft className="h-5 w-5" />
+                            </button>
+                            
+                            <button
+                              onClick={handleNext}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                              aria-label="Next series"
+                            >
+                              <ChevronRight className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </motion.div>
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Series Indicators */}
+                    <div className="flex justify-center gap-2 mt-6">
+                      {latestSeries.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setDirection(index > currentSeriesIndex ? 1 : -1);
+                            setCurrentSeriesIndex(index);
+                          }}
+                          className={`w-2 h-2 rounded-full transition-all ${
+                            index === currentSeriesIndex 
+                              ? "bg-primary w-8" 
+                              : "bg-gray-400 hover:bg-gray-600"
+                          }`}
+                          aria-label={`Go to series ${index + 1}`}
                         />
-                        
-                        <button
-                          onClick={handlePrevious}
-                          className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
-                          aria-label="Previous series"
-                        >
-                          <ChevronLeft className="h-5 w-5" />
-                        </button>
-                        
-                        <button
-                          onClick={handleNext}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
-                          aria-label="Next series"
-                        >
-                          <ChevronRight className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  </AnimatePresence>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                
-                {/* Series Indicators */}
-                <div className="flex justify-center gap-2 mt-6">
-                  {latestSeries.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        setDirection(index > currentSeriesIndex ? 1 : -1);
-                        setCurrentSeriesIndex(index);
-                      }}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        index === currentSeriesIndex 
-                          ? "bg-primary w-8" 
-                          : "bg-gray-400 hover:bg-gray-600"
-                      }`}
-                      aria-label={`Go to series ${index + 1}`}
+
+                {/* DESKTOP: Grid of all series */}
+                <div className="hidden md:grid md:grid-cols-3 gap-6">
+                  {latestSeries.map((series, index) => (
+                    <SeriesCard
+                      key={series.id}
+                      series={series}
+                      index={index}
+                      showProducts={false}
                     />
                   ))}
                 </div>
-              </div>
+              </>
             )}
           </div>
         </div>

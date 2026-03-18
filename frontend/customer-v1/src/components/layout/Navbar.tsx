@@ -1,6 +1,6 @@
 "use client"; 
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";       
 import Image from "next/image";      
 import { useRouter } from "next/navigation";
@@ -20,7 +20,25 @@ const Navbar = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [activeBrand, setActiveBrand] = useState<string | null>(null);
   const [mobileExpandedBrand, setMobileExpandedBrand] = useState<string | null>(null);
-const router = useRouter();
+  const searchRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  // Close search when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearch(false);
+      }
+    };
+
+    if (showSearch) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSearch]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,6 +194,7 @@ const router = useRouter();
         <AnimatePresence>
           {showSearch && (
             <motion.div
+              ref={searchRef}
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
