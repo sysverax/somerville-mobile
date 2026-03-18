@@ -68,7 +68,16 @@ const getProductsByServiceIdRepo = async (serviceId, page, limit) => {
 
   const [productServices, total] = await Promise.all([
     ProductService.find(query)
-      .populate("productId")
+      .populate({
+        path: "productId",
+        populate: {
+          path: "seriesId",
+          populate: {
+            path: "categoryId",
+            populate: { path: "brandId" },
+          },
+        },
+      })
       .skip(skip)
       .limit(limit)
       .lean(),

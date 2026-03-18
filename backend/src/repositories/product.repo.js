@@ -101,6 +101,7 @@ const getAllProductsRepo = async (
   seriesId,
   categoryId,
   brandId,
+  search,
 ) => {
   const skip = (page - 1) * limit;
 
@@ -110,6 +111,9 @@ const getAllProductsRepo = async (
   }
   if (seriesId) {
     matchFilter.seriesId = new mongoose.Types.ObjectId(seriesId);
+  }
+  if (search) {
+    matchFilter.name = { $regex: search, $options: "i" };
   }
 
 
@@ -192,8 +196,34 @@ const getAllProductsRepo = async (
       : []),
     { $sort: { createdAt: -1 } },
     {
+      $lookup: {
+        from: "product_services",
+        localField: "_id",
+        foreignField: "productId",
+        as: "services_data",
+      },
+    },
+    {
+      $addFields: {
+        activeServiceCount: {
+          $size: {
+            $filter: {
+              input: "$services_data",
+              as: "svc",
+              cond: { $eq: ["$$svc.isActive", true] },
+            },
+          },
+        },
+        totalServiceCount: { $size: "$services_data" },
+      },
+    },
+    {
       $facet: {
-        products: [{ $skip: skip }, { $limit: limit }],
+        products: [
+          { $skip: skip },
+          { $limit: limit },
+          { $project: { services_data: 0 } },
+        ],
         total: [{ $count: "count" }],
       },
     },

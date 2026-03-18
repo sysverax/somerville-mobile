@@ -239,6 +239,7 @@ class GetAllProductsRequestDTO {
     this.seriesId = query.seriesId;
     this.categoryId = query.categoryId;
     this.brandId = query.brandId;
+    this.search = query.search || "";
   }
 
   validate() {

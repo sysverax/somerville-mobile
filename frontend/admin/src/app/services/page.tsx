@@ -1,9 +1,10 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useServices } from '@/hooks/useServices';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
 import { productServiceService } from '@/services/productService.service';
-import { ServiceRecord, AssignmentLevel } from '@/types';
+import { productService } from '@/services/product.service';
+import { ServiceRecord, AssignmentLevel, Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Pencil, Search, ChevronUp, ChevronDown, Power, RotateCcw, Wrench, Package, Trash2, ChevronRight, Loader2 } from 'lucide-react';
 import TablePagination from '@/components/TablePagination';
 import EmptyState from '@/components/EmptyState';
+import { TruncatedText } from '@/components/ui/truncated-text';
 
 const LEVELS: AssignmentLevel[] = ['brand', 'category', 'series', 'product'];
 
@@ -26,6 +28,8 @@ interface VariantFormItem {
   description: string;
   basePrice: number;
   estimatedTime: number;
+  priceInput?: string;
+  timeInput?: string;
 }
 
 const validateName = (value: string): string | undefined => {
@@ -64,7 +68,7 @@ type FormErrors = { name?: string; brandId?: string; categoryId?: string; series
 const ServicesPage = () => {
   const { toast } = useToast();
   const { services, total, createService, updateService, updateServiceStatus, deleteService, getVariants, hasVariants, isLoading: servicesLoading, error: servicesError, refresh } = useServices();
-  const { brands, categories, series: seriesList, products, isLoading: optionsLoading } = useFilterOptions();
+  const { brands, categories, series: seriesList, products, isLoading: optionsLoading, refresh: refreshOptions } = useFilterOptions();
   const initialLoading = servicesLoading || optionsLoading;
 
   // Top-level tab
@@ -125,11 +129,16 @@ const ServicesPage = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // By Product tab state
+  const [byProductProducts, setByProductProducts] = useState<Product[]>([]);
+  const [byProductTotal, setByProductTotal] = useState(0);
+  const [byProductPage, setByProductPage] = useState(1);
+  const [isLoadingByProductList, setIsLoadingByProductList] = useState(false);
   const [byProductSelected, setByProductSelected] = useState<string>('');
   const [byProductBrand, setByProductBrand] = useState<string>('all');
   const [byProductCategory, setByProductCategory] = useState<string>('all');
   const [byProductSeries, setByProductSeries] = useState<string>('all');
   const [byProductSearch, setByProductSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [byProductCollapsedParents, setByProductCollapsedParents] = useState<Set<string>>(new Set());
   const [productServices, setProductServices] = useState<any>(null);
   const [isLoadingProductServices, setIsLoadingProductServices] = useState(false);
@@ -140,6 +149,8 @@ const ServicesPage = () => {
   const [byServiceCollapsedVariants, setByServiceCollapsedVariants] = useState<Set<string>>(new Set());
   const [serviceProducts, setServiceProducts] = useState<any>(null);
   const [isLoadingServiceProducts, setIsLoadingServiceProducts] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // Helpers
   // Helpers
@@ -269,7 +280,15 @@ const ServicesPage = () => {
       basePrice: s.basePrice, estimatedTime: s.estimatedTime, isActive: s.isActive,
       hasVariants: variants.length > 0,
     });
-    setVariantItems(variants.map(v => ({ id: v.id, name: v.name, description: v.description, basePrice: v.basePrice, estimatedTime: v.estimatedTime })));
+    setVariantItems(variants.map(v => ({ 
+      id: v.id, 
+      name: v.name, 
+      description: v.description, 
+      basePrice: v.basePrice, 
+      estimatedTime: v.estimatedTime,
+      priceInput: String(v.basePrice),
+      timeInput: String(v.estimatedTime)
+    })));
     setRemovedVariantIds([]);
     setFormErrors({});
     setTouched({});
@@ -283,7 +302,7 @@ const ServicesPage = () => {
 
 
   const addVariantItem = () => {
-    setVariantItems(prev => [...prev, { name: '', description: '', basePrice: 0, estimatedTime: 0 }]);
+    setVariantItems(prev => [...prev, { name: '', description: '', basePrice: 0, estimatedTime: 0, priceInput: '0', timeInput: '0' }]);
   };
 
   const removeVariantItem = (index: number) => {
@@ -350,16 +369,12 @@ const ServicesPage = () => {
         if (form.name.trim() !== editing.name) updatePayload.name = form.name.trim();
         if (form.description.trim() !== (editing.description || '')) updatePayload.description = form.description.trim();
         if (form.isActive !== editing.isActive) updatePayload.isActive = form.isActive;
+        if (form.hasVariants !== editing.isParent) updatePayload.isParent = form.hasVariants;
 
         // Level change requires both level and levelId
         if (form.level !== editing.level || levelId !== editing.levelId) {
           updatePayload.level = form.level;
           updatePayload.levelId = levelId;
-        }
-
-        if (!form.hasVariants) {
-          if (form.basePrice !== editing.basePrice) updatePayload.basePrice = form.basePrice;
-          if (form.estimatedTime !== editing.estimatedTime) updatePayload.estimatedTime = form.estimatedTime;
         }
 
         if (form.hasVariants) {
@@ -391,6 +406,15 @@ const ServicesPage = () => {
           if (changedVariants.length > 0) updatePayload.variants = changedVariants;
           if (newVariants.length > 0) updatePayload.newVariants = newVariants;
           if (removedVariantIds.length > 0) updatePayload.removeVariants = removedVariantIds;
+        } else {
+          if (form.basePrice !== editing.basePrice) updatePayload.basePrice = form.basePrice;
+          if (form.estimatedTime !== editing.estimatedTime) updatePayload.estimatedTime = form.estimatedTime;
+          
+          // If we had variants and switched them OFF, remove existing ones
+          const originalVariants = getVariants(editing.id);
+          if (originalVariants.length > 0) {
+            updatePayload.removeVariants = originalVariants.map(v => v.id);
+          }
         }
 
         // Only send request if there are actual changes
@@ -420,6 +444,14 @@ const ServicesPage = () => {
         toast({ title: 'Service created successfully', variant: 'success' });
       }
       setIsFormOpen(false);
+      refresh(); 
+      refreshOptions();
+      if (mainTab === 'by-product') {
+        fetchByProductList();
+        if (byProductSelected) selectByProduct(byProductSelected, true);
+      } else if (mainTab === 'by-service' && byServiceSelected) {
+        selectByService(byServiceSelected, true);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save service';
       setSaveError(message);
@@ -431,14 +463,25 @@ const ServicesPage = () => {
 
   const handleDeactivate = async () => {
     if (deactivateTarget) {
+      setIsDeactivating(true);
       try {
         await updateServiceStatus(deactivateTarget.id, !deactivateTarget.isActive);
         toast({ title: `Service ${deactivateTarget.isActive ? 'deactivated' : 'activated'} successfully`, variant: 'success' });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to update service status';
         toast({ title: message, variant: 'destructive' });
+      } finally {
+        setIsDeactivating(false);
+        setDeactivateTarget(null);
+        refresh();
+        refreshOptions();
+        if (mainTab === 'by-product') {
+          fetchByProductList();
+          if (byProductSelected) selectByProduct(byProductSelected, true);
+        } else if (mainTab === 'by-service' && byServiceSelected) {
+          selectByService(byServiceSelected, true);
+        }
       }
-      setDeactivateTarget(null);
     }
   };
 
@@ -454,13 +497,59 @@ const ServicesPage = () => {
       } finally {
         setIsDeleting(false);
         setDeleteTarget(null);
+        refresh();
+        refreshOptions();
+        if (mainTab === 'by-product') {
+          fetchByProductList();
+        } else if (mainTab === 'by-service') {
+          if (byServiceSelected === deleteTarget.id) setByServiceSelected('');
+          setServiceProducts(null);
+        }
       }
     }
   };
 
 
 
-  // By Product: filtered products list
+  // By Product
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(byProductSearch);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [byProductSearch]);
+
+  // By Product: fetch products list via API
+  const fetchByProductList = useCallback(async () => {
+    setIsLoadingByProductList(true);
+    try {
+      const result = await productService.getAll({
+        brandId: byProductBrand,
+        categoryId: byProductCategory,
+        seriesId: byProductSeries,
+        search: debouncedSearch,
+        page: byProductPage,
+        limit: 10
+      });
+      setByProductProducts(result.data);
+      setByProductTotal(result.total);
+    } catch (error) {
+      console.error('Failed to fetch sidebar products:', error);
+      toast({ title: 'Failed to fetch products', variant: 'destructive' });
+      setByProductProducts([]);
+      setByProductTotal(0);
+    } finally {
+      setIsLoadingByProductList(false);
+    }
+  }, [byProductBrand, byProductCategory, byProductSeries, debouncedSearch, byProductPage, toast]);
+
+  useEffect(() => {
+    if (mainTab === 'by-product') {
+      fetchByProductList();
+    }
+  }, [mainTab, fetchByProductList]);
+
+  // By Product: filtered options for dropdowns
   const byProductFilteredCategories = byProductBrand !== 'all' ? categories.filter(c => c.brandId === byProductBrand) : categories;
   const byProductFilteredSeries = byProductCategory !== 'all' ? seriesList.filter(s => s.categoryId === byProductCategory) : (byProductBrand !== 'all' ? seriesList.filter(s => {
     const category = categories.find(c => c.id === s.categoryId);
@@ -468,13 +557,8 @@ const ServicesPage = () => {
   }) : seriesList);
 
   const byProductFilteredProducts = useMemo(() => {
-    let result = products;
-    if (byProductSearch) result = result.filter(p => p.name.toLowerCase().includes(byProductSearch.toLowerCase()));
-    if (byProductBrand !== 'all') result = result.filter(p => p.brandId === byProductBrand);
-    if (byProductCategory !== 'all') result = result.filter(p => p.categoryId === byProductCategory);
-    if (byProductSeries !== 'all') result = result.filter(p => p.seriesId === byProductSeries);
-    return result;
-  }, [products, byProductSearch, byProductBrand, byProductCategory, byProductSeries]);
+    return byProductProducts;
+  }, [byProductProducts]);
 
   // By Service: filtered services list (only non-variant)
   const byServiceFilteredServices = useMemo(() => {
@@ -628,6 +712,7 @@ const ServicesPage = () => {
     const [localTime, setLocalTime] = useState(edit?.time ?? String(defaultTime));
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
+    const [isToggling, setIsToggling] = useState(false);
 
     // Update local state when edit changes
     useEffect(() => {
@@ -685,7 +770,20 @@ const ServicesPage = () => {
             <p className="font-medium text-sm">{label}</p>
             <p className="text-xs text-muted-foreground mt-1">{sublabel}</p>
           </div>
-          <Switch checked={!isDisabledProp} onCheckedChange={(checked) => toggleServiceForProduct(productServiceId, checked)} />
+          <div className="flex items-center gap-2">
+            {isToggling ? (
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            ) : (
+              <Switch checked={!isDisabledProp} onCheckedChange={async (checked) => {
+                setIsToggling(true);
+                try {
+                  await toggleServiceForProduct(productServiceId, checked);
+                } finally {
+                  setIsToggling(false);
+                }
+              }} />
+            )}
+          </div>
         </div>
         {!isDisabledProp && (
           <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
@@ -871,7 +969,7 @@ const ServicesPage = () => {
                               {variantCount > 0 && <Badge variant="secondary" className="text-xs whitespace-nowrap">{variantCount} variants</Badge>}
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate">{s.description}</td>
+                          <td className="py-3 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px]"><TruncatedText text={s.description} /></td>
                           <td className="py-3 px-4"><Badge variant="outline" className="capitalize">{s.level}</Badge></td>
                           <td className="py-3 px-4">{s.assignedTo}</td>
                           <td className="py-3 px-4">{variantCount > 0 ? '—' : `$${s.basePrice}`}</td>
@@ -881,8 +979,14 @@ const ServicesPage = () => {
                           <td className="py-3 px-4">
                             <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
                           </td>
-                          <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
-                            <Switch checked={s.isActive} onCheckedChange={() => setDeactivateTarget(s)} />
+                           <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-center">
+                              {isDeactivating && deactivateTarget?.id === s.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                              ) : (
+                                <Switch checked={s.isActive} onCheckedChange={() => setDeactivateTarget(s)} />
+                              )}
+                            </div>
                           </td>
                           <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
                             <div className="flex justify-end gap-1">
@@ -905,7 +1009,7 @@ const ServicesPage = () => {
                                 <Badge variant="outline" className="text-xs">Variant</Badge>
                               </div>
                             </td>
-                            <td className="py-2 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate text-sm">{v.description}</td>
+                            <td className="py-2 px-4 text-muted-foreground hidden lg:table-cell max-w-[200px] text-sm"><TruncatedText text={v.description} /></td>
                             <td className="py-2 px-4"><Badge variant="outline" className="capitalize text-xs">{v.level}</Badge></td>
                             <td className="py-2 px-4 text-sm">{v.assignedTo}</td>
                             <td className="py-2 px-4 text-sm">${v.basePrice}</td>
@@ -916,12 +1020,13 @@ const ServicesPage = () => {
                               <Badge variant={v.isActive ? 'default' : 'secondary'} className="text-xs">{v.isActive ? 'Active' : 'Inactive'}</Badge>
                             </td>
                             <td className="py-2 px-4" onClick={e => e.stopPropagation()}>
-                              <Switch checked={v.isActive} onCheckedChange={() => {
-                                updateServiceStatus(v.id, !v.isActive).catch((error) => {
-                                  const message = error instanceof Error ? error.message : 'Failed to update variant status';
-                                  toast({ title: message, variant: 'destructive' });
-                                });
-                              }} />
+                              <div className="flex items-center justify-center">
+                                {isDeactivating && deactivateTarget?.id === v.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                ) : (
+                                  <Switch checked={v.isActive} onCheckedChange={() => setDeactivateTarget(v)} />
+                                )}
+                              </div>
                             </td>
                             <td className="py-2 px-4 text-right cursor-default" onClick={e => e.stopPropagation()}>
                               <div className="flex justify-end gap-1">
@@ -954,16 +1059,24 @@ const ServicesPage = () => {
                 <h3 className="text-sm font-semibold text-foreground">Select a Product</h3>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search products..." value={byProductSearch} onChange={e => setByProductSearch(e.target.value)} className="pl-9" />
+                  <Input 
+                    placeholder="Search products..." 
+                    value={byProductSearch} 
+                    onChange={e => {
+                      setByProductSearch(e.target.value);
+                      setByProductPage(1);
+                    }} 
+                    className="pl-9" 
+                  />
                 </div>
-                <Select value={byProductBrand} onValueChange={v => { setByProductBrand(v); setByProductCategory('all'); setByProductSeries('all'); }}>
+                <Select value={byProductBrand} onValueChange={v => { setByProductBrand(v); setByProductCategory('all'); setByProductSeries('all'); setByProductPage(1); }}>
                   <SelectTrigger><SelectValue placeholder="Brand" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Brands</SelectItem>
                     {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Select value={byProductCategory} onValueChange={v => { setByProductCategory(v); setByProductSeries('all'); }}>
+                <Select value={byProductCategory} onValueChange={v => { setByProductCategory(v); setByProductSeries('all'); setByProductPage(1); }}>
                   <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
@@ -971,7 +1084,7 @@ const ServicesPage = () => {
                   </SelectContent>
                 </Select>
                 {byProductCategory !== 'all' && (
-                  <Select value={byProductSeries} onValueChange={v => setByProductSeries(v)}>
+                  <Select value={byProductSeries} onValueChange={v => { setByProductSeries(v); setByProductPage(1); }}>
                     <SelectTrigger><SelectValue placeholder="Series" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Series</SelectItem>
@@ -980,14 +1093,12 @@ const ServicesPage = () => {
                   </Select>
                 )}
               </div>
-              <div className="rounded-lg border border-border bg-card overflow-hidden max-h-[500px] overflow-y-auto scrollbar-hide">
+              <div className="rounded-lg border border-border bg-card overflow-hidden max-h-[500px] overflow-y-auto scrollbar-hide flex flex-col">
                 {byProductFilteredProducts.length === 0 && <p className="text-sm text-muted-foreground p-4 text-center">No products found.</p>}
                 {byProductFilteredProducts.map(p => {
-                  // Count active services for this product (from API data)
-                  const apiServices = productServices?.services || [];
-                  const svcCount = apiServices.filter(s => s.isActive).length;
-                  const totalSvcCount = apiServices.length;
-                  const disabledCount = totalSvcCount - svcCount;
+                  const svcCount = p.activeServiceCount ?? 0;
+                  const totalCount = p.totalServiceCount ?? 0;
+                  const disabledCount = totalCount - svcCount;
 
                   return (
                     <div key={p.id} className={`flex items-start gap-3 p-3 cursor-pointer transition-colors border-b border-border/50 last:border-b-0 ${byProductSelected === p.id ? 'bg-primary/10' : 'hover:bg-muted/30'}`} onClick={() => selectByProduct(p.id)}>
@@ -999,6 +1110,13 @@ const ServicesPage = () => {
                     </div>
                   );
                 })}
+                {byProductTotal > 10 && (
+                  <div className="flex items-center justify-between p-2 sticky bottom-0 bg-card border-t border-border mt-auto">
+                    <Button variant="ghost" size="sm" onClick={() => setByProductPage(p => Math.max(1, p - 1))} disabled={byProductPage === 1 || isLoadingByProductList} className="h-7 text-xs">Previous</Button>
+                    <span className="text-[11px] text-muted-foreground font-medium">Page {byProductPage}</span>
+                    <Button variant="ghost" size="sm" onClick={() => setByProductPage(p => p + 1)} disabled={byProductPage * 10 >= byProductTotal || isLoadingByProductList} className="h-7 text-xs">Next</Button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1208,7 +1326,7 @@ const ServicesPage = () => {
                               </div>
                               {isVariantExpanded && (
                                 <div className="space-y-2 ml-6">
-                                  {productsList.map(p => (
+                                  {productsList.filter((p: any) => p.serviceId === variant.id).map((p: any) => (
                                     <OverrideRow
                                       key={p.product?.id || p.id}
                                       productServiceId={p.productServiceId}
@@ -1216,8 +1334,8 @@ const ServicesPage = () => {
                                       editKey={p.productServiceId}
                                       defaultPrice={variant.basePrice}
                                       defaultTime={variant.estimatedTime}
-                                      label={p.product?.name || p.name}
-                                      sublabel={`${variant.name} variant`}
+                                      label={p.product?.name || 'Product'}
+                                      sublabel={`${p.product?.brand?.name || ''}${p.product?.category?.name ? ` · ${p.product.category.name}` : ''}`}
                                       disabled={!p.isActive}
                                       isDefault={p.isDefault}
                                     />
@@ -1396,10 +1514,11 @@ const ServicesPage = () => {
                             type="text"
                             inputMode="decimal"
                             placeholder="0"
-                            value={vi.basePrice === 0 ? '' : vi.basePrice}
+                            value={vi.priceInput ?? (vi.basePrice === 0 ? '' : String(vi.basePrice))}
                             onChange={e => {
                               const raw = e.target.value.replace(/[^0-9.]/g, '').replace(/^0+(?=\d)/, '');
-                              updateVariantItem(index, 'basePrice', raw === '' ? 0 : Number(raw));
+                              const num = raw === '' ? 0 : Number(raw);
+                              setVariantItems(prev => prev.map((v, i) => i === index ? { ...v, basePrice: num, priceInput: raw } : v));
                               if (variantErrors[index]?.basePrice)
                                 setVariantErrors(prev => ({ ...prev, [index]: { ...prev[index], basePrice: undefined } }));
                             }}
@@ -1413,13 +1532,15 @@ const ServicesPage = () => {
                             type="text"
                             inputMode="numeric"
                             placeholder="30"
-                            value={vi.estimatedTime === 0 ? '' : vi.estimatedTime}
+                            value={vi.timeInput ?? (vi.estimatedTime === 0 ? '' : String(vi.estimatedTime))}
                             onChange={e => {
-                              const raw = e.target.value.replace(/[^0-9.]/g, '');
-                              updateVariantItem(index, 'estimatedTime', raw === '' ? 0 : Number(raw));
+                              const raw = e.target.value.replace(/[^0-9.]/g, '').replace(/^0+(?=\d)/, '');
+                              const num = raw === '' ? 0 : Number(raw);
+                              setVariantItems(prev => prev.map((v, i) => i === index ? { ...v, estimatedTime: num, timeInput: raw } : v));
                               if (variantErrors[index]?.estimatedTime)
                                 setVariantErrors(prev => ({ ...prev, [index]: { ...prev[index], estimatedTime: undefined } }));
                             }}
+                            disabled={initialLoading || isSaving}
                           />
                           {variantErrors[index]?.estimatedTime && <p className="text-xs text-destructive">{variantErrors[index].estimatedTime}</p>}
                         </div>
@@ -1446,7 +1567,7 @@ const ServicesPage = () => {
                   setForm(f => ({ ...f, level: v as AssignmentLevel, categoryId: '', seriesId: '', productId: '' }));
                   setFormErrors(prev => ({ ...prev, categoryId: undefined, seriesId: undefined, productId: undefined }));
                 }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="capitalize"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {LEVELS.map(l => <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>)}
                   </SelectContent>
@@ -1558,8 +1679,15 @@ const ServicesPage = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeactivate}>
+            <AlertDialogCancel disabled={isDeactivating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeactivate();
+              }} 
+              disabled={isDeactivating}
+            >
+              {isDeactivating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {deactivateTarget?.isActive ? 'Deactivate' : 'Activate'}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1568,13 +1696,7 @@ const ServicesPage = () => {
 
       {/* Delete confirm */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive">Delete Service?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete <strong className="text-foreground">{deleteTarget?.name}</strong> and all associated product services.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete Service</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete &quot;{deleteTarget?.name}&quot;? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction 
@@ -1582,10 +1704,10 @@ const ServicesPage = () => {
                 e.preventDefault();
                 handleDelete();
               }} 
-              className="bg-destructive hover:bg-destructive/90 text-white"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={isDeleting}
             >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

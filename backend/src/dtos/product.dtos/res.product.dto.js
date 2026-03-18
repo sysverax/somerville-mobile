@@ -45,6 +45,8 @@ class ProductResponseDTO {
     };
     this.createdAt = product.createdAt || null;
     this.updatedAt = product.updatedAt || null;
+    this.activeServiceCount = product.activeServiceCount || 0;
+    this.totalServiceCount = product.totalServiceCount || 0;
   }
 }
 

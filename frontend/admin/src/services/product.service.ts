@@ -30,6 +30,8 @@ type ProductApiDocument = Omit<ProductDocument, 'seriesId'> & {
     name: string;
     isActive: boolean | null;
   };
+  activeServiceCount: number;
+  totalServiceCount: number;
 };
 
 type ProductListPayload = {
@@ -49,6 +51,8 @@ type ProductMutationInput = {
 type CachedProductDocument = ProductDocument & {
   brandId?: string;
   categoryId?: string;
+  activeServiceCount?: number;
+  totalServiceCount?: number;
 };
 
 const normalizeProduct = (product: CachedProductDocument): Product => {
@@ -84,6 +88,8 @@ const mapApiProduct = (product: ProductApiDocument): CachedProductDocument => ({
   isActive: product.isActive,
   createdAt: product.createdAt,
   updatedAt: product.updatedAt,
+  activeServiceCount: product.activeServiceCount,
+  totalServiceCount: product.totalServiceCount,
 });
 
 const imageValueToFile = async (imageValue: string, filename: string): Promise<File | null> => {
@@ -98,13 +104,14 @@ const imageValueToFile = async (imageValue: string, filename: string): Promise<F
 };
 
 export const productService = {
-  getAll: async (filters: { brandId?: string; categoryId?: string; seriesId?: string; page?: number; limit?: number } = {}): Promise<{ data: Product[]; total: number }> => {
+  getAll: async (filters: { brandId?: string; categoryId?: string; seriesId?: string; search?: string; page?: number; limit?: number } = {}): Promise<{ data: Product[]; total: number }> => {
     const params = new URLSearchParams();
     params.append('page', String(filters.page || 1));
     params.append('limit', String(filters.limit || 10));
     if (filters.brandId && filters.brandId !== 'all') params.append('brandId', filters.brandId);
     if (filters.categoryId && filters.categoryId !== 'all') params.append('categoryId', filters.categoryId);
     if (filters.seriesId && filters.seriesId !== 'all') params.append('seriesId', filters.seriesId);
+    if (filters.search) params.append('search', filters.search);
 
     const response = await fetch(`${API_BASE_URL}/api/products?${params.toString()}`, {
       method: 'GET',

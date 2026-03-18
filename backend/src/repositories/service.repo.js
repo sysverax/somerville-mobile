@@ -283,52 +283,63 @@ const getAllServicesRepo = async ({
   if (mostSpecificId) {
     const msId = new mongoose.Types.ObjectId(mostSpecificId);
 
+    let parentBrandId = null;
+    let parentCategoryId = null;
+    let parentSeriesId = null;
+
     if (productId) {
-      addCondition("product", msId);
+      const prod = await Product.findById(msId).select("seriesId").lean();
+      if (prod?.seriesId) parentSeriesId = prod.seriesId;
     } else if (seriesId) {
-      addCondition("series", msId);
-      const products = await Product.find({ seriesId: msId })
-        .select("_id")
-        .lean();
-      addCondition(
-        "product",
-        products.map((p) => p._id),
-      );
+      parentSeriesId = msId;
     } else if (categoryId) {
-      addCondition("category", msId);
-      const seriesItems = await Series.find({ categoryId: msId })
-        .select("_id")
-        .lean();
-      const sIds = seriesItems.map((s) => s._id);
-      addCondition("series", sIds);
-      const products = await Product.find({ seriesId: { $in: sIds } })
-        .select("_id")
-        .lean();
-      addCondition(
-        "product",
-        products.map((p) => p._id),
-      );
+      parentCategoryId = msId;
     } else if (brandId) {
-      addCondition("brand", msId);
-      const categories = await Category.find({ brandId: msId })
-        .select("_id")
-        .lean();
-      const cIds = categories.map((c) => c._id);
-      addCondition("category", cIds);
-      const seriesItems = await Series.find({ categoryId: { $in: cIds } })
-        .select("_id")
-        .lean();
-      const sIds = seriesItems.map((s) => s._id);
-      addCondition("series", sIds);
-      const products = await Product.find({ seriesId: { $in: sIds } })
-        .select("_id")
-        .lean();
-      addCondition(
-        "product",
-        products.map((p) => p._id),
-      );
+      parentBrandId = msId;
+    }
+
+    if (parentSeriesId) {
+      const ser = await Series.findById(parentSeriesId).select("categoryId").lean();
+      if (ser?.categoryId) parentCategoryId = ser.categoryId;
+    }
+    if (parentCategoryId) {
+      const cat = await Category.findById(parentCategoryId).select("brandId").lean();
+      if (cat?.brandId) parentBrandId = cat.brandId;
+    }
+
+    if (parentBrandId) addCondition("brand", parentBrandId);
+    if (parentCategoryId) addCondition("category", parentCategoryId);
+    if (parentSeriesId) addCondition("series", parentSeriesId);
+    if (productId) addCondition("product", msId);
+
+    if (productId) {
+    } else if (seriesId) {
+      const products = await Product.find({ seriesId: msId }).select("_id").lean();
+      addCondition("product", products.map((p) => p._id));
+    } else if (categoryId) {
+      const seriesItems = await Series.find({ categoryId: msId }).select("_id").lean();
+      if (seriesItems.length > 0) {
+        const sIds = seriesItems.map((s) => s._id);
+        addCondition("series", sIds);
+        const products = await Product.find({ seriesId: { $in: sIds } }).select("_id").lean();
+        addCondition("product", products.map((p) => p._id));
+      }
+    } else if (brandId) {
+      const categories = await Category.find({ brandId: msId }).select("_id").lean();
+      if (categories.length > 0) {
+        const cIds = categories.map((c) => c._id);
+        addCondition("category", cIds);
+        const seriesItems = await Series.find({ categoryId: { $in: cIds } }).select("_id").lean();
+        if (seriesItems.length > 0) {
+          const sIds = seriesItems.map((s) => s._id);
+          addCondition("series", sIds);
+          const products = await Product.find({ seriesId: { $in: sIds } }).select("_id").lean();
+          addCondition("product", products.map((p) => p._id));
+        }
+      }
     }
   }
+
 
   if (level) {
     query.level = level;

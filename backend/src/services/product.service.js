@@ -224,6 +224,7 @@ const getAllProductsService = async (getAllProductsRequestDto, logger) => {
     getAllProductsRequestDto.seriesId,
     getAllProductsRequestDto.categoryId,
     getAllProductsRequestDto.brandId,
+    getAllProductsRequestDto.search,
   );
 
   return new productResponseDto.GetAllProductsResponseDTO(

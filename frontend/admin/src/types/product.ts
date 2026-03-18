@@ -25,4 +25,6 @@ export interface Product {
   galleryImages: string[];
   // Optional API-native field for compatibility.
   imageUrl?: string | null;
+  activeServiceCount?: number;
+  totalServiceCount?: number;
 }
