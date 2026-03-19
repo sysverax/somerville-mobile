@@ -212,6 +212,7 @@ class UpdateServiceRequestDTO {
     this.isActive = body?.isActive !== undefined ? body.isActive : undefined;
     this.level = body?.level !== undefined ? body.level : undefined;
     this.levelId = body?.levelId !== undefined ? body.levelId : undefined;
+    this.isParent = body?.isParent !== undefined ? body.isParent : undefined;
     
     this.variants =
       body?.variants !== undefined
@@ -561,6 +562,7 @@ class UpdateServiceRequestDTO {
     if (this.variants !== undefined) payload.variants = this.variants;
     if (this.removeVariants !== undefined) payload.removeVariants = this.removeVariants;
     if (this.newVariants !== undefined) payload.newVariants = this.newVariants;
+    if (this.isParent !== undefined) payload.isParent = this.isParent;
     return payload;
   }
 }

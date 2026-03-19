@@ -253,7 +253,7 @@ const getAllServicesRepo = async ({
   if (userRole !== USER_ROLES.ADMIN) {
     matchFilter.isActive = true;
   } else if (isActive !== undefined) {
-    matchFilter.isActive = isActive;
+    matchFilter.isActive = isActive; // 👈 fix: was query.isActive in HEAD
   }
 
   if (search) {
@@ -261,7 +261,6 @@ const getAllServicesRepo = async ({
   }
 
   // ── 2. Resolve hierarchy IDs using $lookup inside pipeline ──
-  //    instead of N+1 sequential DB calls before aggregation
   const levelMatchStages = [];
 
   if (productId) {
@@ -271,14 +270,11 @@ const getAllServicesRepo = async ({
     const sid = new mongoose.Types.ObjectId(seriesId);
     levelMatchStages.push({
       $match: {
-        $or: [
-          { level: "series", levelId: sid },
-          { level: "product" }, // refined after product lookup below
-        ],
+        $or: [{ level: "series", levelId: sid }, { level: "product" }],
       },
     });
   } else if (categoryId || brandId) {
-    // these are handled via $lookup pipeline stages below
+    // handled via $lookup pipeline stages below
   }
 
   if (level && !productId) {
@@ -289,7 +285,6 @@ const getAllServicesRepo = async ({
   const pipeline = [
     { $match: matchFilter },
 
-    // ── 4. Resolve hierarchy via $lookup instead of pre-fetching ──
     ...(seriesId
       ? [
           {
@@ -325,9 +320,7 @@ const getAllServicesRepo = async ({
                 },
                 {
                   level: "product",
-                  $expr: {
-                    $in: ["$levelId", "$_resolvedProducts._id"],
-                  },
+                  $expr: { $in: ["$levelId", "$_resolvedProducts._id"] },
                 },
               ],
             },
@@ -462,7 +455,7 @@ const getAllServicesRepo = async ({
         ]
       : []),
 
-    // ── 5. Facet — count + paginate in one pass ──
+    // ── 4. Facet — count + paginate in one pass ──
     {
       $facet: {
         services: [
@@ -470,7 +463,7 @@ const getAllServicesRepo = async ({
           { $skip: skip },
           { $limit: limit },
 
-          // ── 6. Variants lookup (only on paginated results) ──
+          // ── Variants lookup ──
           {
             $lookup: {
               from: "services",
@@ -504,7 +497,7 @@ const getAllServicesRepo = async ({
             },
           },
 
-          // ── 7. Product services lookup ──
+          // ── Product services lookup ──
           {
             $lookup: {
               from: "product_services",
@@ -514,7 +507,7 @@ const getAllServicesRepo = async ({
             },
           },
 
-          // ── 8. Compute linkedProductsCount ──
+          // ── Compute linkedProductsCount ──
           {
             $addFields: {
               linkedProductsCount: {
@@ -541,8 +534,7 @@ const getAllServicesRepo = async ({
             },
           },
 
-          // ── 9. Single conditional $lookup for assignedTo ──
-          //    instead of 4 unconditional lookups
+          // ── Conditional assignedTo lookups ──
           {
             $lookup: {
               from: "brands",
@@ -624,7 +616,7 @@ const getAllServicesRepo = async ({
             },
           },
 
-          // ── 10. Compute assignedTo ──
+          // ── Compute assignedTo ──
           {
             $addFields: {
               assignedTo: {
@@ -653,7 +645,7 @@ const getAllServicesRepo = async ({
             },
           },
 
-          // ── 11. Clean up temp fields ──
+          // ── Clean up temp fields ──
           {
             $project: {
               p_prod_entries: 0,

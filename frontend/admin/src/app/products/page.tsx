@@ -80,6 +80,7 @@ const ProductsPage = () => {
   const [specVal, setSpecVal] = useState('');
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ brandId?: boolean; categoryId?: boolean; seriesId?: boolean; name?: boolean; iconImage?: boolean }>({});
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
   const scrollToFirstError = () => {
@@ -160,6 +161,10 @@ const ProductsPage = () => {
   const getServicesForProduct = (p: Product) => {
     return services.filter(s => {
       if (!s.isActive) return false;
+
+      const hasVariants = services.some(v => v.parentServiceId === s.id);
+      if (!s.isVariant && hasVariants) return false;
+
       switch (s.level) {
         case 'brand': return s.levelId === p.brandId;
         case 'category': return s.levelId === p.categoryId;
@@ -235,7 +240,6 @@ const ProductsPage = () => {
               />
             </div>
           ) : paginated.map(p => {
-            const productServices = getServicesForProduct(p);
             const series = getSeries(p.seriesId);
             const category = getCategory(p.categoryId);
             const brand = getBrand(p.brandId);
@@ -250,19 +254,32 @@ const ProductsPage = () => {
                 {Object.keys(p.specifications).length > 0 && (
                   <div className="flex flex-wrap gap-1">{Object.entries(p.specifications).map(([k, v]) => <Badge key={k} variant="outline" className="text-xs">{k}: {v}</Badge>)}</div>
                 )}
-                {productServices.length > 0 && (
+                {(p.activeServiceCount ?? 0) > 0 && (
                   <div className="text-xs text-muted-foreground">
                     <Wrench className="h-3 w-3 inline mr-1" />
-                    {productServices.length} service(s) available
+                    {p.activeServiceCount} service(s) available
                   </div>
                 )}
                 <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                  <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={p.isActive} onCheckedChange={() => {
-                    toggleActive(p.id).catch((error) => {
-                      const message = error instanceof Error ? error.message : 'Failed to update product status';
-                      toast({ title: message, variant: 'destructive' });
-                    });
-                  }} disabled={isLoading} /></div>
+                   <div className="flex items-center gap-2">
+                     <Label className="text-xs">Active</Label>
+                     {togglingId === p.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                     ) : (
+                      <Switch checked={p.isActive} onCheckedChange={async () => {
+                        setTogglingId(p.id);
+                        try {
+                          await toggleActive(p.id);
+                          toast({ title: `Product ${p.isActive ? 'deactivated' : 'activated'} successfully`, variant: 'success' });
+                        } catch (error) {
+                          const message = error instanceof Error ? error.message : 'Failed to update product status';
+                          toast({ title: message, variant: 'destructive' });
+                        } finally {
+                          setTogglingId(null);
+                        }
+                      }} disabled={isLoading} />
+                     )}
+                   </div>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openServiceOverrides(p)} disabled={isLoading} title="Manage service overrides"><Wrench className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -309,7 +326,6 @@ const ProductsPage = () => {
                   </TableCell>
                 </TableRow>
               ) : paginated.map(p => {
-                const productServices = getServicesForProduct(p);
                 const series = getSeries(p.seriesId);
                 const category = getCategory(p.categoryId);
                 const brand = getBrand(p.brandId);
@@ -323,15 +339,29 @@ const ProductsPage = () => {
                     <TableCell className="text-sm"><ParentNameCell name={seriesName(p.seriesId)} isInactive={seriesInactive} /></TableCell>
                     <TableCell className="text-sm"><ParentNameCell name={categoryName(p.categoryId)} isInactive={categoryInactive} /></TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px]"><TruncatedText text={p.description} /></TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{productServices.length} service(s)</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{p.activeServiceCount || 0} service(s)</TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden xl:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
-                    <TableCell><Switch checked={p.isActive} onCheckedChange={() => {
-                      toggleActive(p.id).catch((error) => {
-                        const message = error instanceof Error ? error.message : 'Failed to update product status';
-                        toast({ title: message, variant: 'destructive' });
-                      });
-                    }} disabled={isLoading} /></TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center">
+                        {togglingId === p.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        ) : (
+                          <Switch checked={p.isActive} onCheckedChange={async () => {
+                            setTogglingId(p.id);
+                            try {
+                              await toggleActive(p.id);
+                              toast({ title: `Product ${p.isActive ? 'deactivated' : 'activated'} successfully`, variant: 'success' });
+                            } catch (error) {
+                              const message = error instanceof Error ? error.message : 'Failed to update product status';
+                              toast({ title: message, variant: 'destructive' });
+                            } finally {
+                              setTogglingId(null);
+                            }
+                          }} disabled={isLoading} />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openServiceOverrides(p)} disabled={isLoading} title="Service overrides"><Wrench className="h-3.5 w-3.5" /></Button>

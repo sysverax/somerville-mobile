@@ -28,6 +28,7 @@ class ProductsForServiceResponseDTO {
   constructor(productServices, totalProducts, currentPage, pageSize) {
     this.products = productServices.map((ps) => ({
       productServiceId: ps._id.toString(),
+      serviceId: ps.serviceId._id ? ps.serviceId._id.toString() : ps.serviceId.toString(),
       price: ps.price,
       estimatedTime: ps.estimatedTime,
       isDefault: ps.isDefault,
@@ -36,6 +37,8 @@ class ProductsForServiceResponseDTO {
         id: ps.productId._id.toString(),
         name: ps.productId.name,
         isActive: ps.productId.isActive,
+        brand: ps.productId.seriesId?.categoryId?.brandId ? { name: ps.productId.seriesId.categoryId.brandId.name } : null,
+        category: ps.productId.seriesId?.categoryId ? { name: ps.productId.seriesId.categoryId.name } : null,
       } : null
     }));
     this.totalProducts = totalProducts;

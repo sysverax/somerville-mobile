@@ -63,6 +63,7 @@ const CategoriesPage = () => {
   const [form, setForm] = useState({ brandId: '', name: '', image: null as string | null, description: '' });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ brandId?: boolean; name?: boolean; image?: boolean }>({});
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
   const scrollToFirstError = () => {
@@ -183,12 +184,25 @@ const CategoriesPage = () => {
                 <VisibilityBadge visibility={computeCategoryVisibility(cat, getBrand(cat.brandId))} />
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={cat.isActive} onCheckedChange={() => {
-                  toggleActive(cat.id).catch((error) => {
-                    const message = error instanceof Error ? error.message : 'Failed to update category status';
-                    toast({ title: message, variant: 'destructive' });
-                  });
-                }} disabled={isLoading} /></div>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs">Active</Label>
+                  {togglingId === cat.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  ) : (
+                    <Switch checked={cat.isActive} onCheckedChange={async () => {
+                      setTogglingId(cat.id);
+                      try {
+                        await toggleActive(cat.id);
+                        toast({ title: `Category ${cat.isActive ? 'deactivated' : 'activated'} successfully`, variant: 'success' });
+                      } catch (error) {
+                        const message = error instanceof Error ? error.message : 'Failed to update category status';
+                        toast({ title: message, variant: 'destructive' });
+                      } finally {
+                        setTogglingId(null);
+                      }
+                    }} disabled={isLoading} />
+                  )}
+                </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(cat)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
@@ -242,12 +256,26 @@ const CategoriesPage = () => {
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px]"><TruncatedText text={cat.description} /></TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
-                    <TableCell><Switch checked={cat.isActive} onCheckedChange={() => {
-                      toggleActive(cat.id).catch((error) => {
-                        const message = error instanceof Error ? error.message : 'Failed to update category status';
-                        toast({ title: message, variant: 'destructive' });
-                      });
-                    }} disabled={isLoading} /></TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center">
+                        {togglingId === cat.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        ) : (
+                          <Switch checked={cat.isActive} onCheckedChange={async () => {
+                            setTogglingId(cat.id);
+                            try {
+                              await toggleActive(cat.id);
+                              toast({ title: `Category ${cat.isActive ? 'deactivated' : 'activated'} successfully`, variant: 'success' });
+                            } catch (error) {
+                              const message = error instanceof Error ? error.message : 'Failed to update category status';
+                              toast({ title: message, variant: 'destructive' });
+                            } finally {
+                              setTogglingId(null);
+                            }
+                          }} disabled={isLoading} />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>

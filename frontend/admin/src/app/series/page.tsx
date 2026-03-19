@@ -70,6 +70,7 @@ const SeriesPage = () => {
   const [form, setForm] = useState({ categoryId: '', brandId: '', name: '', image: null as string | null, description: '' });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<{ brandId?: boolean; categoryId?: boolean; name?: boolean; image?: boolean }>({});
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
   const scrollToFirstError = () => {
@@ -203,12 +204,25 @@ const SeriesPage = () => {
                 <VisibilityBadge visibility={computeSeriesVisibility(s, getCategory(s.category?.id || s.categoryId), getBrand(s.brand?.id || s.brandId))} />
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                <div className="flex items-center gap-2"><Label className="text-xs">Active</Label><Switch checked={s.isActive} onCheckedChange={() => {
-                  toggleActive(s.id).catch((error) => {
-                    const message = error instanceof Error ? error.message : 'Failed to update series status';
-                    toast({ title: message, variant: 'destructive' });
-                  });
-                }} disabled={isLoading} /></div>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs">Active</Label>
+                  {togglingId === s.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  ) : (
+                    <Switch checked={s.isActive} onCheckedChange={async () => {
+                      setTogglingId(s.id);
+                      try {
+                        await toggleActive(s.id);
+                        toast({ title: `Series ${s.isActive ? 'deactivated' : 'activated'} successfully`, variant: 'success' });
+                      } catch (error) {
+                        const message = error instanceof Error ? error.message : 'Failed to update series status';
+                        toast({ title: message, variant: 'destructive' });
+                      } finally {
+                        setTogglingId(null);
+                      }
+                    }} disabled={isLoading} />
+                  )}
+                </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(s)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
@@ -266,12 +280,26 @@ const SeriesPage = () => {
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[100px]"><TruncatedText text={s.description} /></TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
-                    <TableCell><Switch checked={s.isActive} onCheckedChange={() => {
-                      toggleActive(s.id).catch((error) => {
-                        const message = error instanceof Error ? error.message : 'Failed to update series status';
-                        toast({ title: message, variant: 'destructive' });
-                      });
-                    }} disabled={isLoading} /></TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center">
+                        {togglingId === s.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        ) : (
+                          <Switch checked={s.isActive} onCheckedChange={async () => {
+                            setTogglingId(s.id);
+                            try {
+                              await toggleActive(s.id);
+                              toast({ title: `Series ${s.isActive ? 'deactivated' : 'activated'} successfully`, variant: 'success' });
+                            } catch (error) {
+                              const message = error instanceof Error ? error.message : 'Failed to update series status';
+                              toast({ title: message, variant: 'destructive' });
+                            } finally {
+                              setTogglingId(null);
+                            }
+                          }} disabled={isLoading} />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>

@@ -57,6 +57,7 @@ type ProductInfo = {
 
 type ProductServiceItem = {
   productServiceId: string;
+  serviceId: string;
   price: number;
   estimatedTime: number;
   isDefault: boolean;

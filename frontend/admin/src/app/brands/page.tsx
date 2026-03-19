@@ -55,6 +55,7 @@ const BrandsPage = () => {
   const [requestError, setRequestError] = useState<string | null>(null);
   const [touched, setTouched] = useState<{ name?: boolean; iconImage?: boolean }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
   const scrollToFirstError = () => {
@@ -164,12 +165,22 @@ const BrandsPage = () => {
               <div className="flex items-center justify-between pt-2 border-t border-border/50">
                 <div className="flex items-center gap-2">
                   <Label className="text-xs">Active</Label>
-                  <Switch checked={brand.isActive} onCheckedChange={() => {
-                    toggleActive(brand.id).catch((error) => {
-                      const message = error instanceof Error ? error.message : 'Failed to update brand status';
-                      toast({ title: message, variant: 'destructive' });
-                    });
-                  }} disabled={isLoading} />
+                  {togglingId === brand.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  ) : (
+                    <Switch checked={brand.isActive} onCheckedChange={async () => {
+                      setTogglingId(brand.id);
+                      try {
+                        await toggleActive(brand.id);
+                        toast({ title: `Brand ${brand.isActive ? 'deactivated' : 'activated'} successfully`, variant: 'success' });
+                      } catch (error) {
+                        const message = error instanceof Error ? error.message : 'Failed to update brand status';
+                        toast({ title: message, variant: 'destructive' });
+                      } finally {
+                        setTogglingId(null);
+                      }
+                    }} disabled={isLoading} />
+                  )}
                 </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -221,12 +232,26 @@ const BrandsPage = () => {
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px]"><TruncatedText text={brand.description} /></TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden lg:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
-                    <TableCell><Switch checked={brand.isActive} onCheckedChange={() => {
-                      toggleActive(brand.id).catch((error) => {
-                        const message = error instanceof Error ? error.message : 'Failed to update brand status';
-                        toast({ title: message, variant: 'destructive' });
-                      });
-                    }} disabled={isLoading} /></TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center">
+                        {togglingId === brand.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        ) : (
+                          <Switch checked={brand.isActive} onCheckedChange={async () => {
+                            setTogglingId(brand.id);
+                            try {
+                              await toggleActive(brand.id);
+                              toast({ title: `Brand ${brand.isActive ? 'deactivated' : 'activated'} successfully`, variant: 'success' });
+                            } catch (error) {
+                              const message = error instanceof Error ? error.message : 'Failed to update brand status';
+                              toast({ title: message, variant: 'destructive' });
+                            } finally {
+                              setTogglingId(null);
+                            }
+                          }} disabled={isLoading} />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(brand)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
