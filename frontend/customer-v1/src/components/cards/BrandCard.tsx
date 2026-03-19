@@ -17,11 +17,20 @@ const BrandCard = ({ brand, index = 0, href }: BrandCardProps) => {
   const [isTruncated, setIsTruncated] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
 
+  const nameRef = useRef<HTMLHeadingElement>(null);
+  const [isNameTruncated, setIsNameTruncated] = useState(false);
+  const [showNameTooltip, setShowNameTooltip] = useState(false);
+
   useEffect(() => {
     const el = textRef.current;
-    if (!el) return;
-    setIsTruncated(el.scrollHeight > el.clientHeight);
-  }, [brand.description]);
+    if (el) {
+      setIsTruncated(el.scrollHeight > el.clientHeight);
+    }
+    const nameEl = nameRef.current;
+    if (nameEl) {
+      setIsNameTruncated(nameEl.scrollWidth > nameEl.clientWidth);
+    }
+  }, [brand.description, brand.name]);
 
   return (
     <motion.div
@@ -42,9 +51,24 @@ const BrandCard = ({ brand, index = 0, href }: BrandCardProps) => {
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           />
         </div>
-        <h3 className="font-bold text-sm md:text-lg group-hover:text-primary transition-colors whitespace-nowrap overflow-hidden text-ellipsis">
-          {brand.name}
-        </h3>
+        <div 
+          className="relative px-1"
+          onMouseEnter={() => isNameTruncated && setShowNameTooltip(true)}
+          onMouseLeave={() => setShowNameTooltip(false)}
+        >
+          <h3 
+            ref={nameRef}
+            className="font-bold text-sm md:text-lg group-hover:text-primary transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
+          >
+            {brand.name}
+          </h3>
+
+          {showNameTooltip && (
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-max max-w-[200px] bg-popover text-popover-foreground text-xs rounded-lg px-2 py-1.5 shadow-lg border border-border z-[100] whitespace-normal">
+              {brand.name}
+            </div>
+          )}
+        </div>
 
         <div
           className="relative hidden md:block"

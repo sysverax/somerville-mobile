@@ -151,11 +151,11 @@ const BrandContent = ({ params }: Props) => {
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-6 mb-8"
           >
-            <div className="w-20 h-20 rounded-2xl overflow-hidden bg-secondary/50 flex items-center justify-center">
+            <div className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden bg-secondary/50 flex items-center justify-center">
               <img src={brand.logo} alt={brand.name} className="w-full h-full object-cover" />
             </div>
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold">{brand.name}</h1>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-4xl md:text-5xl font-bold break-words">{brand.name}</h1>
               <p className="text-muted-foreground mt-2">{brand.description}</p>
             </div>
           </motion.div>

@@ -63,7 +63,7 @@ type FormErrors = { name?: string; brandId?: string; categoryId?: string; series
 
 const ServicesPage = () => {
   const { toast } = useToast();
-  const { services, total, createService, updateService, updateServiceStatus, deleteService, getVariants, hasVariants, isLoading: servicesLoading, error: servicesError, refresh } = useServices();
+  const { services, total, createService, updateService, updateServiceStatus, deleteService, getVariants, hasVariants, isLoading: servicesLoading, error: servicesError, refresh } = useServices({}, { autoFetch: false });
   const { brands, categories, series: seriesList, products, isLoading: optionsLoading } = useFilterOptions();
   const initialLoading = servicesLoading || optionsLoading;
 

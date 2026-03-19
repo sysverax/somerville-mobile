@@ -154,25 +154,29 @@ const ServicesPage = () => {
                 transition={{ delay: index * 0.1 }}
                 className="bg-card rounded-2xl border border-border/50 p-8 hover:border-primary/30 transition-colors"
               >
-                <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <service.icon className="h-7 w-7 text-primary" />
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors shrink-0">
+                      <service.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-bold group-hover:text-primary transition-colors">
+                      {service.title}
+                    </h3>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-2">{service.title}</h3>
-                    <p className="text-muted-foreground mb-4">{service.description}</p>
-                    <ul className="space-y-2 mb-4">
-                      {service.features.map(feature => (
-                        <li key={feature} className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {service.description}
+                  </p>
+                  <ul className="space-y-2 mb-4">
+                    {service.features.map(feature => (
+                      <li key={feature} className="flex items-center gap-2 text-sm">
+                        <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
                     <p className="text-xs text-muted-foreground">
-                      <strong>Supported:</strong> {service.devices.join(", ")}
-                    </p>
-                  </div>
+                    <strong>Supported:</strong> {service.devices.join(", ")}
+                  </p>
                 </div>
               </motion.div>
             ))}
@@ -201,13 +205,13 @@ const ServicesPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05 }}
-                className="flex items-center gap-4 p-5 rounded-xl bg-card border border-border/50"
+                className="group flex items-center gap-4 p-5 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-colors"
               >
-                <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
                   <service.icon className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">{service.name}</h3>
+                  <h3 className="font-semibold group-hover:text-primary transition-colors">{service.name}</h3>
                   <p className="text-sm text-muted-foreground">{service.description}</p>
                 </div>
               </motion.div>

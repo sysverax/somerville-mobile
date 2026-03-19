@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Category } from '@/types';
 import { categoryService } from '@/services/category.service';
 
-export const useCategories = () => {
+export const useCategories = ({ autoFetch = true } = {}) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,11 +24,15 @@ export const useCategories = () => {
   }, []);
 
   useEffect(() => {
-    refresh().catch(() => {
-      setCategories([]);
+    if (autoFetch) {
+      refresh().catch(() => {
+        setCategories([]);
+        setIsLoading(false);
+      });
+    } else {
       setIsLoading(false);
-    });
-  }, [refresh]);
+    }
+  }, [refresh, autoFetch]);
 
   const create = useCallback(async (data: { brandId: string; name: string; image: string | null; description: string }) => {
     await categoryService.create(data);

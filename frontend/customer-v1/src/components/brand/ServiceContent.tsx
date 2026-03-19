@@ -99,21 +99,27 @@ const ServiceContent = ({ brandId }: { brandId?: string }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="group p-6 rounded-2xl bg-gradient-card shadow-card glass-hover"
+              className="group p-6 rounded-2xl bg-gradient-card shadow-card border border-border/50 glass-hover"
             >
-              <div className="w-12 h-12 mb-4 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <service.icon className="h-6 w-6 text-primary" />
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors shrink-0">
+                    <service.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-bold group-hover:text-primary transition-colors">
+                    {service.title}
+                  </h3>
+                </div>
+                <p className="text-muted-foreground text-sm leading-relaxed">{service.description}</p>
+                <ul className="space-y-2">
+                  {service.highlights.map(highlight => (
+                    <li key={highlight} className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      <span>{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <h3 className="text-xl font-bold mb-2">{service.title}</h3>
-              <p className="text-muted-foreground text-sm mb-4">{service.description}</p>
-              <ul className="space-y-2">
-                {service.highlights.map(highlight => (
-                  <li key={highlight} className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-primary" />
-                    <span>{highlight}</span>
-                  </li>
-                ))}
-              </ul>
             </motion.div>
           ))}
         </div>
@@ -136,13 +142,13 @@ const ServiceContent = ({ brandId }: { brandId?: string }) => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05 }}
-                className="flex items-center gap-4 p-4 rounded-xl bg-card/50 border border-border/50 hover:border-primary/30 transition-colors"
+                className="group flex items-center gap-4 p-5 rounded-xl bg-card border border-border/50 hover:border-primary/30 transition-colors"
               >
-                <div className="p-3 rounded-lg bg-primary/10">
+                <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
                   <service.icon className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-sm">{service.title}</h4>
+                  <h4 className="font-semibold text-sm group-hover:text-primary transition-colors">{service.title}</h4>
                   <p className="text-xs text-muted-foreground">{service.description}</p>
                 </div>
               </motion.div>
