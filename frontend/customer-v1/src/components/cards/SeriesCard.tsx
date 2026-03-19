@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";         
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -15,42 +15,51 @@ interface SeriesCardProps {
 
 const SeriesCard = ({ series, index = 0, showProducts = true }: SeriesCardProps) => {
   const [products, setProducts] = useState<StorefrontProduct[]>([]);
+  const descRef = useRef<HTMLParagraphElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   useEffect(() => {
     getStorefrontProductsBySeries(series.id).then(setProducts);
   }, [series.id]);
 
+  useEffect(() => {
+    const el = descRef.current;
+    if (!el) return;
+    setIsTruncated(el.scrollHeight > el.clientHeight);
+  }, [series.description]);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1, duration: 0.5 }}
-      className="group"
-    >
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-card shadow-card border border-border/50">
-        <div className="relative h-44 overflow-hidden">
+    <div className="group">
+      <div className="relative rounded-2xl bg-gradient-card shadow-card border border-border/50">
+        <div className="relative h-44 overflow-hidden rounded-t-2xl">
           <img
             src={series.banner}
             alt={series.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            className="w-full h-full object-cover transition-transform duration-500 md:group-hover:scale-110"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/50 to-transparent" />
-          <div className="absolute top-4 left-4">
-            <span className="text-xs font-medium text-primary bg-primary/10 backdrop-blur-sm px-3 py-1 rounded-full border border-primary/20">
-              {series.releaseYear}
-            </span>
-          </div>
         </div>
 
-        <div className="p-5">
+        <div className="p-5 flex flex-col flex-1">
           <Link href={`/series/${series.id}`}>
-            <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+            <h3 className="text-xl font-bold mb-2 md:group-hover:text-primary transition-colors">
               {series.name}
             </h3>
           </Link>
-          <p className="text-muted-foreground text-sm line-clamp-2 mb-4">
-            {series.description}
-          </p>
+          <div
+            className="relative"
+            onMouseEnter={() => isTruncated && setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+          >
+            <p ref={descRef} className="text-muted-foreground text-sm line-clamp-2 mb-4 h-10">
+              {series.description || " "}
+            </p>
+            {showTooltip && (
+              <div className="absolute top-full left-0 mt-0 w-80 bg-popover text-popover-foreground text-xs rounded-lg px-3 py-2 shadow-lg border border-border z-50 whitespace-normal">
+                {series.description}
+              </div>
+            )}
+          </div>
 
           {showProducts && products.length > 0 && (
             <div className="space-y-2 mb-4 border-t border-border/50 pt-4">
@@ -102,16 +111,17 @@ const SeriesCard = ({ series, index = 0, showProducts = true }: SeriesCardProps)
               className="flex items-center text-primary font-medium text-sm hover:underline"
             >
               <span>View All Products</span>
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform md:group-hover:translate-x-1" />
             </Link>
           )}
         </div>
 
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-          <div className="absolute inset-0 bg-primary/5" />
+        <div className="absolute inset-0 opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl">
+          <div className="absolute inset-0 bg-primary/5 rounded-2xl" />
         </div>
       </div>
-    </motion.div>
+    </div>
+
   );
 };
 

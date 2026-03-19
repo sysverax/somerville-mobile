@@ -39,7 +39,9 @@ export const getAllProducts = async (sortOrder?: 'asc' | 'desc'): Promise<Produc
       }
       const json = await response.json();
       const rawProducts: ProductDocument[] = json.data?.products || [];
-      const normalized = rawProducts.map(normalizeProduct);
+      const normalized = rawProducts
+        .map(normalizeProduct)
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
       return normalized;
     } catch (error) {
       console.error('Failed to fetch products from API:', error);

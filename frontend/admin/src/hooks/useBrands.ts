@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Brand } from '@/types';
 import { brandService } from '@/services/brand.service';
 
-export const useBrands = () => {
+export const useBrands = ({ autoFetch = true } = {}) => {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,11 +24,15 @@ export const useBrands = () => {
   }, []);
 
   useEffect(() => {
-    refresh().catch(() => {
-      setBrands([]);
+    if (autoFetch) {
+      refresh().catch(() => {
+        setBrands([]);
+        setIsLoading(false);
+      });
+    } else {
       setIsLoading(false);
-    });
-  }, [refresh]);
+    }
+  }, [refresh, autoFetch]);
 
   const create = useCallback(async (data: { name: string; description: string; iconImage: string | null; bannerImage?: string | null }) => {
     await brandService.create(data);

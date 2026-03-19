@@ -1,5 +1,4 @@
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertTriangle } from 'lucide-react';
 import { VisibilityResult } from '@/lib/visibility';
 
@@ -22,31 +21,15 @@ export function VisibilityBadge({ visibility, showIcon = true }: VisibilityBadge
         );
     }
 
-    // Hidden badge with tooltip showing reasons
+    // Hidden badge without tooltip
     return (
-        <TooltipProvider>
-            <Tooltip delayDuration={200}>
-                <TooltipTrigger asChild>
-                    <Badge
-                        variant="secondary"
-                        className="cursor-help text-xs gap-1 bg-muted text-muted-foreground"
-                    >
-                        {showIcon && <AlertTriangle className="h-3 w-3" />}
-                        Hidden
-                    </Badge>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs">
-                    <div className="space-y-1">
-                        <p className="font-semibold text-xs">Hidden Reasons:</p>
-                        <ul className="text-xs list-disc pl-4 space-y-0.5">
-                            {visibility.reasons.map((reason, idx) => (
-                                <li key={idx}>{reason}</li>
-                            ))}
-                        </ul>
-                    </div>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
+        <Badge
+            variant="secondary"
+            className="text-xs gap-1 bg-muted text-muted-foreground"
+        >
+            {showIcon && <AlertTriangle className="h-3 w-3 shrink-0" />}
+            Hidden
+        </Badge>
     );
 }
 
@@ -74,21 +57,12 @@ interface ParentNameCellProps {
 export function ParentNameCell({ name, isInactive }: ParentNameCellProps) {
     if (isInactive) {
         return (
-            <TooltipProvider>
-                <Tooltip delayDuration={200}>
-                    <TooltipTrigger asChild>
-                        <span className="text-destructive font-medium flex items-center gap-1 cursor-help">
-                            <AlertTriangle className="h-3 w-3" />
-                            {name}
-                        </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                        <p className="text-xs">This parent is inactive</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+            <span className="text-destructive font-medium flex items-center gap-1 min-w-0">
+                <AlertTriangle className="h-3 w-3 shrink-0" />
+                <span className="truncate">{name}</span>
+            </span>
         );
     }
 
-    return <span className="text-muted-foreground">{name}</span>;
+    return <span className="text-muted-foreground truncate block">{name}</span>;
 }

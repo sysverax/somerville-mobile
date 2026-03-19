@@ -537,9 +537,9 @@ const ProductDetailPage = ({ params }: Props) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-2xl font-bold">Available Services</h3>
-                      <p className="text-muted-foreground text-sm mt-1">
+                      {/* <p className="text-muted-foreground text-sm mt-1">
                         Professional repair and support services for your {product.name}
-                      </p>
+                      </p> */}
                     </div>
                   </div>
 

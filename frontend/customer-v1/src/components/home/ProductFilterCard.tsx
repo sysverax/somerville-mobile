@@ -89,12 +89,12 @@ const ProductFilterCard = ({ options, loading: externalLoading }: ProductFilterC
         )}
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-6">
+      {/* <div className="flex flex-wrap gap-3 mb-6">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 text-sm text-muted-foreground">
           <Wrench className="h-4 w-4 text-primary" />
           <span>Request repair service</span>
         </div>
-      </div>
+      </div> */}
 
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         <div className="space-y-2">
@@ -104,9 +104,13 @@ const ProductFilterCard = ({ options, loading: externalLoading }: ProductFilterC
               <SelectValue placeholder="Select brand" />
             </SelectTrigger>
             <SelectContent className="bg-background border-border z-50">
-              {brands.map(brand => (
-                <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
-              ))}
+              {brands.length > 0 ? (
+                brands.map(brand => (
+                  <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                ))
+              ) : (
+                <SelectItem value="none" disabled>No brands available</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -118,9 +122,13 @@ const ProductFilterCard = ({ options, loading: externalLoading }: ProductFilterC
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent className="bg-background border-border z-50">
-              {filteredCategories.map(category => (
-                <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-              ))}
+              {filteredCategories.length > 0 ? (
+                filteredCategories.map(category => (
+                  <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                ))
+              ) : (
+                <SelectItem value="none" disabled>No categories available</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -132,9 +140,13 @@ const ProductFilterCard = ({ options, loading: externalLoading }: ProductFilterC
               <SelectValue placeholder="Select series" />
             </SelectTrigger>
             <SelectContent className="bg-background border-border z-50">
-              {filteredSeries.map(s => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
+              {filteredSeries.length > 0 ? (
+                filteredSeries.map(s => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))
+              ) : (
+                <SelectItem value="none" disabled>No series available</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>

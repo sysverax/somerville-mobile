@@ -33,7 +33,10 @@ export const getAllBrands = async (sortOrder?: 'asc' | 'desc'): Promise<Brand[]>
       }
       const json = await response.json();
       const brands: BrandDocument[] = json.data?.brands || [];
-      return brands.filter(b => b.isActive).map(normalizeBrand);
+      return brands
+        .filter(b => b.isActive)
+        .map(normalizeBrand)
+        .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
     } catch (error) {
       console.error('Failed to fetch brands from API:', error);
       brandsPromise = null;

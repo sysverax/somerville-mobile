@@ -345,7 +345,7 @@ export const getStorefrontServicesByProduct = async (productId: string): Promise
           isParent: false,
           level: v.level || svc.level,
           name: `${svc.name} - ${v.name}`, // Standard full name for flat lists
-          description: v.description || svc.description,
+          description: v.description || '',
           estimatedTime: v.estimatedTime,
           duration: formatDuration(v.estimatedTime),
           price: v.price,

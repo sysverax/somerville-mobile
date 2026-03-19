@@ -222,6 +222,50 @@ const updateServiceService = async (updateServiceRequestDto, logger) => {
       session,
     );
 
+    // If changing from direct service to a parent, remove its direct product associations
+    if (serviceUpdateData.isParent === true && !existingService.isParent) {
+      await productServiceRepo.deleteProductServicesByServiceIdsRepo(
+        [updateServiceRequestDto.id],
+        session
+      );
+      logger.info("Service flipped to parent, removed direct product associations", {
+        serviceId: updateServiceRequestDto.id,
+      });
+    }
+
+    // If changing from parent to direct service, associate it with products
+    if (serviceUpdateData.isParent === false && existingService.isParent) {
+      const levelToCheck = updateServiceRequestDto.level || existingService.level;
+      const levelIdToCheck = updateServiceRequestDto.levelId || existingService.levelId;
+      
+      const productIds = await serviceRepo.getProductIdsByLevelRepo(
+        levelToCheck,
+        levelIdToCheck,
+        session
+      );
+
+      if (productIds.length > 0) {
+        const productServiceDocs = productIds.map(productId => ({
+          serviceId: updatedService._id,
+          productId,
+          price: serviceUpdateData.basePrice || updatedService.basePrice,
+          estimatedTime: serviceUpdateData.estimatedTime || updatedService.estimatedTime,
+          isActive: true,
+          isDefault: true,
+        }));
+
+        await productServiceRepo.createManyProductServicesRepo(
+          productServiceDocs,
+          session
+        );
+
+        logger.info("Service flipped to direct, created product associations", {
+          serviceId: updateServiceRequestDto.id,
+          productCount: productIds.length,
+        });
+      }
+    }
+
     //update default product services if price or time changed
     const productServiceUpdatePayload = {};
     if (serviceUpdateData.basePrice !== undefined) {

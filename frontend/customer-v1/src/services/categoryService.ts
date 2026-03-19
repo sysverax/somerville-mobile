@@ -32,7 +32,9 @@ export const getAllCategories = async (sortOrder?: 'asc' | 'desc'): Promise<Cate
       }
       const json = await response.json();
       const categories: CategoryDocument[] = json.data?.categories || [];
-      return categories.map(normalizeCategory);
+      return categories
+        .map(normalizeCategory)
+        .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
     } catch (error) {
       console.error('Failed to fetch categories from API:', error);
       categoriesPromise = null;

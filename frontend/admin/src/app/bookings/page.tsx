@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import BookingsTable from '@/components/BookingsTable';
 
 const BookingsPage = () => {
-  const { bookings, total, loading, error, refetch } = useBookings();
+  const { bookings, total, loading, error, refetch } = useBookings({ autoFetch: false });
   const { brands, categories, products, isLoading: optionsLoading } = useFilterOptions();
   const navigate = useNavigate();
 
