@@ -56,7 +56,7 @@ type FormErrors = { brandId?: string; categoryId?: string; name?: string; image?
 
 const SeriesPage = () => {
   const { brands, categories, isLoading: optionsLoading } = useFilterOptions();
-  const { seriesList, total, create, update, remove, toggleActive, isLoading: seriesLoading, refresh } = useSeriesData();
+  const { seriesList, total, create, update, remove, toggleActive, isLoading: seriesLoading, refresh } = useSeriesData({ autoFetch: false });
   const initialLoading = seriesLoading || optionsLoading;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);

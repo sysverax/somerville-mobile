@@ -63,7 +63,7 @@ type FormErrors = { brandId?: string; categoryId?: string; seriesId?: string; na
 
 const ProductsPage = () => {
   const { brands, categories, series: seriesList, isLoading: optionsLoading } = useFilterOptions();
-  const { products, total, create, update, remove, toggleActive, isLoading: productsLoading, refresh } = useProducts();
+  const { products, total, create, update, remove, toggleActive, isLoading: productsLoading, refresh } = useProducts({ autoFetch: false });
   const { services } = useServices();
   const initialLoading = productsLoading || optionsLoading;
   const { toast } = useToast();

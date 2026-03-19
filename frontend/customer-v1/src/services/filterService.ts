@@ -32,14 +32,14 @@ export const getFilterOptions = async (): Promise<FilterOptions> => {
 
       // Map to storefront types
       return {
-        brands: data.brands,
+        brands: data.brands.sort((a: any, b: any) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()),
         categories: data.categories.map((c: any) => ({
           ...c,
           image: [c.image]
-        })),
+        })).sort((a: any, b: any) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()),
         series: data.series.map((s: any) => ({
           ...s,
-        })),
+        })).sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()),
         products: data.products.map((p: any) => ({
           ...p,
           description: '',
@@ -48,7 +48,7 @@ export const getFilterOptions = async (): Promise<FilterOptions> => {
           price: 0,
           stock: 1,
           sku: p.id.toUpperCase()
-        }))
+        })).sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
       };
     } catch (error) {
       console.error('Failed to fetch filter options:', error);

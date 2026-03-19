@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -23,18 +23,46 @@ const Index = () => {
   const { data: brands, loading: brandsLoading } = useBrands();
   const { data: allSeries, loading: seriesLoading } = useSeries();
   const [currentSeriesIndex, setCurrentSeriesIndex] = useState(0);
-  const [direction, setDirection] = useState(0);
+  const [seriesAtStart, setSeriesAtStart] = useState(true);
+  const [seriesAtEnd, setSeriesAtEnd] = useState(false);
 
   const latestSeries = useMemo(() => allSeries.slice(0, 3), [allSeries]);
 
-  const handlePrevious = () => {
-    setDirection(-1);
-    setCurrentSeriesIndex((prev) => (prev === 0 ? latestSeries.length - 1 : prev - 1));
+  useEffect(() => {
+    if (latestSeries.length <= 1) return;
+    const interval = setInterval(() => {
+      const container = document.getElementById('series-scroll-container');
+      if (container) {
+        if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 10) {
+          container.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          const cardWidth = container.scrollWidth / latestSeries.length;
+          container.scrollBy({ left: cardWidth, behavior: 'smooth' });
+        }
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [latestSeries.length]);
+
+  const [brandsAtStart, setBrandsAtStart] = useState(true);
+  const [brandsAtEnd, setBrandsAtEnd] = useState(false);
+
+  const handleBrandScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (!el) return;
+    setBrandsAtStart(el.scrollLeft <= 5);
+    setBrandsAtEnd(Math.ceil(el.scrollLeft) >= el.scrollWidth - el.clientWidth - 5);
   };
 
-  const handleNext = () => {
-    setDirection(1);
-    setCurrentSeriesIndex((prev) => (prev === latestSeries.length - 1 ? 0 : prev + 1));
+  const handleSeriesScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (!el || latestSeries.length <= 1) return;
+    
+    setSeriesAtStart(el.scrollLeft <= 10);
+    setSeriesAtEnd(Math.ceil(el.scrollLeft) >= el.scrollWidth - el.clientWidth - 10);
+
+    const index = Math.round((el.scrollLeft / (el.scrollWidth - el.clientWidth)) * (latestSeries.length - 1));
+    setCurrentSeriesIndex(Math.min(Math.max(index, 0), latestSeries.length - 1) || 0);
   };
 
   return (
@@ -82,7 +110,7 @@ const Index = () => {
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 </Link>
-                <Link href="/booking">
+                <Link href="/booking" className="lg:hidden">
                   <Button size="lg" variant="outline" className="bg-transparent border-gray-400/50 hover:bg-gray-50/80 hover:border-gray-500/70 gap-2 w-52">
                     Book Service Slot
                   </Button>
@@ -148,7 +176,8 @@ const Index = () => {
               <div className="md:hidden relative">
                 <div 
                   id="brand-scroll-container"
-                  className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide scroll-smooth snap-x px-10"
+                  onScroll={handleBrandScroll}
+                  className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide scroll-smooth snap-x px-0"
                 >
                   <style jsx>{`
                     .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -160,20 +189,24 @@ const Index = () => {
                     </div>
                   ))}
                 </div>
-                <button
-                  onClick={() => { const c = document.getElementById('brand-scroll-container'); if (c) c.scrollBy({ left: -300, behavior: 'smooth' }); }}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
-                  aria-label="Scroll left"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => { const c = document.getElementById('brand-scroll-container'); if (c) c.scrollBy({ left: 300, behavior: 'smooth' }); }}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
-                  aria-label="Scroll right"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
+                {!brandsAtStart && (
+                  <button
+                    onClick={() => { const c = document.getElementById('brand-scroll-container'); if (c) c.scrollBy({ left: -300, behavior: 'smooth' }); }}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                    aria-label="Scroll left"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                )}
+                {!brandsAtEnd && (
+                  <button
+                    onClick={() => { const c = document.getElementById('brand-scroll-container'); if (c) c.scrollBy({ left: 300, behavior: 'smooth' }); }}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                    aria-label="Scroll right"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                )}
               </div>
 
               {/* DESKTOP: Responsive grid, no scroll */}
@@ -205,76 +238,67 @@ const Index = () => {
           >
             <div>
               <h2 className="text-3xl md:text-4xl font-bold mb-2">Latest Series</h2>
-              <p className="text-muted-foreground">Discover the newest product lines</p>
+              {/* <p className="text-muted-foreground">Discover the newest product lines</p> */}
             </div>
           </motion.div>
 
           <div className="relative w-full">
             {latestSeries.length > 0 && (
               <>
-                {/* MOBILE: Single card carousel */}
-                <div className="md:hidden">
-                  <div className="relative">
-                    <div className="overflow-hidden rounded-2xl flex items-center justify-center">
-                      <AnimatePresence initial={false} custom={direction} mode="popLayout">
-                        <motion.div
-                          key={currentSeriesIndex}
-                          custom={direction}
-                          initial={{ opacity: 0, x: direction > 0 ? 300 : -300 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: direction > 0 ? -300 : 300 }}
-                          transition={{ 
-                            x: { type: "spring", stiffness: 600, damping: 50 },
-                            opacity: { duration: 0.15 }
-                          }}
-                          className="w-full flex-shrink-0"
-                        >
-                          <div className="relative">
-                            <SeriesCard 
-                              key={latestSeries[currentSeriesIndex].id} 
-                              series={latestSeries[currentSeriesIndex]} 
-                              index={0} 
-                              showProducts={false} 
-                            />
-                            
-                            <button
-                              onClick={handlePrevious}
-                              className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
-                              aria-label="Previous series"
-                            >
-                              <ChevronLeft className="h-5 w-5" />
-                            </button>
-                            
-                            <button
-                              onClick={handleNext}
-                              className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
-                              aria-label="Next series"
-                            >
-                              <ChevronRight className="h-5 w-5" />
-                            </button>
-                          </div>
-                        </motion.div>
-                      </AnimatePresence>
-                    </div>
-
-                    {/* Series Indicators */}
-                    <div className="flex justify-center gap-2 mt-6">
-                      {latestSeries.map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={() => {
-                            setDirection(index > currentSeriesIndex ? 1 : -1);
-                            setCurrentSeriesIndex(index);
-                          }}
-                          className={`w-2 h-2 rounded-full transition-all ${
-                            index === currentSeriesIndex 
-                              ? "bg-primary w-8" 
-                              : "bg-gray-400 hover:bg-gray-600"
-                          }`}
-                          aria-label={`Go to series ${index + 1}`}
+                {/* MOBILE: Horizontal scroll with arrows */}
+                <div className="md:hidden relative pb-6">
+                  <div 
+                    id="series-scroll-container"
+                    onScroll={handleSeriesScroll}
+                    className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide scroll-smooth snap-x px-0"
+                  >
+                    <style jsx>{`
+                      .scrollbar-hide::-webkit-scrollbar { display: none; }
+                      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+                    `}</style>
+                    {latestSeries.map((series, index) => (
+                      <div key={series.id} className="flex-shrink-0 w-[80vw] snap-center">
+                        <SeriesCard 
+                          series={series} 
+                          index={index} 
+                          showProducts={false} 
                         />
-                      ))}
-                    </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {!seriesAtStart && (
+                    <button
+                      onClick={() => { const c = document.getElementById('series-scroll-container'); if (c) c.scrollBy({ left: -300, behavior: 'smooth' }); }}
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                      aria-label="Scroll left"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                  )}
+                  
+                  {!seriesAtEnd && (
+                    <button
+                      onClick={() => { const c = document.getElementById('series-scroll-container'); if (c) c.scrollBy({ left: 300, behavior: 'smooth' }); }}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                      aria-label="Scroll right"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  )}
+
+                  {/* Series Indicators */}
+                  <div className="flex justify-center gap-2 mt-2 absolute bottom-0 left-0 right-0">
+                    {latestSeries.map((_, index) => (
+                      <div
+                        key={index}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          index === currentSeriesIndex 
+                            ? "bg-primary w-8" 
+                            : "bg-gray-400"
+                        }`}
+                      />
+                    ))}
                   </div>
                 </div>
 

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Series } from '@/types';
 import { seriesService } from '@/services/series.service';
 
-export const useSeriesData = () => {
+export const useSeriesData = ({ autoFetch = true } = {}) => {
   const [seriesList, setSeriesList] = useState<Series[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,11 +24,15 @@ export const useSeriesData = () => {
   }, []);
 
   useEffect(() => {
-    refresh().catch(() => {
-      setSeriesList([]);
+    if (autoFetch) {
+      refresh().catch(() => {
+        setSeriesList([]);
+        setIsLoading(false);
+      });
+    } else {
       setIsLoading(false);
-    });
-  }, [refresh]);
+    }
+  }, [refresh, autoFetch]);
 
   const create = useCallback(async (data: { categoryId: string; brandId: string; name: string; image: string | null; description: string }) => {
     await seriesService.create(data);

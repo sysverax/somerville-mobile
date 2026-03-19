@@ -18,12 +18,13 @@ const normalizeSeries = (series: any): Series => {
   };
 };
 
-let seriesPromise: Promise<Series[]> | null = null;
+const seriesPromiseCache = new Map<string, Promise<Series[]>>();
 
 export const getAllSeries = async (sortOrder?: 'asc' | 'desc'): Promise<Series[]> => {
-  if (seriesPromise) return seriesPromise;
+  const key = sortOrder || 'asc';
+  if (seriesPromiseCache.has(key)) return seriesPromiseCache.get(key)!;
 
-  seriesPromise = (async () => {
+  const promise = (async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/series${sortOrder ? `?sortOrder=${sortOrder}` : ''}`, {
         headers: {
@@ -36,16 +37,18 @@ export const getAllSeries = async (sortOrder?: 'asc' | 'desc'): Promise<Series[]
       }
       const json = await response.json();
       const rawSeries: SeriesDocument[] = json.data?.series || [];
-      const normalized = rawSeries.map(normalizeSeries);
-      return normalized;
+      return rawSeries
+        .map(normalizeSeries)
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     } catch (error) {
       console.error('Failed to fetch series from API:', error);
-      seriesPromise = null;
+      seriesPromiseCache.delete(key);
       return [];
     }
   })();
 
-  return seriesPromise;
+  seriesPromiseCache.set(key, promise);
+  return promise;
 };
 
 export const getActiveSeries = async (sortOrder?: 'asc' | 'desc'): Promise<Series[]> => {

@@ -66,11 +66,13 @@ const ProductCard = ({ product, index = 0, showServices = true }: ProductCardPro
           <h3 className="text-lg font-bold group-hover:text-primary transition-colors line-clamp-1">
             {product.name}
           </h3>
-          {/* TODO: If need shop now please uncomment the following section */}
-          {/*Product feature */}
-          {/* <p className="text-muted-foreground text-sm line-clamp-2">
+          <p className="text-muted-foreground text-sm line-clamp-2">
             {product.description}
           </p>
+
+          {/* TODO: If need shop now please uncomment the following section */}
+          {/*Product feature */}
+          {/* 
 
           {hasRefurbished && refurbishedPrice ? (
             <div className="flex items-center gap-2">

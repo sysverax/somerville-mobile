@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Booking, TimeSlotConfig } from '@/types';
 import { bookingService } from '@/services/booking.service';
 
-export const useBookings = () => {
+export const useBookings = ({ autoFetch = true } = {}) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [config, setConfig] = useState<TimeSlotConfig>(bookingService.getTimeSlotConfig());
@@ -27,8 +27,12 @@ export const useBookings = () => {
   }, []);
 
   useEffect(() => {
-    fetchBookings();
-  }, [fetchBookings]);
+    if (autoFetch) {
+      fetchBookings();
+    } else {
+      setLoading(false);
+    }
+  }, [fetchBookings, autoFetch]);
 
   const updateConfig = useCallback((data: TimeSlotConfig) => {
     bookingService.updateTimeSlotConfig(data);

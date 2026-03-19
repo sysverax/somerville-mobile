@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { ServiceRecord } from '@/types';
 import { serviceService, GetServicesFilters, CreateServiceInput, UpdateServiceInput } from '@/services/service.service';
 
-export const useServices = (initialFilters: GetServicesFilters = {}) => {
+export const useServices = (initialFilters: GetServicesFilters = {}, { autoFetch = true } = {}) => {
   const [services, setServices] = useState<ServiceRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,8 +27,12 @@ export const useServices = (initialFilters: GetServicesFilters = {}) => {
   }, []);
 
   useEffect(() => {
-    fetchServices();
-  }, [fetchServices]);
+    if (autoFetch) {
+      fetchServices();
+    } else {
+      setIsLoading(false);
+    }
+  }, [fetchServices, autoFetch]);
 
   const createService = useCallback(async (data: CreateServiceInput): Promise<ServiceRecord> => {
     const created = await serviceService.create(data);

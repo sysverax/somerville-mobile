@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Product } from '@/types';
 import { productService } from '@/services/product.service';
 
-export const useProducts = () => {
+export const useProducts = ({ autoFetch = true } = {}) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,11 +24,15 @@ export const useProducts = () => {
   }, []);
 
   useEffect(() => {
-    refresh().catch(() => {
-      setProducts([]);
+    if (autoFetch) {
+      refresh().catch(() => {
+        setProducts([]);
+        setIsLoading(false);
+      });
+    } else {
       setIsLoading(false);
-    });
-  }, [refresh]);
+    }
+  }, [refresh, autoFetch]);
 
   const create = useCallback(async (data: Omit<Product, 'id' | 'isActive' | 'createdAt'>) => {
     await productService.create(data);

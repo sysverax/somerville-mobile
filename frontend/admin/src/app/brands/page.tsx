@@ -44,7 +44,7 @@ const validateIcon = (value: string | null): string | undefined => {
 type FormErrors = { name?: string; iconImage?: string };
 
 const BrandsPage = () => {
-  const { brands, total, create, update, remove, toggleActive, count, isLoading: initialLoading, refresh } = useBrands();
+  const { brands, total, create, update, remove, toggleActive, count, isLoading: initialLoading, refresh } = useBrands({ autoFetch: false });
   const { toast } = useToast();
   const [view, setView] = useState<ViewMode>('table');
   const [isFormOpen, setIsFormOpen] = useState(false);
