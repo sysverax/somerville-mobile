@@ -139,7 +139,7 @@ const ProductSelector = () => {
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
                     Select Brand
                 </h3>
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+                <div className="flex items-stretch gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
                     {brands.map((brand: StorefrontBrand) => (
                         <button
                             key={brand.id}
@@ -147,7 +147,7 @@ const ProductSelector = () => {
                             onClick={() => setBrand(brand.id)}
                             aria-pressed={selectedBrandId === brand.id}
                             className={cn(
-                                "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border text-sm font-medium whitespace-nowrap transition-all duration-200 shrink-0",
+                                "flex items-center h-full gap-2.5 px-4 py-2.5 rounded-xl border text-sm font-medium whitespace-nowrap transition-all duration-200 shrink-0",
                                 selectedBrandId === brand.id
                                     ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_12px_hsl(0_75%_55%/0.15)]"
                                     : "bg-secondary/40 border-border/50 text-foreground/80 hover:bg-secondary/70 hover:border-border"
@@ -184,10 +184,10 @@ const ProductSelector = () => {
             <AnimatePresence mode="wait">
                 {selectedBrandId && filteredCategories.length > 0 && (
                     <motion.section {...fadeIn} key="categories" aria-label="Select category">
-                        <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                        <h3 key="cat-title" className="text-sm font-medium text-muted-foreground mb-3">
                             Select Category
                         </h3>
-                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+                        <div key="cat-list" className="flex items-stretch gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
                             {filteredCategories.map((cat: StorefrontCategory) => {
                                 const catImage = Array.isArray(cat.image) ? cat.image[0] : cat.image;
                                 return (
@@ -197,7 +197,7 @@ const ProductSelector = () => {
                                         onClick={() => setCategory(cat.id)}
                                         aria-pressed={selectedCategoryId === cat.id}
                                         className={cn(
-                                            "flex items-center gap-2.5 px-4 py-2.5 rounded-xl border text-sm font-medium whitespace-nowrap transition-all duration-200 shrink-0",
+                                            "flex items-center h-full gap-2.5 px-4 py-2.5 rounded-xl border text-sm font-medium whitespace-nowrap transition-all duration-200 shrink-0",
                                             selectedCategoryId === cat.id
                                                 ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_12px_hsl(0_75%_55%/0.15)]"
                                                 : "bg-secondary/40 border-border/50 text-foreground/80 hover:bg-secondary/70 hover:border-border"
@@ -237,10 +237,10 @@ const ProductSelector = () => {
             <AnimatePresence mode="wait">
                 {selectedCategoryId && filteredSeries.length > 0 && (
                     <motion.section {...fadeIn} key="series" aria-label="Select series and product">
-                        <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                        <h3 key="series-title" className="text-sm font-medium text-muted-foreground mb-3">
                             Select Series
                         </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div key="series-grid" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {filteredSeries.map((series: StorefrontSeries) => {
                                 const isExpanded = expandedSeriesId === series.id;
                                 const products = productsBySeries.get(series.id) || [];
@@ -251,7 +251,7 @@ const ProductSelector = () => {
                                         key={series.id}
                                         layout
                                         className={cn(
-                                            "rounded-2xl border overflow-hidden transition-all duration-300",
+                                            "flex flex-col h-full border overflow-hidden transition-all duration-300",
                                             hasSelection
                                                 ? "border-primary/40 shadow-[0_0_20px_hsl(0_75%_55%/0.1)]"
                                                 : "border-border/50 hover:border-border"

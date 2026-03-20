@@ -80,7 +80,7 @@ const ServiceSelector = () => {
                                 onClick={() => setService(service.id)}
                                 aria-pressed={isSelected}
                                 className={cn(
-                                    "relative text-left p-4 rounded-2xl border transition-all duration-300 group",
+                                    "relative flex flex-col h-full text-left p-4 rounded-2xl border transition-all duration-300 group",
                                     isSelected
                                         ? "bg-primary/10 border-primary/40 shadow-[0_0_24px_hsl(0_75%_55%/0.12)]"
                                         : "bg-secondary/30 border-border/50 hover:bg-secondary/50 hover:border-border"

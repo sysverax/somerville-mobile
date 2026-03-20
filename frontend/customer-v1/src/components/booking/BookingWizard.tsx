@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Loader2, Check, Wrench } from "lucide-react";
 import { format } from "date-fns";
@@ -47,6 +47,14 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
     const [direction, setDirection] = useState(0);
     const [services, setServices] = useState<StorefrontService[]>([]);
     const [bookingSuccess, setBookingSuccess] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // Scroll to top of wizard on step change
+    useEffect(() => {
+        if (containerRef.current && store.currentStep > 0) {
+            containerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    }, [store.currentStep]);
 
     // Pre-select brand from URL
     useEffect(() => {
@@ -79,7 +87,7 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
     const cleanPhone = store.customerPhone.replace(/[\s\-().]/g, "");
     const phoneValid = /^\+?[0-9]\d{6,14}$/.test(cleanPhone);
     const emailValid =
-        !store.customerEmail ||
+        !!store.customerEmail &&
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(store.customerEmail);
 
     const canSubmit =
@@ -160,7 +168,7 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-12 space-y-6"
+                className="text-center pb-12 pt-6 space-y-6"
             >
                 <motion.div
                     initial={{ scale: 0 }}
@@ -224,99 +232,108 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
     }
 
     return (
-        <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-6">
-            {/* Main Content */}
-            <div className="space-y-6">
-                {/* Stepper */}
-                <Stepper />
+        <div ref={containerRef} className="space-y-6 scroll-mt-20 pb-28 lg:pb-0">
+            <Stepper />
 
-                {/* Step Content */}
-                <div className="min-h-[400px]">
-                    <AnimatePresence mode="wait" custom={direction}>
-                        {store.currentStep === 0 && (
-                            <motion.div
-                                key="step-0"
-                                custom={direction}
-                                variants={slideVariants}
-                                initial="enter"
-                                animate="center"
-                                exit="exit"
-                                transition={{ duration: 0.25, ease: "easeInOut" }}
-                            >
-                                <div className="bg-secondary/20 rounded-2xl border border-border/50 p-4 sm:p-6">
-                                    <div className="flex items-center gap-3 mb-5">
-                                        <div className="p-2.5 rounded-xl bg-primary/10">
-                                            <Wrench className="h-5 w-5 text-primary" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-lg font-semibold">
-                                                Choose Your Device
-                                            </h2>
-                                            <p className="text-xs text-muted-foreground">
-                                                Select brand, category, series and model
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <ProductSelector />
-                                </div>
-                            </motion.div>
-                        )}
-
-                        {store.currentStep === 1 && (
-                            <motion.div
-                                key="step-1"
-                                custom={direction}
-                                variants={slideVariants}
-                                initial="enter"
-                                animate="center"
-                                exit="exit"
-                                transition={{ duration: 0.25, ease: "easeInOut" }}
-                            >
-                                <div className="bg-secondary/20 rounded-2xl border border-border/50 p-4 sm:p-6">
-                                    <div className="flex items-center gap-3 mb-5">
-                                        <div className="p-2.5 rounded-xl bg-primary/10">
-                                            <Wrench className="h-5 w-5 text-primary" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-lg font-semibold">
-                                                Select a Service
-                                            </h2>
-                                            <p className="text-xs text-muted-foreground">
-                                                {selectedProduct
-                                                    ? `Services for ${selectedProduct.name}`
-                                                    : "Choose a repair or maintenance service"}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <ServiceSelector />
-                                </div>
-                            </motion.div>
-                        )}
-
-                        {store.currentStep === 2 && (
-                            <motion.div
-                                key="step-2"
-                                custom={direction}
-                                variants={slideVariants}
-                                initial="enter"
-                                animate="center"
-                                exit="exit"
-                                transition={{ duration: 0.25, ease: "easeInOut" }}
-                            >
-                                <div className="space-y-4">
+            <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-6">
+                {/* Main Content Column */}
+                <div className="space-y-6 min-w-0">
+                    <div className="min-h-[400px]">
+                        <AnimatePresence mode="wait" custom={direction}>
+                            {store.currentStep === 0 && (
+                                <motion.div
+                                    key="step-0"
+                                    custom={direction}
+                                    variants={slideVariants}
+                                    initial="enter"
+                                    animate="center"
+                                    exit="exit"
+                                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                                >
                                     <div className="bg-secondary/20 rounded-2xl border border-border/50 p-4 sm:p-6">
-                                        <ScheduleSelector />
+                                        <div className="flex items-center gap-3 mb-5">
+                                            <div className="p-2.5 rounded-xl bg-primary/10">
+                                                <Wrench className="h-5 w-5 text-primary" />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-lg font-semibold">
+                                                    Choose Your Device
+                                                </h2>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Select brand, category, series and model
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <ProductSelector />
                                     </div>
+                                </motion.div>
+                            )}
+
+                            {store.currentStep === 1 && (
+                                <motion.div
+                                    key="step-1"
+                                    custom={direction}
+                                    variants={slideVariants}
+                                    initial="enter"
+                                    animate="center"
+                                    exit="exit"
+                                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                                >
                                     <div className="bg-secondary/20 rounded-2xl border border-border/50 p-4 sm:p-6">
-                                        <CustomerForm />
+                                        <div className="flex items-center gap-3 mb-5">
+                                            <div className="p-2.5 rounded-xl bg-primary/10">
+                                                <Wrench className="h-5 w-5 text-primary" />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-lg font-semibold">
+                                                    Select a Service
+                                                </h2>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {selectedProduct
+                                                        ? `Services for ${selectedProduct.name}`
+                                                        : "Choose a repair or maintenance service"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <ServiceSelector />
                                     </div>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                                </motion.div>
+                            )}
+
+                            {store.currentStep === 2 && (
+                                <motion.div
+                                    key="step-2"
+                                    custom={direction}
+                                    variants={slideVariants}
+                                    initial="enter"
+                                    animate="center"
+                                    exit="exit"
+                                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                                >
+                                    <div className="space-y-4">
+                                        <div className="bg-secondary/20 rounded-2xl border border-border/50 p-4 sm:p-6">
+                                            <ScheduleSelector />
+                                        </div>
+                                        <div className="bg-secondary/20 rounded-2xl border border-border/50 p-4 sm:p-6">
+                                            <CustomerForm />
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
 
-                {/* Navigation Buttons */}
+                {/* Sidebar Summary Column (desktop) */}
+                <div className="hidden lg:block">
+                    <div className="sticky top-24">
+                        <BookingSummary />
+                    </div>
+                </div>
+            </div>
+
+            {/* Desktop Navigation Buttons - Hidden on Mobile/Tablet */}
+            <div className="hidden lg:grid lg:grid-cols-[1fr_280px] lg:gap-6 pt-2 min-w-0">
                 <div
                     className={cn(
                         "flex gap-3 pb-20 lg:pb-0",
@@ -368,43 +385,61 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
                         </Button>
                     )}
                 </div>
+                <div className="hidden lg:block" />
             </div>
-
-            {/* Sidebar Summary (desktop) */}
-            <BookingSummary />
 
             {/* Mobile Sticky CTA */}
             <div className="lg:hidden fixed bottom-14 left-0 right-0 z-50 px-4 py-3 bg-background/95 backdrop-blur-xl border-t border-border/30">
-                {store.currentStep < 2 ? (
-                    <Button
-                        type="button"
-                        onClick={handleNext}
-                        disabled={
-                            (store.currentStep === 0 && !canProceedStep0) ||
-                            (store.currentStep === 1 && !canProceedStep1)
-                        }
-                        className="w-full rounded-xl bg-gradient-primary hover:opacity-90 disabled:opacity-40 h-12 text-base font-semibold"
-                    >
-                        Continue
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                ) : (
-                    <Button
-                        type="button"
-                        onClick={handleSubmit}
-                        disabled={!canSubmit || store.isSubmitting}
-                        className="w-full rounded-xl bg-gradient-primary hover:opacity-90 disabled:opacity-40 h-12 text-base font-semibold"
-                    >
-                        {store.isSubmitting ? (
-                            <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Booking...
-                            </>
-                        ) : (
-                            "Book Now"
-                        )}
-                    </Button>
-                )}
+                <div className="flex gap-3">
+                    {store.currentStep > 0 && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleBack}
+                            className="flex-1 rounded-xl h-12 text-base font-semibold border-border/50"
+                        >
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back
+                        </Button>
+                    )}
+                    
+                    {store.currentStep < 2 ? (
+                        <Button
+                            type="button"
+                            onClick={handleNext}
+                            disabled={
+                                (store.currentStep === 0 && !canProceedStep0) ||
+                                (store.currentStep === 1 && !canProceedStep1)
+                            }
+                            className={cn(
+                                "rounded-xl bg-gradient-primary hover:opacity-90 disabled:opacity-40 h-12 text-base font-semibold",
+                                store.currentStep > 0 ? "flex-[2]" : "w-full"
+                            )}
+                        >
+                            Continue
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                    ) : (
+                        <Button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={!canSubmit || store.isSubmitting}
+                            className={cn(
+                                "rounded-xl bg-gradient-primary hover:opacity-90 disabled:opacity-40 h-12 text-base font-semibold",
+                                store.currentStep > 0 ? "flex-[2]" : "w-full"
+                            )}
+                        >
+                            {store.isSubmitting ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Booking...
+                                </>
+                            ) : (
+                                "Book Now"
+                            )}
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
     );

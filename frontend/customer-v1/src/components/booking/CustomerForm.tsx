@@ -77,7 +77,7 @@ const CustomerForm = () => {
             <div className="space-y-1.5">
                 <Label htmlFor="booking-email" className="flex items-center gap-2 text-sm">
                     <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                    Email <span className="text-muted-foreground text-xs">(optional)</span>
+                    Email <span className="text-primary">*</span>
                 </Label>
                 <Input
                     id="booking-email"
@@ -89,6 +89,7 @@ const CustomerForm = () => {
                         "bg-secondary/40 border-border/50 rounded-xl h-11 focus-visible:ring-primary/30",
                         emailError && "border-destructive focus-visible:ring-destructive/30"
                     )}
+                    required
                     autoComplete="email"
                 />
                 {emailError && (

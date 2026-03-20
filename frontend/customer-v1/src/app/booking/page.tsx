@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Calendar, Shield, Cpu, Zap } from "lucide-react";
+import { Calendar, Shield, Cpu, Zap, ThumbsUp } from "lucide-react";
 import Layout from "@/src/components/layout/Layout";
 import BookingWizard from "@/src/components/booking/BookingWizard";
 
@@ -14,7 +14,7 @@ const BookingContent = () => {
   return (
     <Layout>
       <section className="py-8 md:py-12 min-h-screen">
-        <div className="container mx-auto px-4 max-w-5xl">
+        <div className="container mx-auto px-4 max-w-6xl">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -50,7 +50,7 @@ const BookingContent = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="mt-10 grid md:grid-cols-3 gap-4"
+            className="mt-10 grid md:grid-cols-4 gap-4"
           >
             {[
               {
@@ -68,6 +68,11 @@ const BookingContent = () => {
                 title: "Quick Turnaround",
                 description: "Most repairs completed same day",
               },
+              {
+                icon: ThumbsUp,
+                title: "Customer Satisfaction",
+                description: "Trusted service with high customer ratings",
+              }
             ].map((item) => (
               <div
                 key={item.title}
