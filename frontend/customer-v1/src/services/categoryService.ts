@@ -80,9 +80,26 @@ export const getCategoryById = async (id: string): Promise<Category | undefined>
   return promise;
 };
 
-export const getCategoriesByBrand = async (brandId: string, sortOrder?: 'asc' | 'desc'): Promise<Category[]> => {
-  const all = await getActiveCategories(sortOrder);
-  return all.filter(c => c.brandId === brandId);
+export const getCategoriesByBrand = async (brandId: string, sortOrder: 'asc' | 'desc' = 'asc'): Promise<Category[]> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/categories?brandId=${brandId}&limit=100&sortOrder=${sortOrder}`, {
+      headers: {
+        'x-user-role': 'public',
+      },
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const json = await response.json();
+    const categories: CategoryDocument[] = json.data?.categories || [];
+    return categories.map(normalizeCategory);
+  } catch (error) {
+    console.error(`Failed to fetch categories for brand ${brandId}:`, error);
+    return [];
+  }
 };
 
 export const searchCategories = async (query: string, sortOrder?: 'asc' | 'desc'): Promise<Category[]> => {

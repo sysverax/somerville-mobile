@@ -67,8 +67,7 @@ const ServiceInfoCards = () => {
         if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 10) {
           container.scrollTo({ left: 0, behavior: 'smooth' });
         } else {
-          const cardWidth = container.scrollWidth / (services.length || 1);
-          container.scrollBy({ left: cardWidth, behavior: 'smooth' });
+          container.scrollBy({ left: container.clientWidth, behavior: 'smooth' });
         }
       }
     }, 4000);
@@ -108,7 +107,7 @@ const ServiceInfoCards = () => {
         <div 
           id="services-scroll-container"
           onScroll={handleScroll}
-          className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide scroll-smooth snap-x px-10"
+          className="flex overflow-x-auto gap-0 pb-4 scrollbar-hide scroll-smooth snap-x"
         >
           <style jsx>{`
             .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -117,11 +116,11 @@ const ServiceInfoCards = () => {
           {services.map((service, index) => {
             const Icon = service.icon;
             return (
-              <div key={service.title} className="flex-shrink-0 w-[85vw] snap-center">
+              <div key={service.title} className="flex-shrink-0 w-full snap-center px-2">
                 <div className="group p-8 rounded-2xl bg-gradient-card shadow-card border border-border/50 relative overflow-hidden h-full flex flex-col">
                   {/* Instagram-style Count Badge */}
                   <div className="absolute top-4 right-4 px-2.5 py-1 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-medium text-white z-20 shadow-[0_2px_10px_rgba(0,0,0,0.15)] select-none tracking-wider !text-foreground font-bold">
-                    {currentIndex + 1} / {services.length}
+                    {index + 1} / {services.length}
                   </div>
                   <div className="space-y-6 relative z-10 px-2 flex-1">
                     <div className="flex items-center gap-4">
@@ -154,8 +153,8 @@ const ServiceInfoCards = () => {
         
         {!isAtStart && (
           <button
-            onClick={() => { const c = document.getElementById('services-scroll-container'); if (c) c.scrollBy({ left: -300, behavior: 'smooth' }); }}
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+            onClick={() => { const c = document.getElementById('services-scroll-container'); if (c) c.scrollBy({ left: -c.clientWidth, behavior: 'smooth' }); }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-20 shadow-lg"
             aria-label="Scroll left"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -164,8 +163,8 @@ const ServiceInfoCards = () => {
         
         {!isAtEnd && (
           <button
-            onClick={() => { const c = document.getElementById('services-scroll-container'); if (c) c.scrollBy({ left: 300, behavior: 'smooth' }); }}
-            className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+            onClick={() => { const c = document.getElementById('services-scroll-container'); if (c) c.scrollBy({ left: c.clientWidth, behavior: 'smooth' }); }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-20 shadow-lg"
             aria-label="Scroll right"
           >
             <ChevronRight className="h-5 w-5" />

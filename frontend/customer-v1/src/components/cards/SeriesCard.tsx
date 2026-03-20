@@ -11,9 +11,15 @@ interface SeriesCardProps {
   series: StorefrontSeries;
   index?: number;
   showProducts?: boolean;
+  fullHeight?: boolean;
 }
 
-const SeriesCard = ({ series, index = 0, showProducts = true }: SeriesCardProps) => {
+const SeriesCard = ({ 
+  series, 
+  index = 0, 
+  showProducts = true,
+  fullHeight = true 
+}: SeriesCardProps) => {
   const [products, setProducts] = useState<StorefrontProduct[]>([]);
   const descRef = useRef<HTMLParagraphElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
@@ -30,8 +36,8 @@ const SeriesCard = ({ series, index = 0, showProducts = true }: SeriesCardProps)
   }, [series.description]);
 
   return (
-    <div className="group">
-      <div className="relative rounded-2xl bg-gradient-card shadow-card border border-border/50">
+    <div className={`group ${fullHeight ? 'h-full' : ''}`}>
+      <div className={`relative ${fullHeight ? 'h-full' : ''} flex flex-col rounded-2xl bg-gradient-card shadow-card border border-border/50`}>
         <div className="relative h-44 overflow-hidden rounded-t-2xl">
           <img
             src={series.banner}
