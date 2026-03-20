@@ -250,14 +250,14 @@ const Index = () => {
                   <div 
                     id="series-scroll-container"
                     onScroll={handleSeriesScroll}
-                    className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide scroll-smooth snap-x px-0"
+                    className="flex items-stretch overflow-x-auto gap-0 pb-4 scrollbar-hide scroll-smooth snap-x px-0"
                   >
                     <style jsx>{`
                       .scrollbar-hide::-webkit-scrollbar { display: none; }
                       .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
                     `}</style>
                     {latestSeries.map((series, index) => (
-                      <div key={series.id} className="flex-shrink-0 w-[80vw] snap-center">
+                      <div key={series.id} className="flex-shrink-0 w-full snap-center px-2 h-full">
                         <SeriesCard 
                           series={series} 
                           index={index} 
@@ -269,8 +269,8 @@ const Index = () => {
                   
                   {!seriesAtStart && (
                     <button
-                      onClick={() => { const c = document.getElementById('series-scroll-container'); if (c) c.scrollBy({ left: -300, behavior: 'smooth' }); }}
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                      onClick={() => { const c = document.getElementById('series-scroll-container'); if (c) c.scrollBy({ left: -c.clientWidth, behavior: 'smooth' }); }}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10 shadow-lg"
                       aria-label="Scroll left"
                     >
                       <ChevronLeft className="h-5 w-5" />
@@ -279,8 +279,8 @@ const Index = () => {
                   
                   {!seriesAtEnd && (
                     <button
-                      onClick={() => { const c = document.getElementById('series-scroll-container'); if (c) c.scrollBy({ left: 300, behavior: 'smooth' }); }}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                      onClick={() => { const c = document.getElementById('series-scroll-container'); if (c) c.scrollBy({ left: c.clientWidth, behavior: 'smooth' }); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10 shadow-lg"
                       aria-label="Scroll right"
                     >
                       <ChevronRight className="h-5 w-5" />

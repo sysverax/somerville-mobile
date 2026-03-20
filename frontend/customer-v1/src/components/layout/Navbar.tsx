@@ -7,13 +7,14 @@ import { useRouter } from "next/navigation";
 import { Search, Menu, X, ChevronDown, Calendar, Info, Phone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFilterOptions } from "@/src/hooks/useFilterOptions";
+import { useBrands } from "@/src/hooks/useBrands";
 import logo from "@/public/logo.jpeg";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 
 const Navbar = () => {
   const { data: filterOptions } = useFilterOptions();
-  const brands = filterOptions.brands;
+  const { data: brands } = useBrands();
   const categories = filterOptions.categories;
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
