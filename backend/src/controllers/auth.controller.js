@@ -85,7 +85,60 @@ const adminLoginController = async (req, res, next) => {
   }
 };
 
+const adminLogoutController = async (req, res, next) => {
+  try {
+    req.logger.info("Admin logout request received");
+    cookieUtils.clearCookie(res, USER_ROLES.ADMIN);
+    req.logger.info("Admin logout request completed successfully", {
+      userId: req.user.id,
+    });
+    return res.status(200).json({
+      message: "Admin logout successful",
+      data: null,
+      error: null,
+    });
+  } catch (error) {
+    req.logger.error("Admin logout request failed", {
+      error: error.message,
+    });
+    return next(
+      new appError.InternalServerError(
+        "Admin logout failed",
+        "An unexpected error occurred during admin logout.",
+        "Please try again later.",
+      ),
+    );
+  }
+};
+
+const validateAdminSessionController = async (req, res, next) => {
+  try {
+    req.logger.info("Validate admin session request received");
+    return res.status(200).json({
+      message: "Admin session is valid",
+      data: {
+        userId: req.user.id,
+        role: req.user.role,
+      },
+      error: null,
+    });
+  } catch (error) {
+    req.logger.error("Validate admin session request failed", {
+      error: error.message,
+    });
+    return next(
+      new appError.InternalServerError(
+        "Validate admin session failed",
+        "An unexpected error occurred during admin session validation.",
+        "Please try again later.",
+      ),
+    );
+  }
+};
+
 module.exports = {
   adminRegisterController,
   adminLoginController,
+  adminLogoutController,
+  validateAdminSessionController,
 };
