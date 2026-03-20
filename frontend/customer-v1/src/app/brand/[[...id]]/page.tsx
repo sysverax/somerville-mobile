@@ -8,10 +8,11 @@ import {
   getStorefrontBrandById,
   getStorefrontSeriesByCategory,
   getStorefrontSeries,
+  getStorefrontCategoriesByBrand,
   type StorefrontBrand,
   type StorefrontSeries,
+  type StorefrontCategory,
 } from "@/src/services";
-import { useFilterOptions } from "@/src/hooks/useFilterOptions";
 import { useBrands } from "@/src/hooks/useBrands";
 import Layout from "@/src/components/layout/Layout";
 import CategoryCard from "@/src/components/cards/CategoryCard";
@@ -30,27 +31,34 @@ const BrandContent = ({ params }: Props) => {
   const searchParams = useSearchParams();
   const mode = searchParams?.get("mode") || "service"; 
   
-  const { data: filterOptions } = useFilterOptions();
   const { data: brands, loading: brandsLoading } = useBrands();
   const [brand, setBrand] = useState<StorefrontBrand | null>(null);
   const [loadingBrand, setLoadingBrand] = useState(true);
-  const categories = useMemo(() => {
-    if (!brandId) return [];
-    return filterOptions.categories.filter(c => c.brandId === brandId);
-  }, [brandId, filterOptions.categories]);
+  const [categories, setCategories] = useState<StorefrontCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [filteredSeries, setFilteredSeries] = useState<StorefrontSeries[]>([]);
   const [loadingSeries, setLoadingSeries] = useState(false);
+  const [loadingCategories, setLoadingCategories] = useState(false);
 
   useEffect(() => {
     if (brandId) {
       setLoadingBrand(true);
-      getStorefrontBrandById(brandId).then(data => {
-        setBrand(data || null);
+      setLoadingCategories(true);
+      
+      Promise.all([
+        getStorefrontBrandById(brandId),
+        getStorefrontCategoriesByBrand(brandId)
+      ]).then(([brandData, categoriesData]) => {
+        setBrand(brandData || null);
+        setCategories(categoriesData);
         setLoadingBrand(false);
+        setLoadingCategories(false);
       });
     } else {
+      setBrand(null);
+      setCategories([]);
       setLoadingBrand(false);
+      setLoadingCategories(false);
     }
   }, [brandId]);
 
@@ -237,9 +245,9 @@ const BrandContent = ({ params }: Props) => {
                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           ) : filteredSeries.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
               {filteredSeries.map((s, index) => (
-                <SeriesCard key={s.id} series={s} index={index} />
+                <SeriesCard key={s.id} series={s} index={index} fullHeight={false} />
               ))}
             </div>
           ) : (
