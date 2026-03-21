@@ -21,20 +21,31 @@ type BookingListPayload = {
   totalPages: number;
 };
 
-const normalizeBooking = (booking: any): Booking => ({
-  id: booking.id,
-  customerName: booking.name,
-  customerEmail: booking.email,
-  customerPhone: booking.phone,
-  productId: booking.product?.id || '',
-  productName: booking.product?.name || '',
-  brandName: booking.product?.brandName || '',
-  categoryName: booking.product?.categoryName || '',
-  serviceName: booking.service?.name || '',
-  date: booking.scheduleDateTime ? new Date(booking.scheduleDateTime).toISOString().split('T')[0] : '',
-  timeSlot: booking.scheduleDateTime ? new Date(booking.scheduleDateTime).toTimeString().slice(0, 5) : '',
-  createdAt: booking.createdAt ? new Date(booking.createdAt).toISOString() : '',
-});
+const normalizeBooking = (booking: any): Booking => {
+  const dateObj = booking.scheduleDateTime ? new Date(booking.scheduleDateTime) : null;
+  // Use local date components to avoid timezone shift to yesterday/tomorrow
+  const dateStr = dateObj ? 
+    `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}` : 
+    '';
+  const timeStr = dateObj ? 
+    `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}` : 
+    '';
+
+  return {
+    id: booking.id,
+    customerName: booking.name,
+    customerEmail: booking.email,
+    customerPhone: booking.phone,
+    productId: booking.product?.id || '',
+    productName: booking.product?.name || '',
+    brandName: booking.product?.brandName || '',
+    categoryName: booking.product?.categoryName || '',
+    serviceName: booking.service?.name || '',
+    date: dateStr,
+    timeSlot: timeStr,
+    createdAt: booking.createdAt ? new Date(booking.createdAt).toISOString() : '',
+  };
+};
 
 let bookings: Booking[] = [...mockBookings];
 let config: TimeSlotConfig = { ...mockTimeSlotConfig };

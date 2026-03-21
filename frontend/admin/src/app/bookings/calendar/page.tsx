@@ -11,14 +11,10 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths,
 const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const CalendarPage = () => {
-  const { bookings, refetch } = useBookings();
+  const { bookings, refetch } = useBookings({ initialFilters: { limit: 500 } });
   const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date()); 
   const [selected, setSelected] = useState<Booking | null>(null);
-
-  useEffect(() => {
-    refetch({ limit: 500 }); 
-  }, [refetch]);
 
   const days = useMemo(() => {
     const start = startOfMonth(currentMonth);
@@ -59,7 +55,7 @@ const CalendarPage = () => {
           ))}
           {days.map(day => {
             const dateStr = format(day, 'yyyy-MM-dd');
-            const dayBookings = bookingsByDate.get(dateStr) || [];
+            const dayBookings = (bookingsByDate.get(dateStr) || []).sort((a, b) => a.timeSlot.localeCompare(b.timeSlot));
             const isToday = format(new Date(), 'yyyy-MM-dd') === dateStr;
 
             return (
@@ -67,13 +63,12 @@ const CalendarPage = () => {
                 <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-primary text-primary-foreground' : ''}`}>
                   {format(day, 'd')}
                 </div>
-                <div className="space-y-0.5">
-                  {dayBookings.slice(0, 3).map(b => (
+                <div className="space-y-0.5 max-h-[180px] overflow-y-auto scrollbar-hide">
+                  {dayBookings.map(b => (
                     <div key={b.id} className="text-[10px] bg-primary/15 text-primary rounded px-1 py-0.5 truncate cursor-pointer hover:bg-primary/25" onClick={() => setSelected(b)}>
                       {b.timeSlot} {b.customerName}
                     </div>
                   ))}
-                  {dayBookings.length > 3 && <div className="text-[10px] text-muted-foreground px-1">+{dayBookings.length - 3} more</div>}
                 </div>
               </div>
             );

@@ -7,7 +7,7 @@ export const useSeries = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getStorefrontSeries('desc').then(data => {
+    getStorefrontSeries().then(data => {
       setSeries(data);
       setLoading(false);
     });

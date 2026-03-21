@@ -10,6 +10,7 @@ export const useSeriesData = ({ autoFetch = true } = {}) => {
 
   const refresh = useCallback(async (filters?: { brandId?: string; categoryId?: string; page?: number; limit?: number }) => {
     try {
+      setIsLoading(true);
       if (filters !== undefined) lastFilters.current = filters;
       const result = await seriesService.getAll(lastFilters.current);
       setSeriesList(result.data);
@@ -29,8 +30,6 @@ export const useSeriesData = ({ autoFetch = true } = {}) => {
         setSeriesList([]);
         setIsLoading(false);
       });
-    } else {
-      setIsLoading(false);
     }
   }, [refresh, autoFetch]);
 

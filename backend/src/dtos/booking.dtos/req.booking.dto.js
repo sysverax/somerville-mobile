@@ -111,7 +111,7 @@ class GetAllBookingsRequestDTO {
       );
     }
 
-    if (isNaN(this.limit) || this.limit < 1 || this.limit > 100) {
+    if (isNaN(this.limit) || this.limit < 1 || this.limit > 500) {
       throw new appError.BadRequestError(
         "Invalid limit value",
         "The 'limit' query parameter must be a positive integer between 1 and 100.",

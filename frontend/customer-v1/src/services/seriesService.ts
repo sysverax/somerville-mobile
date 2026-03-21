@@ -20,13 +20,18 @@ const normalizeSeries = (series: any): Series => {
 
 const seriesPromiseCache = new Map<string, Promise<Series[]>>();
 
-export const getAllSeries = async (sortOrder?: 'asc' | 'desc'): Promise<Series[]> => {
-  const key = sortOrder || 'asc';
+export const getAllSeries = async (categoryId?: string, brandId?: string): Promise<Series[]> => {
+  const key = `${categoryId || ''}-${brandId || ''}`;
   if (seriesPromiseCache.has(key)) return seriesPromiseCache.get(key)!;
 
   const promise = (async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/series${sortOrder ? `?sortOrder=${sortOrder}` : ''}`, {
+      const params = new URLSearchParams();
+      if (categoryId) params.append('categoryId', categoryId);
+      if (brandId) params.append('brandId', brandId);
+      params.append('limit', '100');
+
+      const response = await fetch(`${API_BASE_URL}/api/series?${params.toString()}`, {
         headers: {
           'x-user-role': 'public',
         },
@@ -37,9 +42,7 @@ export const getAllSeries = async (sortOrder?: 'asc' | 'desc'): Promise<Series[]
       }
       const json = await response.json();
       const rawSeries: SeriesDocument[] = json.data?.series || [];
-      return rawSeries
-        .map(normalizeSeries)
-        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      return rawSeries.map(normalizeSeries);
     } catch (error) {
       console.error('Failed to fetch series from API:', error);
       seriesPromiseCache.delete(key);
@@ -51,8 +54,8 @@ export const getAllSeries = async (sortOrder?: 'asc' | 'desc'): Promise<Series[]
   return promise;
 };
 
-export const getActiveSeries = async (sortOrder?: 'asc' | 'desc'): Promise<Series[]> => {
-  const all = await getAllSeries(sortOrder);
+export const getActiveSeries = async (categoryId?: string, brandId?: string): Promise<Series[]> => {
+  const all = await getAllSeries(categoryId, brandId);
   return all.filter(s => s.isActive);
 };
 
@@ -86,18 +89,16 @@ export const getSeriesById = async (id: string): Promise<Series | undefined> => 
   return promise;
 };
 
-export const getSeriesByCategory = async (categoryId: string, sortOrder?: 'asc' | 'desc'): Promise<Series[]> => {
-  const all = await getActiveSeries(sortOrder);
-  return all.filter(s => s.categoryId === categoryId);
+export const getSeriesByCategory = async (categoryId: string): Promise<Series[]> => {
+  return getActiveSeries(categoryId);
 };
 
-export const getSeriesByBrand = async (brandId: string, sortOrder?: 'asc' | 'desc'): Promise<Series[]> => {
-  const all = await getActiveSeries(sortOrder);
-  return all.filter(s => s.brandId === brandId);
+export const getSeriesByBrand = async (brandId: string): Promise<Series[]> => {
+  return getActiveSeries(undefined, brandId);
 };
 
-export const searchSeries = async (query: string, sortOrder?: 'asc' | 'desc'): Promise<Series[]> => {
-  const all = await getActiveSeries(sortOrder);
+export const searchSeries = async (query: string): Promise<Series[]> => {
+  const all = await getActiveSeries();
   const lowerQuery = query.toLowerCase();
   return all.filter(s =>
     s.name.toLowerCase().includes(lowerQuery) ||
