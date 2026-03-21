@@ -15,14 +15,15 @@ const normalizeBrand = (brand: BrandDocument): Brand => ({
   bannerImageUrl: brand.bannerImageUrl,
 });
 
-let brandsPromise: Promise<Brand[]> | null = null;
+const brandsPromiseCache = new Map<string, Promise<Brand[]>>();
 
-export const getAllBrands = async (sortOrder?: 'asc' | 'desc'): Promise<Brand[]> => {
-  if (brandsPromise) return brandsPromise;
+export const getAllBrands = async (sortOrder: 'asc' | 'desc' = 'asc'): Promise<Brand[]> => {
+  const key = sortOrder;
+  if (brandsPromiseCache.has(key)) return brandsPromiseCache.get(key)!;
 
-  brandsPromise = (async () => {
+  const promise = (async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/brands${sortOrder ? `?sortOrder=${sortOrder}` : ''}`, {
+      const response = await fetch(`${API_BASE_URL}/api/brands?sortOrder=${sortOrder}`, {
         headers: {
           'x-user-role': 'public',
         },
@@ -35,16 +36,16 @@ export const getAllBrands = async (sortOrder?: 'asc' | 'desc'): Promise<Brand[]>
       const brands: BrandDocument[] = json.data?.brands || [];
       return brands
         .filter(b => b.isActive)
-        .map(normalizeBrand)
-        .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+        .map(normalizeBrand);
     } catch (error) {
       console.error('Failed to fetch brands from API:', error);
-      brandsPromise = null;
+      brandsPromiseCache.delete(key);
       return [];
     }
   })();
 
-  return brandsPromise;
+  brandsPromiseCache.set(key, promise);
+  return promise;
 };
 
 export const getActiveBrands = getAllBrands;

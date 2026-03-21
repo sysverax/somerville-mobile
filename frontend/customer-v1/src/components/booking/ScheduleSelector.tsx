@@ -107,7 +107,7 @@ const ScheduleSelector = () => {
                     <button
                         type="button"
                         onClick={() => scrollDates("left")}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-background/90 border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                        className="absolute -left-2 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-background/90 border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                         aria-label="Scroll dates left"
                     >
                         <ChevronLeft className="h-3.5 w-3.5" />
@@ -115,7 +115,7 @@ const ScheduleSelector = () => {
                     <button
                         type="button"
                         onClick={() => scrollDates("right")}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-background/90 border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                        className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-background/90 border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                         aria-label="Scroll dates right"
                     >
                         <ChevronRight className="h-3.5 w-3.5" />
@@ -124,7 +124,7 @@ const ScheduleSelector = () => {
                     {/* Date chips */}
                     <div
                         ref={scrollRef}
-                        className="flex gap-2 overflow-x-auto scrollbar-hide py-1 px-1 -mx-1"
+                        className="flex gap-2 overflow-x-auto scrollbar-hide py-1 px-3"
                     >
                         {dateStrip.map((date) => {
                             const isSelected = selectedDate && isSameDay(date, selectedDate);

@@ -7,11 +7,14 @@ import { useState, Suspense, use, useEffect, useMemo } from "react";
 import {
   getStorefrontBrandById,
   getStorefrontSeriesByCategory,
+  getStorefrontSeriesByBrand,
   getStorefrontSeries,
   getStorefrontCategoriesByBrand,
+  getStorefrontProductsByBrand,
   type StorefrontBrand,
   type StorefrontSeries,
   type StorefrontCategory,
+  type StorefrontProduct,
 } from "@/src/services";
 import { useBrands } from "@/src/hooks/useBrands";
 import Layout from "@/src/components/layout/Layout";
@@ -30,6 +33,7 @@ const BrandContent = ({ params }: Props) => {
   const brandId = resolvedParams.id?.[0]; 
   const searchParams = useSearchParams();
   const mode = searchParams?.get("mode") || "service"; 
+  const categoryIdParam = searchParams?.get("categoryId");
   
   const { data: brands, loading: brandsLoading } = useBrands();
   const [brand, setBrand] = useState<StorefrontBrand | null>(null);
@@ -37,8 +41,15 @@ const BrandContent = ({ params }: Props) => {
   const [categories, setCategories] = useState<StorefrontCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [filteredSeries, setFilteredSeries] = useState<StorefrontSeries[]>([]);
+  const [brandProducts, setBrandProducts] = useState<StorefrontProduct[]>([]);
   const [loadingSeries, setLoadingSeries] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
+
+  useEffect(() => {
+    if (categoryIdParam) {
+      setSelectedCategory(categoryIdParam);
+    }
+  }, [categoryIdParam]);
 
   useEffect(() => {
     if (brandId) {
@@ -63,28 +74,27 @@ const BrandContent = ({ params }: Props) => {
   }, [brandId]);
 
   useEffect(() => {
-    const fetchSeries = async () => {
+    const fetchSeriesAndProducts = async () => {
       setLoadingSeries(true);
       try {
-        if (selectedCategory) {
-          const series = await getStorefrontSeriesByCategory(selectedCategory);
-          setFilteredSeries(series);
-        } else if (brandId && categories.length > 0) {
-          // Fetch all series for all categories of this brand
-          const allSeriesPromises = categories.map(cat => getStorefrontSeriesByCategory(cat.id));
-          const allSeriesResults = await Promise.all(allSeriesPromises);
-          setFilteredSeries(allSeriesResults.flat());
-        } else {
-          setFilteredSeries([]);
-        }
+        const promises: [Promise<StorefrontSeries[]>, Promise<StorefrontProduct[]>] = [
+          selectedCategory 
+            ? getStorefrontSeriesByCategory(selectedCategory)
+            : getStorefrontSeriesByBrand(brandId),
+          getStorefrontProductsByBrand(brandId)
+        ];
+
+        const [seriesData, productsData] = await Promise.all(promises);
+        setFilteredSeries(seriesData);
+        setBrandProducts(productsData);
       } catch (error) {
-        console.error("Failed to fetch series:", error);
+        console.error("Failed to fetch series or products:", error);
       } finally {
         setLoadingSeries(false);
       }
     };
 
-    fetchSeries();
+    if (brandId) fetchSeriesAndProducts();
   }, [selectedCategory, brandId, categories]);
 
   // Handle loading state
@@ -247,7 +257,13 @@ const BrandContent = ({ params }: Props) => {
           ) : filteredSeries.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
               {filteredSeries.map((s, index) => (
-                <SeriesCard key={s.id} series={s} index={index} fullHeight={false} />
+                <SeriesCard 
+                  key={s.id} 
+                  series={s} 
+                  index={index} 
+                  fullHeight={false}
+                  products={brandProducts.filter(p => p.seriesId === s.id)}
+                />
               ))}
             </div>
           ) : (

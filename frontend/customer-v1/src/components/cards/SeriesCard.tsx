@@ -12,22 +12,28 @@ interface SeriesCardProps {
   index?: number;
   showProducts?: boolean;
   fullHeight?: boolean;
+  products?: StorefrontProduct[];
 }
 
 const SeriesCard = ({ 
   series, 
   index = 0, 
   showProducts = true,
-  fullHeight = true 
+  fullHeight = true,
+  products: initialProducts
 }: SeriesCardProps) => {
-  const [products, setProducts] = useState<StorefrontProduct[]>([]);
+  const [products, setProducts] = useState<StorefrontProduct[]>(initialProducts || []);
   const descRef = useRef<HTMLParagraphElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
 
   useEffect(() => {
-    getStorefrontProductsBySeries(series.id).then(setProducts);
-  }, [series.id]);
+    if (initialProducts) {
+      setProducts(initialProducts);
+    } else {
+      getStorefrontProductsBySeries(series.id).then(setProducts);
+    }
+  }, [series.id, initialProducts]);
 
   useEffect(() => {
     const el = descRef.current;

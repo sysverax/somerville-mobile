@@ -21,14 +21,27 @@ const normalizeProduct = (product: any): Product => {
   };
 };
 
-let productsPromise: Promise<Product[]> | null = null;
+const productsPromiseCache = new Map<string, Promise<Product[]>>();
 
-export const getAllProducts = async (sortOrder?: 'asc' | 'desc'): Promise<Product[]> => {
-  if (productsPromise) return productsPromise;
+export const getAllProducts = async (
+  seriesId?: string, 
+  categoryId?: string, 
+  brandId?: string,
+  search?: string
+): Promise<Product[]> => {
+  const key = `${seriesId || ''}-${categoryId || ''}-${brandId || ''}-${search || ''}`;
+  if (productsPromiseCache.has(key)) return productsPromiseCache.get(key)!;
 
-  productsPromise = (async () => {
+  const promise = (async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/products${sortOrder ? `?sortOrder=${sortOrder}` : ''}`, {
+      const params = new URLSearchParams();
+      if (seriesId) params.append('seriesId', seriesId);
+      if (categoryId) params.append('categoryId', categoryId);
+      if (brandId) params.append('brandId', brandId);
+      if (search) params.append('search', search);
+      params.append('limit', '100');
+
+      const response = await fetch(`${API_BASE_URL}/api/products?${params.toString()}`, {
         headers: {
           'x-user-role': 'public',
         },
@@ -39,22 +52,25 @@ export const getAllProducts = async (sortOrder?: 'asc' | 'desc'): Promise<Produc
       }
       const json = await response.json();
       const rawProducts: ProductDocument[] = json.data?.products || [];
-      const normalized = rawProducts
-        .map(normalizeProduct)
-        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-      return normalized;
+      return rawProducts.map(normalizeProduct);
     } catch (error) {
       console.error('Failed to fetch products from API:', error);
-      productsPromise = null;
+      productsPromiseCache.delete(key);
       return [];
     }
   })();
 
-  return productsPromise;
+  productsPromiseCache.set(key, promise);
+  return promise;
 };
 
-export const getActiveProducts = async (sortOrder?: 'asc' | 'desc'): Promise<Product[]> => {
-  const all = await getAllProducts(sortOrder);
+export const getActiveProducts = async (
+  seriesId?: string, 
+  categoryId?: string, 
+  brandId?: string,
+  search?: string
+): Promise<Product[]> => {
+  const all = await getAllProducts(seriesId, categoryId, brandId, search);
   return all.filter(p => p.isActive);
 };
 
@@ -88,31 +104,23 @@ export const getProductById = async (id: string): Promise<Product | undefined> =
   return promise;
 };
 
-export const getProductsBySeries = async (seriesId: string, sortOrder?: 'asc' | 'desc'): Promise<Product[]> => {
-  const all = await getActiveProducts(sortOrder);
-  return all.filter(p => p.seriesId === seriesId);
+export const getProductsBySeries = async (seriesId: string): Promise<Product[]> => {
+  return getActiveProducts(seriesId);
 };
 
-export const getProductsByCategory = async (categoryId: string, sortOrder?: 'asc' | 'desc'): Promise<Product[]> => {
-  const all = await getActiveProducts(sortOrder);
-  return all.filter(p => p.categoryId === categoryId);
+export const getProductsByCategory = async (categoryId: string): Promise<Product[]> => {
+  return getActiveProducts(undefined, categoryId);
 };
 
-export const getProductsByBrand = async (brandId: string, sortOrder?: 'asc' | 'desc'): Promise<Product[]> => {
-  const all = await getActiveProducts(sortOrder);
-  return all.filter(p => p.brandId === brandId);
+export const getProductsByBrand = async (brandId: string): Promise<Product[]> => {
+  return getActiveProducts(undefined, undefined, brandId);
 };
 
-export const searchProducts = async (query: string, sortOrder?: 'asc' | 'desc'): Promise<Product[]> => {
-  const all = await getActiveProducts(sortOrder);
-  const lowerQuery = query.toLowerCase();
-  return all.filter(p =>
-    p.name.toLowerCase().includes(lowerQuery) ||
-    p.description.toLowerCase().includes(lowerQuery)
-  );
+export const searchProducts = async (query: string): Promise<Product[]> => {
+  return getActiveProducts(undefined, undefined, undefined, query);
 };
 
-export const getFeaturedProducts = async (sortOrder: 'asc' | 'desc' = 'asc'): Promise<Product[]> => {
-  const all = await getActiveProducts(sortOrder);
+export const getFeaturedProducts = async (): Promise<Product[]> => {
+  const all = await getActiveProducts();
   return all.slice(0, 8);
 };

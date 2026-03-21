@@ -11,16 +11,6 @@ interface BookingsTableProps {
 }
 
 const BookingsTable = ({ bookings, loading = false, compact = false, onRowClick }: BookingsTableProps) => {
-  if (loading) {
-    return (
-      <div className="overflow-x-auto rounded-xl border border-border">
-        <div className="col-span-full flex flex-col items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="overflow-x-auto rounded-xl border border-border">
       <table className="w-full text-sm">
@@ -37,7 +27,23 @@ const BookingsTable = ({ bookings, loading = false, compact = false, onRowClick 
           </tr>
         </thead>
         <tbody>
-          {bookings.map(b => (
+          {loading ? (
+            <tr>
+              <td colSpan={compact ? 5 : 8} className="h-64 text-center">
+                <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+              </td>
+            </tr>
+          ) : bookings.length === 0 ? (
+            <tr>
+              <td colSpan={compact ? 5 : 8} className="py-0">
+                <EmptyState 
+                  title={compact ? "No recent bookings" : "No bookings found"} 
+                  description="New bookings will appear here once customers place them." 
+                  compact={compact} 
+                />
+              </td>
+            </tr>
+          ) : bookings.map(b => (
             <tr 
               key={b.id} 
               className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
@@ -75,17 +81,6 @@ const BookingsTable = ({ bookings, loading = false, compact = false, onRowClick 
               {!compact && <td className="py-3 px-4">{formatDateTime(b.createdAt)}</td>}
             </tr>
           ))}
-          {bookings.length === 0 && (
-            <tr>
-              <td colSpan={compact ? 5 : 8} className="py-0">
-                <EmptyState 
-                  title={compact ? "No recent bookings" : "No bookings found"} 
-                  description="New bookings will appear here once customers place them." 
-                  compact={compact} 
-                />
-              </td>
-            </tr>
-          )}
         </tbody>
       </table>
     </div>

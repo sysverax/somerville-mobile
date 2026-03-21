@@ -108,9 +108,9 @@ const SeriesPage = ({ params }: Props) => {
                 <ChevronRight className="h-4 w-4" />
               </>
             )}
-            {category && (
+            {category && brand && (
               <>
-                <Link href={`/category/${category.id}`} className="hover:text-foreground transition-colors">
+                <Link href={`/brand/${brand.id}?categoryId=${category.id}`} className="hover:text-foreground transition-colors">
                   {category.name}
                 </Link>
                 <ChevronRight className="h-4 w-4" />

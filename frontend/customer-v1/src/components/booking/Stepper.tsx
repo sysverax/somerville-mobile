@@ -102,71 +102,62 @@ const Stepper = () => {
             </div>
 
             {/* Mobile */}
-            <div className="sm:hidden relative px-2">
-                {/* Connector Line Background */}
-                <div 
-                    className="absolute top-5 left-[15%] right-[15%] h-[1.5px] bg-secondary/50 rounded-full" 
-                    aria-hidden="true"
-                />
-                
-                {/* Connector Line Progress */}
-                <div 
-                    className="absolute top-5 left-[15%] right-[15%] h-[1.5px] overflow-hidden" 
-                    aria-hidden="true"
-                >
-                    <motion.div
-                        className="h-full bg-primary"
-                        initial={false}
-                        animate={{ 
-                            width: currentStep === 0 ? "0%" : currentStep === 1 ? "50%" : "100%" 
-                        }}
-                        transition={{ duration: 0.4, ease: "easeInOut" }}
-                    />
-                </div>
+            <div className="flex sm:hidden items-center justify-between px-1">
+                {steps.map((step, idx) => {
+                    const isCompleted = idx < currentStep;
+                    const isCurrent = idx === currentStep;
+                    const Icon = step.icon;
 
-                <div className="relative flex justify-between">
-                    {steps.map((step, idx) => {
-                        const isCompleted = idx < currentStep;
-                        const isCurrent = idx === currentStep;
-                        const Icon = step.icon;
-
-                        return (
-                            <div key={step.label} className="flex-1">
-                                <button
-                                    type="button"
-                                    onClick={() => canGoTo(idx) && goToStep(idx)}
-                                    disabled={!canGoTo(idx)}
-                                    aria-current={isCurrent ? "step" : undefined}
-                                    aria-label={`${step.label}${isCompleted ? " (completed)" : ""}`}
-                                    className="w-full flex flex-col items-center gap-2 group outline-none"
+                    return (
+                        <div key={step.label} className="flex items-center flex-1 last:flex-none">
+                            <button
+                                type="button"
+                                onClick={() => canGoTo(idx) && goToStep(idx)}
+                                disabled={!canGoTo(idx)}
+                                aria-current={isCurrent ? "step" : undefined}
+                                aria-label={`${step.label}${isCompleted ? " (completed)" : ""}`}
+                                className="flex flex-col items-center gap-1.5 w-[70px] shrink-0"
+                            >
+                                <div
+                                    className={cn(
+                                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
+                                        isCurrent &&
+                                        "bg-primary text-primary-foreground shadow-[0_0_20px_hsl(0_75%_55%/0.2)]",
+                                        isCompleted && "bg-primary/20 text-primary",
+                                        !isCurrent &&
+                                        !isCompleted &&
+                                        "bg-secondary text-muted-foreground"
+                                    )}
                                 >
-                                    <div
-                                        className={cn(
-                                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 relative z-10",
-                                            isCurrent && "bg-primary text-primary-foreground shadow-[0_0_20px_hsl(0_75%_55%/0.25)] scale-105",
-                                            isCompleted && "bg-primary/20 text-primary",
-                                            !isCurrent && !isCompleted && "bg-background border border-border/50 text-muted-foreground"
-                                        )}
-                                    >
-                                        {isCompleted ? (
-                                            <Check className="h-4 w-4" />
-                                        ) : (
-                                            <Icon className="h-4 w-4" />
-                                        )}
-                                    </div>
-                                    <span
-                                        className={cn(
-                                            "text-[10px] sm:text-xs font-semibold text-center leading-tight transition-colors duration-300 max-w-[80px]",
-                                            isCurrent ? "text-primary" : "text-muted-foreground"
-                                        )}
-                                    >
-                                        {step.label}
-                                    </span>
-                                </button>
-                            </div>
-                        );
-                    })}
-                </div>
+                                    {isCompleted ? (
+                                        <Check className="h-4 w-4" />
+                                    ) : (
+                                        <Icon className="h-4 w-4" />
+                                    )}
+                                </div>
+                                <span
+                                    className={cn(
+                                        "text-[10px] font-medium text-center leading-tight px-1",
+                                        isCurrent ? "text-primary" : "text-muted-foreground"
+                                    )}
+                                >
+                                    {step.label}
+                                </span>
+                            </button>
+
+                            {idx < steps.length - 1 && (
+                                <div className="flex-1 h-[1.5px] bg-secondary self-start mt-[19px] mx-1 rounded-full overflow-hidden">
+                                    <motion.div
+                                        className="h-full bg-primary rounded-full"
+                                        initial={false}
+                                        animate={{ width: isCompleted ? "100%" : "0%" }}
+                                        transition={{ duration: 0.4, ease: "easeInOut" }}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

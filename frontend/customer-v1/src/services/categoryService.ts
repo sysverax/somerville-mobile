@@ -14,14 +14,15 @@ const normalizeCategory = (category: any): Category => ({
   imageUrl: category.imageUrl,
 });
 
-let categoriesPromise: Promise<Category[]> | null = null;
+const categoriesPromiseCache = new Map<string, Promise<Category[]>>();
 
-export const getAllCategories = async (sortOrder?: 'asc' | 'desc'): Promise<Category[]> => {
-  if (categoriesPromise) return categoriesPromise;
+export const getAllCategories = async (sortOrder: 'asc' | 'desc' = 'asc'): Promise<Category[]> => {
+  const key = sortOrder;
+  if (categoriesPromiseCache.has(key)) return categoriesPromiseCache.get(key)!;
 
-  categoriesPromise = (async () => {
+  const promise = (async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/categories${sortOrder ? `?sortOrder=${sortOrder}` : ''}`, {
+      const response = await fetch(`${API_BASE_URL}/api/categories?sortOrder=${sortOrder}&limit=100`, {
         headers: {
           'x-user-role': 'public',
         },
@@ -32,21 +33,20 @@ export const getAllCategories = async (sortOrder?: 'asc' | 'desc'): Promise<Cate
       }
       const json = await response.json();
       const categories: CategoryDocument[] = json.data?.categories || [];
-      return categories
-        .map(normalizeCategory)
-        .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+      return categories.map(normalizeCategory);
     } catch (error) {
       console.error('Failed to fetch categories from API:', error);
-      categoriesPromise = null;
+      categoriesPromiseCache.delete(key);
       return [];
     }
   })();
 
-  return categoriesPromise;
+  categoriesPromiseCache.set(key, promise);
+  return promise;
 };
 
-export const getActiveCategories = async (sortOrder?: 'asc' | 'desc'): Promise<Category[]> => {
-  const all = await getAllCategories(sortOrder);
+export const getActiveCategories = async (): Promise<Category[]> => {
+  const all = await getAllCategories();
   return all.filter(c => c.isActive);
 };
 
@@ -102,8 +102,8 @@ export const getCategoriesByBrand = async (brandId: string, sortOrder: 'asc' | '
   }
 };
 
-export const searchCategories = async (query: string, sortOrder?: 'asc' | 'desc'): Promise<Category[]> => {
-  const all = await getActiveCategories(sortOrder);
+export const searchCategories = async (query: string): Promise<Category[]> => {
+  const all = await getActiveCategories();
   const lowerQuery = query.toLowerCase();
   return all.filter(c =>
     c.name.toLowerCase().includes(lowerQuery) ||

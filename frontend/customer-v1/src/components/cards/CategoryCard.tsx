@@ -14,7 +14,7 @@ const CategoryCard = ({ category, index = 0 }: CategoryCardProps) => {
   return (
     <motion.div>
       <Link
-        href={`/category/${category.id}`}
+        href={`/brand/${category.brandId}?categoryId=${category.id}`}
         className="group block relative overflow-hidden rounded-xl bg-gradient-card shadow-card h-40"
       >
         <div className="absolute inset-0">

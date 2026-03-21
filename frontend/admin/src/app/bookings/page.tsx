@@ -149,7 +149,7 @@ const BookingsPage = () => {
 
       <BookingsTable 
         bookings={bookings} 
-        loading={loading}
+        loading={loading || optionsLoading}
         onRowClick={(booking) => navigate('/bookings', { state: { bookingId: booking.id } })}
       />
 

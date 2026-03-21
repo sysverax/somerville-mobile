@@ -10,6 +10,7 @@ export const useCategories = ({ autoFetch = true } = {}) => {
 
   const refresh = useCallback(async (filters?: { brandId?: string; page?: number; limit?: number }) => {
     try {
+      setIsLoading(true);
       if (filters !== undefined) lastFilters.current = filters;
       const result = await categoryService.getAll(lastFilters.current);
       setCategories(result.data);
@@ -29,8 +30,6 @@ export const useCategories = ({ autoFetch = true } = {}) => {
         setCategories([]);
         setIsLoading(false);
       });
-    } else {
-      setIsLoading(false);
     }
   }, [refresh, autoFetch]);
 

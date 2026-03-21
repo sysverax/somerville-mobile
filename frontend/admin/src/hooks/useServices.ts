@@ -10,6 +10,7 @@ export const useServices = (initialFilters: GetServicesFilters = {}, { autoFetch
   const lastFilters = useRef<GetServicesFilters | undefined>();
 
   const fetchServices = useCallback(async (filters?: GetServicesFilters) => {
+    setIsLoading(true);
     setError(null);
     try {
       if (filters !== undefined) lastFilters.current = filters;
@@ -29,8 +30,6 @@ export const useServices = (initialFilters: GetServicesFilters = {}, { autoFetch
   useEffect(() => {
     if (autoFetch) {
       fetchServices();
-    } else {
-      setIsLoading(false);
     }
   }, [fetchServices, autoFetch]);
 

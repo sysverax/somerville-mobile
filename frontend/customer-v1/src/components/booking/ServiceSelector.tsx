@@ -120,12 +120,12 @@ const ServiceSelector = () => {
                                     )}
                                 </div>
 
-                                <h4 className="font-semibold text-sm mb-1.5 leading-tight">
+                                <h4 className="font-semibold text-sm mb-1.5 leading-tight break-words">
                                     {service.name}
                                 </h4>
 
                                 {service.description && (
-                                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+                                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2 break-words">
                                         {service.description}
                                     </p>
                                 )}

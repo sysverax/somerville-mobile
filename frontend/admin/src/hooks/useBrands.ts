@@ -10,6 +10,7 @@ export const useBrands = ({ autoFetch = true } = {}) => {
 
   const refresh = useCallback(async (filters?: { page?: number; limit?: number }) => {
     try {
+      setIsLoading(true);
       if (filters !== undefined) lastFilters.current = filters;
       const result = await brandService.getAll(lastFilters.current);
       setBrands(result.data);
@@ -29,8 +30,6 @@ export const useBrands = ({ autoFetch = true } = {}) => {
         setBrands([]);
         setIsLoading(false);
       });
-    } else {
-      setIsLoading(false);
     }
   }, [refresh, autoFetch]);
 

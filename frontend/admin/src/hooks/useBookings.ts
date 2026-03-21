@@ -2,16 +2,23 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Booking, TimeSlotConfig } from '@/types';
 import { bookingService } from '@/services/booking.service';
 
-export const useBookings = ({ autoFetch = true } = {}) => {
+export const useBookings = ({ 
+  autoFetch = true, 
+  initialFilters = {} 
+}: { 
+  autoFetch?: boolean; 
+  initialFilters?: { page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string } 
+} = {}) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [config, setConfig] = useState<TimeSlotConfig>(bookingService.getTimeSlotConfig());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const lastFilters = useRef<{ page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string } | undefined>();
+  const lastFilters = useRef<{ page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string } | undefined>(initialFilters);
 
   const fetchBookings = useCallback(async (filters?: { page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string }) => {
     try {
+      setLoading(true);
       setError(null);
       if (filters !== undefined) lastFilters.current = filters;
       const { bookings: bookingsData, total: totalItems } = await bookingService.getAll(lastFilters.current);
@@ -29,8 +36,6 @@ export const useBookings = ({ autoFetch = true } = {}) => {
   useEffect(() => {
     if (autoFetch) {
       fetchBookings();
-    } else {
-      setLoading(false);
     }
   }, [fetchBookings, autoFetch]);
 

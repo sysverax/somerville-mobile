@@ -51,9 +51,16 @@ const Navbar = () => {
   };
 
   const handleCategoryClick = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    const brandId = category?.brandId;
     setActiveBrand(null);
     setIsOpen(false);
-    router.push(`/category/${categoryId}`);
+    
+    if (brandId) {
+      router.push(`/brand/${brandId}?categoryId=${categoryId}`);
+    } else {
+      router.push(`/category/${categoryId}`);
+    }
   };
 
   return (

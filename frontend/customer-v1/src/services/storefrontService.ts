@@ -1,7 +1,7 @@
 import { getActiveBrands, getBrandById } from './brandService';
 import { getActiveCategories, getCategoriesByBrand, getCategoryById } from './categoryService';
-import { getActiveSeries, getSeriesByCategory, getSeriesById } from './seriesService';
-import { getActiveProducts, getProductById as getRawProductById, getProductsBySeries as getRawProductsBySeries, searchProducts as rawSearchProducts, getFeaturedProducts as rawFeaturedProducts } from './productService';
+import { getActiveSeries, getSeriesByCategory, getSeriesByBrand, getSeriesById } from './seriesService';
+import { getActiveProducts, getProductById as getRawProductById, getProductsBySeries as getRawProductsBySeries, getProductsByBrand, searchProducts as rawSearchProducts, getFeaturedProducts as rawFeaturedProducts } from './productService';
 import { getStockByProduct } from './stockService';
 import { getServicesForProductFromAPI } from './serviceService';
 import { addBooking as rawAddBooking } from './bookingService';
@@ -106,7 +106,7 @@ export interface StorefrontBooking {
 // ---- Brand helpers ----
 
 export const getStorefrontBrands = async (): Promise<StorefrontBrand[]> => {
-  const brands = await getActiveBrands('asc');
+  const brands = await getActiveBrands();
   return brands.map(b => ({
     id: b.id,
     name: b.name,
@@ -131,7 +131,7 @@ export const getStorefrontBrandById = async (id: string): Promise<StorefrontBran
 // ---- Category helpers ----
 
 export const getStorefrontCategories = async (): Promise<StorefrontCategory[]> => {
-  const categories = await getActiveCategories('asc');
+  const categories = await getActiveCategories();
   return categories.map(c => ({
     id: c.id,
     brandId: c.brandId,
@@ -142,7 +142,7 @@ export const getStorefrontCategories = async (): Promise<StorefrontCategory[]> =
 };
 
 export const getStorefrontCategoriesByBrand = async (brandId: string): Promise<StorefrontCategory[]> => {
-  const categories = await getCategoriesByBrand(brandId, 'asc');
+  const categories = await getCategoriesByBrand(brandId);
   return categories.map(c => ({
     id: c.id,
     brandId: c.brandId,
@@ -166,8 +166,8 @@ export const getStorefrontCategoryById = async (id: string): Promise<StorefrontC
 
 // ---- Series helpers ----
 
-export const getStorefrontSeries = async (sortOrder: 'asc' | 'desc' = 'asc'): Promise<StorefrontSeries[]> => {
-  const series = await getActiveSeries(sortOrder);
+export const getStorefrontSeries = async (): Promise<StorefrontSeries[]> => {
+  const series = await getActiveSeries();
   return series.map(s => ({
     id: s.id,
     categoryId: s.categoryId,
@@ -179,7 +179,19 @@ export const getStorefrontSeries = async (sortOrder: 'asc' | 'desc' = 'asc'): Pr
 };
 
 export const getStorefrontSeriesByCategory = async (categoryId: string): Promise<StorefrontSeries[]> => {
-  const series = await getSeriesByCategory(categoryId, 'asc');
+  const series = await getSeriesByCategory(categoryId);
+  return series.map(s => ({
+    id: s.id,
+    categoryId: s.categoryId,
+    name: s.name,
+    description: s.description,
+    banner: s.image,
+    releaseYear: 2024,
+  }));
+};
+
+export const getStorefrontSeriesByBrand = async (brandId: string): Promise<StorefrontSeries[]> => {
+  const series = await getSeriesByBrand(brandId);
   return series.map(s => ({
     id: s.id,
     categoryId: s.categoryId,
@@ -270,7 +282,12 @@ const mapProduct = (p: any): StorefrontProduct | null => {
 };
 
 export const getStorefrontProducts = async (): Promise<StorefrontProduct[]> => {
-  const products = await getActiveProducts('asc');
+  const products = await getActiveProducts();
+  return products.map(mapProduct).filter(Boolean) as StorefrontProduct[];
+};
+
+export const getStorefrontProductsByBrand = async (brandId: string): Promise<StorefrontProduct[]> => {
+  const products = await getProductsByBrand(brandId);
   return products.map(mapProduct).filter(Boolean) as StorefrontProduct[];
 };
 
@@ -280,22 +297,22 @@ export const getStorefrontProductById = async (id: string): Promise<StorefrontPr
 };
 
 export const getStorefrontProductsBySeries = async (seriesId: string): Promise<StorefrontProduct[]> => {
-  const products = await getRawProductsBySeries(seriesId, 'asc');
+  const products = await getRawProductsBySeries(seriesId);
   return products.map(mapProduct).filter(Boolean) as StorefrontProduct[];
 };
 
 export const storefrontSearchProducts = async (query: string): Promise<StorefrontProduct[]> => {
-  const products = await rawSearchProducts(query, 'asc');
+  const products = await rawSearchProducts(query);
   return products.map(mapProduct).filter(Boolean) as StorefrontProduct[];
 };
 
 export const getStorefrontFeaturedProducts = async (): Promise<StorefrontProduct[]> => {
-  const products = await rawFeaturedProducts('asc');
+  const products = await rawFeaturedProducts();
   return products.map(mapProduct).filter(Boolean) as StorefrontProduct[];
 };
 
 export const getStorefrontLatestSeries = async (): Promise<StorefrontSeries[]> => {
-  return getStorefrontSeries('desc');
+  return getStorefrontSeries();
 };
 
 // ---- Service helpers ----
@@ -375,7 +392,7 @@ export const getStorefrontServicesByProduct = async (productId: string): Promise
 };
 
 export const getAllStorefrontServices = async (): Promise<StorefrontService[]> => {
-  const products = await getActiveProducts('asc');
+  const products = await getActiveProducts();
   const servicePromises = products.map(p => getStorefrontServicesByProduct(p.id));
   const results = await Promise.all(servicePromises);
   return results.flat();

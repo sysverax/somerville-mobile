@@ -187,16 +187,16 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
                 </div>
                 <div className="bg-secondary/30 rounded-2xl border border-border/50 p-5 max-w-sm mx-auto text-left space-y-2">
                     {selectedProduct && (
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Device</span>
-                            <span className="font-medium">{selectedProduct.name}</span>
+                        <div className="flex justify-between gap-4 text-sm">
+                            <span className="text-muted-foreground shrink-0 mt-0.5">Device</span>
+                            <span className="font-medium text-right leading-tight break-all min-w-0">{selectedProduct.name}</span>
                         </div>
                     )}
                     {selectedService && (
                         <>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Service</span>
-                                <span className="font-medium">{selectedService.name}</span>
+                            <div className="flex justify-between gap-4 text-sm">
+                                <span className="text-muted-foreground shrink-0 mt-0.5">Service</span>
+                                <span className="font-medium text-right leading-tight break-all min-w-0">{selectedService.name}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Price</span>
@@ -232,13 +232,13 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
     }
 
     return (
-        <div ref={containerRef} className="space-y-6 scroll-mt-20 pb-28 lg:pb-0">
+        <div ref={containerRef} className="space-y-6 scroll-mt-20">
             <Stepper />
 
             <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-6">
                 {/* Main Content Column */}
                 <div className="space-y-6 min-w-0">
-                    <div className="min-h-[400px]">
+                    <div className="min-h-[280px] md:min-h-[340px]">
                         <AnimatePresence mode="wait" custom={direction}>
                             {store.currentStep === 0 && (
                                 <motion.div
@@ -332,11 +332,11 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
                 </div>
             </div>
 
-            {/* Desktop Navigation Buttons - Hidden on Mobile/Tablet */}
-            <div className="hidden lg:grid lg:grid-cols-[1fr_280px] lg:gap-6 pt-2 min-w-0">
+            {/* Navigation Buttons */}
+            <div className="grid lg:grid-cols-[1fr_280px] lg:gap-6 pt-2 min-w-0">
                 <div
                     className={cn(
-                        "flex gap-3 pb-20 lg:pb-0",
+                        "flex gap-3",
                         store.currentStep > 0 ? "justify-between" : "justify-end"
                     )}
                 >
@@ -345,7 +345,7 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
                             type="button"
                             variant="outline"
                             onClick={handleBack}
-                            className="rounded-xl border-border/50"
+                            className="rounded-xl border-border/50 h-11 px-6 text-base font-medium flex-1 md:flex-initial"
                         >
                             <ArrowLeft className="h-4 w-4 mr-2" />
                             Back
@@ -360,7 +360,10 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
                                 (store.currentStep === 0 && !canProceedStep0) ||
                                 (store.currentStep === 1 && !canProceedStep1)
                             }
-                            className="rounded-xl bg-gradient-primary hover:opacity-90 disabled:opacity-40"
+                            className={cn(
+                                "rounded-xl bg-gradient-primary hover:opacity-90 disabled:opacity-40 h-11 px-8 text-base font-bold",
+                                store.currentStep === 0 ? "w-full md:w-auto" : "flex-[2] md:w-auto md:flex-initial"
+                            )}
                         >
                             Continue
                             <ArrowRight className="h-4 w-4 ml-2" />
@@ -372,7 +375,10 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
                             type="button"
                             onClick={handleSubmit}
                             disabled={!canSubmit || store.isSubmitting}
-                            className="rounded-xl bg-gradient-primary hover:opacity-90 disabled:opacity-40"
+                            className={cn(
+                                "rounded-xl bg-gradient-primary hover:opacity-90 disabled:opacity-40 h-11 px-8 text-base font-bold",
+                                "flex-[2] md:w-auto md:flex-initial"
+                            )}
                         >
                             {store.isSubmitting ? (
                                 <>
@@ -386,60 +392,6 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
                     )}
                 </div>
                 <div className="hidden lg:block" />
-            </div>
-
-            {/* Mobile Sticky CTA */}
-            <div className="lg:hidden fixed bottom-14 left-0 right-0 z-50 px-4 py-3 bg-background/95 backdrop-blur-xl border-t border-border/30">
-                <div className="flex gap-3">
-                    {store.currentStep > 0 && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleBack}
-                            className="flex-1 rounded-xl h-12 text-base font-semibold border-border/50"
-                        >
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back
-                        </Button>
-                    )}
-                    
-                    {store.currentStep < 2 ? (
-                        <Button
-                            type="button"
-                            onClick={handleNext}
-                            disabled={
-                                (store.currentStep === 0 && !canProceedStep0) ||
-                                (store.currentStep === 1 && !canProceedStep1)
-                            }
-                            className={cn(
-                                "rounded-xl bg-gradient-primary hover:opacity-90 disabled:opacity-40 h-12 text-base font-semibold",
-                                store.currentStep > 0 ? "flex-[2]" : "w-full"
-                            )}
-                        >
-                            Continue
-                            <ArrowRight className="h-4 w-4 ml-2" />
-                        </Button>
-                    ) : (
-                        <Button
-                            type="button"
-                            onClick={handleSubmit}
-                            disabled={!canSubmit || store.isSubmitting}
-                            className={cn(
-                                "rounded-xl bg-gradient-primary hover:opacity-90 disabled:opacity-40 h-12 text-base font-semibold",
-                                store.currentStep > 0 ? "flex-[2]" : "w-full"
-                            )}
-                        >
-                            {store.isSubmitting ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Booking...
-                                </>
-                            ) : (
-                                "Book Now"
-                            )}
-                        </Button>
-                    )}
-                </div>
             </div>
         </div>
     );
