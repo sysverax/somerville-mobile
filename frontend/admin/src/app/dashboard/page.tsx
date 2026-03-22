@@ -50,7 +50,7 @@ const DashboardPage = () => {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Recent Bookings</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Recent Booking Schedules</CardTitle></CardHeader>
         <CardContent>
           <BookingsTable 
             bookings={stats.recentBookings} 

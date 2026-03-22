@@ -24,6 +24,11 @@ import BookingSummary from "./BookingSummary";
 
 interface BookingWizardProps {
     preSelectedBrandId?: string;
+    preSelectedCategoryId?: string;
+    preSelectedSeriesId?: string;
+    preSelectedProductId?: string;
+    preSelectedServiceId?: string;
+    hideStepper?: boolean;
 }
 
 const slideVariants = {
@@ -41,13 +46,25 @@ const slideVariants = {
     }),
 };
 
-const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
+const BookingWizard = ({
+    preSelectedBrandId,
+    preSelectedCategoryId,
+    preSelectedSeriesId,
+    preSelectedProductId,
+    preSelectedServiceId,
+    hideStepper = false,
+}: BookingWizardProps) => {
     const store = useBookingStore();
     const { data: filterOptions } = useFilterOptions();
     const [direction, setDirection] = useState(0);
     const [services, setServices] = useState<StorefrontService[]>([]);
-    const [bookingSuccess, setBookingSuccess] = useState(false);
+    const { bookingSuccess, setBookingSuccess } = store;
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // Reset booking state on mount
+    useEffect(() => {
+        store.reset();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Scroll to top of wizard on step change
     useEffect(() => {
@@ -56,12 +73,32 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
         }
     }, [store.currentStep]);
 
-    // Pre-select brand from URL
+    // Pre-select logic
     useEffect(() => {
-        if (preSelectedBrandId && !store.selectedBrandId) {
-            store.setBrand(preSelectedBrandId);
+        if (!preSelectedBrandId && !preSelectedProductId) return;
+
+        // Apply selections if they are provided as props
+        if (preSelectedBrandId) store.setBrand(preSelectedBrandId);
+        if (preSelectedCategoryId) store.setCategory(preSelectedCategoryId);
+        if (preSelectedSeriesId) store.setSeries(preSelectedSeriesId);
+        if (preSelectedProductId) store.setProduct(preSelectedProductId);
+        if (preSelectedServiceId) store.setService(preSelectedServiceId);
+
+        // Determine correct initial step
+        if (preSelectedServiceId) {
+            store.goToStep(2);
+        } else if (preSelectedProductId) {
+            store.goToStep(1);
+        } else if (preSelectedBrandId) {
+            store.goToStep(0);
         }
-    }, [preSelectedBrandId]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [
+        preSelectedBrandId,
+        preSelectedCategoryId,
+        preSelectedSeriesId,
+        preSelectedProductId,
+        preSelectedServiceId,
+    ]);
 
     // Fetch services when product changes
     useEffect(() => {
@@ -134,11 +171,11 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
                 status: "pending",
             });
 
-            toast({
-                title: "Booking Confirmed!",
-                description: "Your service appointment has been booked successfully.",
-                variant: "success",
-            });
+            // toast({
+            //     title: "Booking Confirmed!",
+            //     description: "Your service appointment has been booked successfully.",
+            //     variant: "success",
+            // });
 
             setBookingSuccess(true);
         } catch (error) {
@@ -158,7 +195,6 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
 
     const handleBookAgain = () => {
         store.reset();
-        setBookingSuccess(false);
         setDirection(0);
     };
 
@@ -187,20 +223,20 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
                 </div>
                 <div className="bg-secondary/30 rounded-2xl border border-border/50 p-5 max-w-sm mx-auto text-left space-y-2">
                     {selectedProduct && (
-                        <div className="flex justify-between gap-4 text-sm">
+                        <div className="flex justify-between gap-12 text-sm">
                             <span className="text-muted-foreground shrink-0 mt-0.5">Device</span>
                             <span className="font-medium text-right leading-tight break-all min-w-0">{selectedProduct.name}</span>
                         </div>
                     )}
                     {selectedService && (
                         <>
-                            <div className="flex justify-between gap-4 text-sm">
+                            <div className="flex justify-between gap-12 text-sm">
                                 <span className="text-muted-foreground shrink-0 mt-0.5">Service</span>
-                                <span className="font-medium text-right leading-tight break-all min-w-0">{selectedService.name}</span>
+                                 <span className="font-medium text-right leading-tight break-all min-w-0">{selectedService.name}</span>
                             </div>
-                            <div className="flex justify-between text-sm">
+                            <div className="flex justify-between text-sm gap-12">
                                 <span className="text-muted-foreground">Price</span>
-                                <span className="font-bold text-primary">
+                                <span className="font-med">
                                     ${selectedService.price}
                                 </span>
                             </div>
@@ -233,7 +269,11 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
 
     return (
         <div ref={containerRef} className="space-y-6 scroll-mt-20">
-            <Stepper />
+            {!hideStepper && (
+                <div className="sticky -top-7 -mx-2 z-40 bg-background/95 backdrop-blur-md px-4 py-4 border-b border-border/50">
+                    <Stepper />
+                </div>
+            )}
 
             <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-6">
                 {/* Main Content Column */}
@@ -260,7 +300,7 @@ const BookingWizard = ({ preSelectedBrandId }: BookingWizardProps) => {
                                                     Choose Your Device
                                                 </h2>
                                                 <p className="text-xs text-muted-foreground">
-                                                    Select brand, category, series and model
+                                                    Select brand, category, series and device
                                                 </p>
                                             </div>
                                         </div>

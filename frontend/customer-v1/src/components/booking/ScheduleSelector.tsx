@@ -20,17 +20,17 @@ const TIME_GROUPS = [
     {
         label: "Morning",
         icon: Sun,
-        slots: ["09:00", "09:15", "09:30", "09:45", "10:00", "10:15", "10:30", "10:45", "11:00", "11:15", "11:30", "11:45"],
+        slots: ["10:00", "10:15", "10:30", "10:45", "11:00", "11:15", "11:30", "11:45"],
     },
     {
         label: "Afternoon",
         icon: Sunset,
-        slots: ["12:00", "12:15", "12:30", "12:45", "13:00", "13:15", "13:30", "13:45", "14:00", "14:15", "14:30", "14:45", "15:00", "15:15", "15:30", "15:45"],
+        slots: ["12:00", "12:15", "12:30", "12:45", "13:00", "13:15", "13:30", "13:45", "14:00", "14:15", "14:30", "14:45"],
     },
     {
         label: "Evening",
         icon: Moon,
-        slots: ["16:00", "16:15", "16:30", "16:45", "17:00", "17:15", "17:30", "17:45"],
+        slots: ["15:00", "15:15", "15:30", "15:45", "16:00", "16:15", "16:30", "16:45"],
     },
 ];
 
@@ -58,6 +58,27 @@ const ScheduleSelector = () => {
         }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Dynamic filtering of time slots based on day of week
+    const filteredTimeGroups = useMemo(() => {
+        if (!selectedDate) return TIME_GROUPS;
+
+        const day = selectedDate.getDay()
+
+        return TIME_GROUPS.map(group => {
+            const filteredSlots = group.slots.filter(slot => {
+                if (day === 0) { 
+                    return slot >= "11:00" && slot <= "14:15";
+                }
+                if (day === 6) { 
+                    return slot >= "10:30" && slot <= "15:15";
+                }
+                return true;
+            });
+
+            return { ...group, slots: filteredSlots };
+        }).filter(group => group.slots.length > 0);
+    }, [selectedDate]);
+
     // Auto-scroll to selected date
     useEffect(() => {
         if (selectedDate && scrollRef.current) {
@@ -72,10 +93,20 @@ const ScheduleSelector = () => {
     // Auto-set active group based on selected time
     useEffect(() => {
         if (selectedTime) {
-            const group = TIME_GROUPS.find((g) => g.slots.includes(selectedTime));
-            if (group) setActiveGroup(group.label);
+            const group = filteredTimeGroups.find((g) => g.slots.includes(selectedTime));
+            if (group) {
+                setActiveGroup(group.label);
+            } else {
+                // If previous selected time isn't in filtered slots for new date, clear it
+                setTime("");
+            }
+        } else if (filteredTimeGroups.length > 0) {
+            // Ensure active group is valid
+            if (!filteredTimeGroups.find(g => g.label === activeGroup)) {
+                setActiveGroup(filteredTimeGroups[0].label);
+            }
         }
-    }, [selectedTime]);
+    }, [selectedTime, filteredTimeGroups]);
 
     const scrollDates = (dir: "left" | "right") => {
         scrollRef.current?.scrollBy({
@@ -196,7 +227,7 @@ const ScheduleSelector = () => {
 
                 {/* Period tabs */}
                 <div className="flex gap-1 p-1 bg-secondary/30 rounded-xl mb-3">
-                    {TIME_GROUPS.map((group) => {
+                    {filteredTimeGroups.map((group) => {
                         const Icon = group.icon;
                         const isActive = activeGroup === group.label;
                         const hasSelected = group.slots.includes(selectedTime);
@@ -225,7 +256,7 @@ const ScheduleSelector = () => {
 
                 {/* Time grid */}
                 <AnimatePresence mode="wait">
-                    {TIME_GROUPS.filter((g) => g.label === activeGroup).map(
+                    {filteredTimeGroups.filter((g) => g.label === activeGroup).map(
                         (group) => (
                             <motion.div
                                 key={group.label}

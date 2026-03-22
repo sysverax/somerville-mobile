@@ -12,10 +12,10 @@ const getFilterOptionsService = async (userRole, logger) => {
   const query = isAdmin ? {} : { isActive: true };
 
   const [brands, categories, series, products] = await Promise.all([
-    Brand.find(query).sort({ name: 1 }).lean(),
-    Category.find(query).sort({ name: 1 }).lean(),
-    Series.find(query).sort({ name: 1 }).lean(),
-    Product.find(query).sort({ name: 1 }).lean(),
+    Brand.find(query).sort({ createdAt: 1 }).lean(),
+    Category.find(query).sort({ createdAt: 1 }).lean(),
+    Series.find(query).sort({ createdAt: -1 }).lean(),
+    Product.find(query).sort({ createdAt: -1 }).lean(),
   ]);
 
   return {

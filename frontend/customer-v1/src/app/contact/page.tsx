@@ -70,13 +70,13 @@ const ContactPage = () => {
   ];
 
   const businessHours = [
-    { day: "Monday", hours: "9:00 AM – 6:00 PM" },
-    { day: "Tuesday", hours: "9:00 AM – 6:00 PM" },
-    { day: "Wednesday", hours: "9:00 AM – 6:00 PM" },
-    { day: "Thursday", hours: "9:00 AM – 6:00 PM" },
-    { day: "Friday", hours: "9:00 AM – 6:00 PM" },
-    { day: "Saturday", hours: "9:30 AM – 4:30 PM" },
-    { day: "Sunday", hours: "10:00 AM – 3:30 PM" },
+    { day: "Monday", hours: "10:00 AM – 5:00 PM" },
+    { day: "Tuesday", hours: "10:00 AM – 5:00 PM" },
+    { day: "Wednesday", hours: "10:00 AM – 5:00 PM" },
+    { day: "Thursday", hours: "10:00 AM – 5:00 PM" },
+    { day: "Friday", hours: "10:00 AM – 5:00 PM" },
+    { day: "Saturday", hours: "10:30 AM – 3:30 PM" },
+    { day: "Sunday", hours: "11:00 AM – 2:30 PM" },
   ];
 
   return (

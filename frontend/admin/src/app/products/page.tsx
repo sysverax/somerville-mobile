@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useProducts } from '@/hooks/useProducts';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
-import { useServices } from '@/hooks/useServices';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Wrench, ChevronRight, Loader2, Package } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronRight, Loader2, Package } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ViewToggle, ViewMode } from '@/components/ViewToggle';
 import ImageUpload from '@/components/ImageUpload';
@@ -64,7 +63,6 @@ type FormErrors = { brandId?: string; categoryId?: string; seriesId?: string; na
 const ProductsPage = () => {
   const { brands, categories, series: seriesList, isLoading: optionsLoading } = useFilterOptions();
   const { products, total, create, update, remove, toggleActive, isLoading: productsLoading, refresh } = useProducts({ autoFetch: false });
-  const { services } = useServices();
   const initialLoading = productsLoading || optionsLoading;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -89,9 +87,6 @@ const ProductsPage = () => {
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 50);
   };
-
-  // Service overrides dialog
-  const [serviceProduct, setServiceProduct] = useState<Product | null>(null);
 
   const filteredCats = (filters.brandId !== 'all' || applied.brandId !== 'all') ? categories.filter(c => c.brandId === (filters.brandId !== 'all' ? filters.brandId : applied.brandId)) : categories;
   const filteredSeries = (filters.categoryId !== 'all' || applied.categoryId !== 'all') ? seriesList.filter(s => s.categoryId === (filters.categoryId !== 'all' ? filters.categoryId : applied.categoryId)) : seriesList;
@@ -156,28 +151,6 @@ const ProductsPage = () => {
     }
   };
   const addSpec = () => { if (specKey.trim() && specVal.trim()) { setForm(f => ({ ...f, specifications: { ...f.specifications, [specKey]: specVal } })); setSpecKey(''); setSpecVal(''); } };
-
-  // Get all active services that apply to a product (inherited from brand/category/series/product levels)
-  const getServicesForProduct = (p: Product) => {
-    return services.filter(s => {
-      if (!s.isActive) return false;
-
-      const hasVariants = services.some(v => v.parentServiceId === s.id);
-      if (!s.isVariant && hasVariants) return false;
-
-      switch (s.level) {
-        case 'brand': return s.levelId === p.brandId;
-        case 'category': return s.levelId === p.categoryId;
-        case 'series': return s.levelId === p.seriesId;
-        case 'product': return s.levelId === p.id;
-        default: return false;
-      }
-    });
-  };
-
-  const openServiceOverrides = (p: Product) => {
-    setServiceProduct(p);
-  };
 
   const brandName = (id: string) => brands.find(b => b.id === id)?.name || id;
   const categoryName = (id: string) => categories.find(c => c.id === id)?.name || id;
@@ -254,12 +227,6 @@ const ProductsPage = () => {
                 {Object.keys(p.specifications).length > 0 && (
                   <div className="flex flex-wrap gap-1">{Object.entries(p.specifications).map(([k, v]) => <Badge key={k} variant="outline" className="text-xs">{k}: {v}</Badge>)}</div>
                 )}
-                {(p.activeServiceCount ?? 0) > 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    <Wrench className="h-3 w-3 inline mr-1" />
-                    {p.activeServiceCount} service(s) available
-                  </div>
-                )}
                 <div className="flex items-center justify-between pt-2 border-t border-border/50">
                    <div className="flex items-center gap-2">
                      <Label className="text-xs">Active</Label>
@@ -281,7 +248,6 @@ const ProductsPage = () => {
                      )}
                    </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openServiceOverrides(p)} disabled={isLoading} title="Manage service overrides"><Wrench className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(p)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                   </div>
@@ -300,7 +266,6 @@ const ProductsPage = () => {
                 <TableHead>Series</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead className="hidden md:table-cell">Description</TableHead>
-                <TableHead>Services</TableHead>
                 <TableHead className="w-24">Visibility</TableHead>
                 <TableHead className="w-[150px] hidden xl:table-cell">Hidden Reason</TableHead>
                 <TableHead className="w-20">Active</TableHead>
@@ -339,7 +304,6 @@ const ProductsPage = () => {
                     <TableCell className="text-sm"><ParentNameCell name={seriesName(p.seriesId)} isInactive={seriesInactive} /></TableCell>
                     <TableCell className="text-sm"><ParentNameCell name={categoryName(p.categoryId)} isInactive={categoryInactive} /></TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px]"><TruncatedText text={p.description} /></TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{p.activeServiceCount || 0} service(s)</TableCell>
                     <TableCell><VisibilityBadge visibility={visibility} /></TableCell>
                     <TableCell className="hidden xl:table-cell"><HiddenReasonCell visibility={visibility} /></TableCell>
                     <TableCell>
@@ -364,7 +328,6 @@ const ProductsPage = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openServiceOverrides(p)} disabled={isLoading} title="Service overrides"><Wrench className="h-3.5 w-3.5" /></Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)} disabled={isLoading}><Pencil className="h-3.5 w-3.5" /></Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(p)} disabled={isLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                       </div>
@@ -512,54 +475,6 @@ const ProductsPage = () => {
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editing ? 'Save Changes' : 'Add Product'}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Services Dialog (shows services linked to product) */}
-      <Dialog open={!!serviceProduct} onOpenChange={() => setServiceProduct(null)}>
-        <DialogContent className="flex flex-col max-h-[90vh] max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Services — {serviceProduct?.name}</DialogTitle>
-          </DialogHeader>
-          {serviceProduct && (() => {
-            const linkedServices = getServicesForProduct(serviceProduct);
-            return (
-              <div className="space-y-4 overflow-y-auto flex-1 scrollbar-hide">
-                <div className="flex items-center gap-3">
-                  <img src={serviceProduct.iconImage} alt={serviceProduct.name} className="h-10 w-10 rounded-lg object-cover bg-muted" />
-                  <div>
-                    <h3 className="font-semibold text-foreground">{serviceProduct.name}</h3>
-                    <p className="text-xs text-muted-foreground">{brandName(serviceProduct.brandId)} · {categoryName(serviceProduct.categoryId)} · {seriesName(serviceProduct.seriesId)}</p>
-                  </div>
-                </div>
-                {linkedServices.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4">No active services are assigned to this product.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {linkedServices.map(svc => (
-                      <div key={svc.id} className="rounded-lg border border-border p-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-sm">{svc.name}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              <Badge variant="outline" className="capitalize text-xs mr-1">{svc.level}</Badge>
-                              {svc.isParent ? 'Parent service' : `$${svc.basePrice} · ${svc.estimatedTime} min`}
-                            </p>
-                          </div>
-                          <Badge variant={svc.isActive ? 'default' : 'secondary'} className="text-xs">
-                            {svc.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setServiceProduct(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

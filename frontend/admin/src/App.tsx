@@ -14,7 +14,7 @@ import ProductsPage from "@/app/products/page";
 import ServicesPage from "@/app/services/page";
 import StockPricingPage from "@/app/stock-pricing/page";
 import BookingsPage from "@/app/bookings/page";
-import CalendarPage from "@/app/bookings/calendar/page";
+import BookingsListPage from "@/app/bookings/list/page";
 import SettingsPage from "@/app/settings/page";
 import NotFound from "./pages/NotFound";
 
@@ -39,7 +39,7 @@ const App = () => (
               <Route path="/services" element={<ServicesPage />} />
               {/* <Route path="/stock-pricing" element={<StockPricingPage />} /> */}
               <Route path="/bookings" element={<BookingsPage />} />
-              <Route path="/bookings/calendar" element={<CalendarPage />} />
+              <Route path="/bookings/list" element={<BookingsListPage />} />
               {/* <Route path="/settings" element={<SettingsPage />} /> */}
             </Route>
             <Route path="*" element={<NotFound />} />

@@ -22,7 +22,12 @@ class BookingListResponseDTO {
     this.createdAt = booking.createdAt || null;
 
     this.product = booking.product
-      ? { id: booking.product._id?.toString(), name: booking.product.name }
+      ? { 
+          id: booking.product._id?.toString(), 
+          name: booking.product.name,
+          brandName: booking.brand?.name || null,
+          categoryName: booking.category?.name || null
+        }
       : null;
     this.service = booking.serviceDetails
       ? { id: booking.serviceDetails._id?.toString(), name: booking.serviceDetails.name }

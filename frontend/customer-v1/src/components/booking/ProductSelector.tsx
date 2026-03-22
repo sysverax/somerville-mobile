@@ -25,13 +25,11 @@ const ProductSelector = () => {
         selectedSeriesId,
         selectedProductId,
         expandedSeriesId,
-        searchQuery,
         setBrand,
         setCategory,
         setSeries,
         setExpandedSeries,
         setProduct,
-        setSearchQuery,
     } = useBookingStore();
 
     const brands = filterOptions.brands;
@@ -48,13 +46,8 @@ const ProductSelector = () => {
 
     const filteredProducts = useMemo(() => {
         if (!selectedSeriesId) return [];
-        let products = filterOptions.products.filter((p) => p.seriesId === selectedSeriesId);
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase();
-            products = products.filter((p) => p.name.toLowerCase().includes(q));
-        }
-        return products;
-    }, [selectedSeriesId, filterOptions.products, searchQuery]);
+        return filterOptions.products.filter((p) => p.seriesId === selectedSeriesId);
+    }, [selectedSeriesId, filterOptions.products]);
 
     // Products grouped by series (for accordion display)
     const productsBySeries = useMemo(() => {
@@ -122,18 +115,6 @@ const ProductSelector = () => {
 
     return (
         <div className="space-y-6">
-            {/* Search */}
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                    placeholder="Search your device..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-secondary/50 border-border/50 rounded-xl h-11 focus-visible:ring-primary/30"
-                    aria-label="Search devices"
-                />
-            </div>
-
             {/* Brand Selection */}
             <section aria-label="Select brand">
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
@@ -158,7 +139,7 @@ const ProductSelector = () => {
                                     <img
                                         src={brand.logo}
                                         alt=""
-                                        className="w-5 h-5 object-contain"
+                                        className="w-full h-full object-cover"
                                         onError={(e) => {
                                             const el = e.target as HTMLImageElement;
                                             el.style.display = "none";
@@ -203,12 +184,12 @@ const ProductSelector = () => {
                                                 : "bg-secondary/40 border-border/50 text-foreground/80 hover:bg-secondary/70 hover:border-border"
                                         )}
                                     >
-                                        <div className="w-6 h-6 rounded-md bg-secondary/60 flex items-center justify-center overflow-hidden shrink-0">
+                                        <div className="w-7 h-7 rounded-lg bg-secondary/60 flex items-center justify-center overflow-hidden shrink-0">
                                             {catImage ? (
                                                 <img
                                                     src={catImage}
                                                     alt=""
-                                                    className="w-5 h-5 object-contain"
+                                                    className="w-full h-full object-cover"
                                                     onError={(e) => {
                                                         const el = e.target as HTMLImageElement;
                                                         el.style.display = "none";
@@ -284,11 +265,9 @@ const ProductSelector = () => {
                                                         <p className="text-white font-semibold text-base leading-tight">
                                                             {series.name}
                                                         </p>
-                                                        {products.length > 0 && (
-                                                            <p className="text-white/60 text-xs mt-0.5">
-                                                                {products.length} {products.length === 1 ? "model" : "models"}
-                                                            </p>
-                                                        )}
+                                                        <p className="text-white/60 text-xs mt-0.5">
+                                                            {products.length} {products.length === 1 ? "device" : "devices"}
+                                                        </p>
                                                     </div>
                                                     <motion.div
                                                         animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -302,7 +281,7 @@ const ProductSelector = () => {
 
                                         {/* Expanded Products */}
                                         <AnimatePresence initial={false}>
-                                            {isExpanded && products.length > 0 && (
+                                            {isExpanded && (
                                                 <motion.div
                                                     initial={{ height: 0, opacity: 0 }}
                                                     animate={{ height: "auto", opacity: 1 }}
@@ -310,50 +289,52 @@ const ProductSelector = () => {
                                                     transition={{ duration: 0.3, ease: "easeInOut" }}
                                                     className="overflow-hidden"
                                                 >
-                                                    <div className="p-2 space-y-1 bg-secondary/20">
-                                                        {products
-                                                            .filter((p) => {
-                                                                if (!searchQuery.trim()) return true;
-                                                                return p.name.toLowerCase().includes(searchQuery.toLowerCase());
-                                                            })
-                                                            .map((product: StorefrontProduct) => (
-                                                                <button
-                                                                    key={product.id}
-                                                                    type="button"
-                                                                    onClick={() => setProduct(product.id)}
-                                                                    aria-pressed={selectedProductId === product.id}
-                                                                    className={cn(
-                                                                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200",
-                                                                        selectedProductId === product.id
-                                                                            ? "bg-primary/15 border border-primary/30"
-                                                                            : "hover:bg-secondary/60 border border-transparent"
-                                                                    )}
-                                                                >
-                                                                    {product.images?.[0] ? (
-                                                                        <img
-                                                                            src={product.images[0]}
-                                                                            alt=""
-                                                                            className="w-9 h-9 rounded-lg object-contain bg-secondary/50"
-                                                                            onError={(e) => {
-                                                                                (e.target as HTMLImageElement).src = "";
-                                                                                (e.target as HTMLImageElement).style.display = "none";
-                                                                            }}
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="w-9 h-9 rounded-lg bg-secondary/50 flex items-center justify-center">
-                                                                            <Smartphone className="h-4 w-4 text-muted-foreground" />
-                                                                        </div>
-                                                                    )}
-                                                                    <span className="flex-1 text-sm font-medium">
-                                                                        {product.name}
-                                                                    </span>
-                                                                    {selectedProductId === product.id && (
-                                                                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                                                                            <Check className="h-3 w-3 text-white" />
-                                                                        </div>
-                                                                    )}
-                                                                </button>
-                                                            ))}
+                                                    <div className="p-2 space-y-1 bg-secondary/20 min-h-[50px] flex flex-col justify-center">
+                                                        {products.length > 0 ? (
+                                                            products
+                                                                .map((product: StorefrontProduct) => (
+                                                                    <button
+                                                                        key={product.id}
+                                                                        type="button"
+                                                                        onClick={() => setProduct(product.id)}
+                                                                        aria-pressed={selectedProductId === product.id}
+                                                                        className={cn(
+                                                                            "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200",
+                                                                            selectedProductId === product.id
+                                                                                ? "bg-primary/15 border border-primary/30"
+                                                                                : "hover:bg-secondary/60 border border-transparent"
+                                                                        )}
+                                                                    >
+                                                                        {product.images?.[0] ? (
+                                                                            <img
+                                                                                src={product.images[0]}
+                                                                                alt=""
+                                                                                className="w-9 h-9 rounded-lg object-contain bg-secondary/50"
+                                                                                onError={(e) => {
+                                                                                    (e.target as HTMLImageElement).src = "";
+                                                                                    (e.target as HTMLImageElement).style.display = "none";
+                                                                                }}
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-9 h-9 rounded-lg bg-secondary/50 flex items-center justify-center">
+                                                                                <Smartphone className="h-4 w-4 text-muted-foreground" />
+                                                                            </div>
+                                                                        )}
+                                                                        <span className="flex-1 text-sm font-medium">
+                                                                            {product.name}
+                                                                        </span>
+                                                                        {selectedProductId === product.id && (
+                                                                            <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                                                                <Check className="h-3 w-3 text-white" />
+                                                                            </div>
+                                                                        )}
+                                                                    </button>
+                                                                ))
+                                                        ) : (
+                                                            <p className="text-center text-xs text-muted-foreground py-4">
+                                                                No devices available for this series.
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 </motion.div>
                                             )}
@@ -366,12 +347,6 @@ const ProductSelector = () => {
                 )}
             </AnimatePresence>
 
-            {/* No results */}
-            {searchQuery && selectedSeriesId && filteredProducts.length === 0 && (
-                <motion.p {...fadeIn} className="text-center text-sm text-muted-foreground py-4">
-                    No devices found for &quot;{searchQuery}&quot;
-                </motion.p>
-            )}
         </div>
     );
 };

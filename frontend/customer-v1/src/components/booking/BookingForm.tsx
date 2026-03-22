@@ -224,12 +224,6 @@ const BookingForm = ({preSelectedBrandId, preSelectedCategoryId, preSelectedSeri
         status: "pending",
       });
 
-      toast({
-        title: "Booking Success",
-        description: "Your service booking has been created successfully",
-        variant: "success",
-      });
-
       setSelectedBrandId("");
       setSelectedCategoryId("");
       setSelectedSeriesId("");
