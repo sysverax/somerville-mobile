@@ -300,7 +300,7 @@ const BookingWizard = ({
                                                     Choose Your Device
                                                 </h2>
                                                 <p className="text-xs text-muted-foreground">
-                                                    Select brand, category, series and model
+                                                    Select brand, category, series and device
                                                 </p>
                                             </div>
                                         </div>

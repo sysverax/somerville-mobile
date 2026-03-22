@@ -84,7 +84,7 @@ const BookingSummary = () => {
                 list.push({ icon: Cpu, label: "Series", value: selectedSeries.name });
             }
             if (selectedProduct) {
-                list.push({ icon: Smartphone, label: "Model", value: selectedProduct.name });
+                list.push({ icon: Smartphone, label: "Device", value: selectedProduct.name });
             }
         } else {
             // On subsequent steps, only show the product name

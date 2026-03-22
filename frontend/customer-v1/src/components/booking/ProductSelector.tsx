@@ -266,7 +266,7 @@ const ProductSelector = () => {
                                                             {series.name}
                                                         </p>
                                                         <p className="text-white/60 text-xs mt-0.5">
-                                                            {products.length} {products.length === 1 ? "model" : "models"}
+                                                            {products.length} {products.length === 1 ? "device" : "devices"}
                                                         </p>
                                                     </div>
                                                     <motion.div
@@ -332,7 +332,7 @@ const ProductSelector = () => {
                                                                 ))
                                                         ) : (
                                                             <p className="text-center text-xs text-muted-foreground py-4">
-                                                                No models available for this series.
+                                                                No devices available for this series.
                                                             </p>
                                                         )}
                                                     </div>
