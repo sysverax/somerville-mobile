@@ -932,7 +932,7 @@ const ServicesPage = () => {
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Level</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assigned To</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Base Price</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Est. Time</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Duration</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Variants</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Linked Products</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
@@ -1448,7 +1448,7 @@ const ServicesPage = () => {
                     {formErrors.basePrice && <p className="text-xs text-destructive">{formErrors.basePrice}</p>}
                   </div>
                   <div className="space-y-2" data-error={!!formErrors.estimatedTime}>
-                    <Label>Est. Time (min) *</Label>
+                    <Label>Duration (min) *</Label>
                     <Input
                       type="number"
                       min={1}
@@ -1527,7 +1527,7 @@ const ServicesPage = () => {
                           {variantErrors[index]?.basePrice && <p className="text-xs text-destructive">{variantErrors[index].basePrice}</p>}
                         </div>
                         <div className="space-y-1" data-error={!!variantErrors[index]?.estimatedTime}>
-                          <Label className="text-xs">Est. Time (min)</Label>
+                          <Label className="text-xs">Duration (min)</Label>
                           <Input
                             type="text"
                             inputMode="numeric"

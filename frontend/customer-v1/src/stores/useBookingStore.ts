@@ -18,8 +18,8 @@ export interface BookingState {
     customerName: string;
     customerPhone: string;
     customerEmail: string;
-    // Submission
     isSubmitting: boolean;
+    bookingSuccess: boolean;
     // Actions
     setBrand: (id: string) => void;
     setCategory: (id: string) => void;
@@ -34,6 +34,7 @@ export interface BookingState {
     setCustomerEmail: (email: string) => void;
     setSearchQuery: (query: string) => void;
     setIsSubmitting: (v: boolean) => void;
+    setBookingSuccess: (v: boolean) => void;
     nextStep: () => void;
     prevStep: () => void;
     goToStep: (step: number) => void;
@@ -55,6 +56,7 @@ const initialState = {
     customerPhone: "",
     customerEmail: "",
     isSubmitting: false,
+    bookingSuccess: false,
 };
 
 export const useBookingStore = create<BookingState>((set) => ({
@@ -119,6 +121,7 @@ export const useBookingStore = create<BookingState>((set) => ({
     setCustomerEmail: (email) => set({ customerEmail: email }),
     setSearchQuery: (query) => set({ searchQuery: query }),
     setIsSubmitting: (v) => set({ isSubmitting: v }),
+    setBookingSuccess: (v) => set({ bookingSuccess: v }),
 
     nextStep: () =>
         set((state) => ({ currentStep: Math.min(state.currentStep + 1, 2) })),

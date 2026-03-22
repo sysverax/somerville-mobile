@@ -5,14 +5,14 @@ const getDashboardStatsService = async (logger) => {
     // Get summary counts from dashboard repo
     const summary = await dashboardRepo.getDocumentCountsRepo();
     
-    // Get 5 recent bookings using existing booking repository
-    const { bookings: recentBookings } = await bookingRepo.getAllBookingsRepo({}, 1, 5);
+    // Get 5 upcoming bookings
+    const upcomingBookings = await bookingRepo.getUpcomingBookingsRepo(5);
 
     logger.info("Dashboard stats gathered from repositories");
 
     return {
         summary,
-        recentBookings,
+        recentBookings: upcomingBookings,
     };
 };
 

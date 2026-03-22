@@ -87,7 +87,7 @@ const getAllBookingsRepo = async (filters, page, limit) => {
     $facet: {
       metadata: [{ $count: "total" }],
       data: [
-        { $sort: { scheduleDateTime: -1 } },
+        { $sort: { createdAt: -1 } },
         { $skip: skip },
         { $limit: limit },
       ],
@@ -101,7 +101,74 @@ const getAllBookingsRepo = async (filters, page, limit) => {
   return { bookings, total };
 };
 
+const getUpcomingBookingsRepo = async (limit) => {
+  const currentDate = new Date();
+
+  const pipeline = [
+    { $match: { scheduleDateTime: { $gte: currentDate } } },
+    {
+      $lookup: {
+        from: "product_services",
+        localField: "productServiceId",
+        foreignField: "_id",
+        as: "productService",
+      },
+    },
+    { $unwind: "$productService" },
+    {
+      $lookup: {
+        from: "products",
+        localField: "productService.productId",
+        foreignField: "_id",
+        as: "product",
+      },
+    },
+    { $unwind: "$product" },
+    {
+      $lookup: {
+        from: "series",
+        localField: "product.seriesId",
+        foreignField: "_id",
+        as: "series",
+      },
+    },
+    { $unwind: "$series" },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "series.categoryId",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    { $unwind: "$category" },
+    {
+      $lookup: {
+        from: "brands",
+        localField: "category.brandId",
+        foreignField: "_id",
+        as: "brand",
+      },
+    },
+    { $unwind: "$brand" },
+    {
+      $lookup: {
+        from: "services",
+        localField: "productService.serviceId",
+        foreignField: "_id",
+        as: "serviceDetails",
+      },
+    },
+    { $unwind: "$serviceDetails" },
+    { $sort: { scheduleDateTime: 1 } },
+    { $limit: limit },
+  ];
+
+  return Booking.aggregate(pipeline);
+};
+
 module.exports = {
   createBookingRepo,
   getAllBookingsRepo,
+  getUpcomingBookingsRepo,
 };

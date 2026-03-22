@@ -9,7 +9,9 @@ import {
     Clock,
     DollarSign,
     ChevronUp,
-    X,
+    Tag,
+    Layers,
+    Cpu,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/src/lib/utils";
@@ -20,7 +22,10 @@ import { getStorefrontServicesByProduct, type StorefrontService } from "@/src/se
 const BookingSummary = () => {
     const { data: filterOptions } = useFilterOptions();
     const {
+        currentStep,
         selectedBrandId,
+        selectedCategoryId,
+        selectedSeriesId,
         selectedProductId,
         selectedServiceId,
         selectedDate,
@@ -41,6 +46,16 @@ const BookingSummary = () => {
         [selectedBrandId, filterOptions.brands]
     );
 
+    const selectedCategory = useMemo(
+        () => filterOptions.categories.find((c) => c.id === selectedCategoryId),
+        [selectedCategoryId, filterOptions.categories]
+    );
+
+    const selectedSeries = useMemo(
+        () => filterOptions.series.find((s) => s.id === selectedSeriesId),
+        [selectedSeriesId, filterOptions.series]
+    );
+
     const selectedProduct = useMemo(
         () => filterOptions.products.find((p) => p.id === selectedProductId),
         [selectedProductId, filterOptions.products]
@@ -53,41 +68,54 @@ const BookingSummary = () => {
 
     const hasAnything = selectedBrandId || selectedProductId || selectedServiceId || selectedDate;
 
-    if (!hasAnything) return null;
+    // Build the items list based on current step
+    const items = useMemo(() => {
+        const list: any[] = [];
 
-    const items = [
-        selectedProduct && {
-            icon: Smartphone,
-            label: "Device",
-            value: selectedProduct.name,
-        },
-        selectedService && {
-            icon: Wrench,
-            label: "Service",
-            value: selectedService.name,
-        },
-        selectedService && {
-            icon: DollarSign,
-            label: "Price",
-            value: `$${selectedService.price}`,
-            highlight: true,
-        },
-        selectedDate && {
-            icon: CalendarDays,
-            label: "Date",
-            value: format(selectedDate, "MMM d, yyyy"),
-        },
-        selectedTime && {
-            icon: Clock,
-            label: "Time",
-            value: selectedTime,
-        },
-    ].filter(Boolean) as {
-        icon: React.ComponentType<{ className?: string }>;
-        label: string;
-        value: string;
-        highlight?: boolean;
-    }[];
+        if (currentStep === 0) {
+            // Detailed device info on Step 0
+            if (selectedBrand) {
+                list.push({ icon: Tag, label: "Brand", value: selectedBrand.name });
+            }
+            if (selectedCategory) {
+                list.push({ icon: Layers, label: "Category", value: selectedCategory.name });
+            }
+            if (selectedSeries) {
+                list.push({ icon: Cpu, label: "Series", value: selectedSeries.name });
+            }
+            if (selectedProduct) {
+                list.push({ icon: Smartphone, label: "Model", value: selectedProduct.name });
+            }
+        } else {
+            // On subsequent steps, only show the product name
+            if (selectedProduct) {
+                list.push({ icon: Smartphone, label: "Device", value: selectedProduct.name });
+            }
+        }
+
+        // Shared summary items for all relevant steps
+        if (selectedService) {
+            list.push({ icon: Wrench, label: "Service", value: selectedService.name });
+            list.push({ icon: DollarSign, label: "Price", value: `$${selectedService.price}` });
+        }
+        if (selectedDate) {
+            list.push({ icon: CalendarDays, label: "Date", value: format(selectedDate, "MMM d, yyyy") });
+        }
+        if (selectedTime) {
+            list.push({ icon: Clock, label: "Time", value: selectedTime });
+        }
+
+        return list;
+    }, [
+        currentStep,
+        selectedBrand,
+        selectedCategory,
+        selectedSeries,
+        selectedProduct,
+        selectedService,
+        selectedDate,
+        selectedTime
+    ]);
 
     return (
         <>
@@ -138,7 +166,7 @@ const BookingSummary = () => {
                                 </div>
                                 {selectedService.duration && (
                                     <p className="text-xs text-muted-foreground mt-1">
-                                        Est. duration: {selectedService.duration}
+                                        Duration: {selectedService.duration}
                                     </p>
                                 )}
                             </div>

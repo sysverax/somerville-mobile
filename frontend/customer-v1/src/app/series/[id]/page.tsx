@@ -122,12 +122,15 @@ const SeriesPage = ({ params }: Props) => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-6 mb-8"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
-              <span className="text-sm font-medium text-primary">{series.releaseYear}</span>
+            <div className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden bg-secondary/50 flex items-center justify-center">
+              <img src={series.banner} alt={series.name} className="w-full h-full object-cover" />
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">{series.name}</h1>
-            <p className="text-xl text-muted-foreground max-w-2xl">{series.description}</p>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-4xl md:text-5xl font-bold break-words">{series.name}</h1>
+              <p className="text-muted-foreground mt-2">{series.description}</p>
+            </div>
           </motion.div>
         </div>
       </section>

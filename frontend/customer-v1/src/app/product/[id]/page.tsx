@@ -20,7 +20,7 @@ import Layout from "@/src/components/layout/Layout";
 import { Button } from "@/src/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs";
 import { Badge } from "@/src/components/ui/badge";
-import BookingForm from "@/src/components/booking/BookingForm";
+import BookingWizard from "@/src/components/booking/BookingWizard";
 import {
   Dialog,
   DialogContent,
@@ -662,25 +662,18 @@ const ProductDetailPage = ({ params }: Props) => {
 
       {/* Booking Dialog */}
       <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
-        <DialogContent className="flex flex-col max-w-lg max-h-[90vh]">
+        <DialogContent className="flex flex-col max-w-4xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
-              Book Service
-            </DialogTitle>
+            <DialogTitle className="sr-only">Book Professional Services</DialogTitle>
           </DialogHeader>
-          <div className="overflow-y-auto flex-1 p-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>          
-          <BookingForm
+          <div className="overflow-y-auto flex-1 p-2 pt-6" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>          
+          <BookingWizard
             key={`${selectedServiceId || 'none'}-${bookingDialogOpen ? 'open' : 'closed'}`}
             preSelectedBrandId={brand?.id}
             preSelectedProductId={product.id}
             preSelectedCategoryId={category?.id}
             preSelectedSeriesId={series?.id}
             preSelectedServiceId={selectedServiceId || undefined}
-            preSelectedParentServiceId={selectedParentServiceId}
-            preSelectedPrice={selectedServicePrice || undefined}
-            preSelectedEstimatedTime={selectedServiceEstimatedTime || undefined}
-            onSuccess={() => setBookingDialogOpen(false)}
           />
           </div>
         </DialogContent>
