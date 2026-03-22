@@ -232,7 +232,7 @@ const BookingWizard = ({
                         <>
                             <div className="flex justify-between gap-12 text-sm">
                                 <span className="text-muted-foreground shrink-0 mt-0.5">Service</span>
-                                <span className="font-medium text-right leading-tight break-all min-w-0">{"hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh g gggggggggggggggggggggggggggggggggggggggggggggg"}</span>
+                                 <span className="font-medium text-right leading-tight break-all min-w-0">{selectedService.name}</span>
                             </div>
                             <div className="flex justify-between text-sm gap-12">
                                 <span className="text-muted-foreground">Price</span>
