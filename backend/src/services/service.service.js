@@ -42,7 +42,7 @@ const createServiceService = async (createServiceRequestDto, logger) => {
         description: createServiceRequestDto.description?.trim() || "",
         basePrice: createServiceRequestDto.basePrice,
         estimatedTime: createServiceRequestDto.estimatedTime,
-        isActive: createServiceRequestDto.isActive,
+        isActive: true,
         level: createServiceRequestDto.level,
         levelId: createServiceRequestDto.levelId,
         isParent: createServiceRequestDto.isParent,
@@ -275,6 +275,14 @@ const updateServiceService = async (updateServiceRequestDto, logger) => {
       productServiceUpdatePayload.estimatedTime = serviceUpdateData.estimatedTime;
     }
 
+    if (serviceUpdateData.isActive !== undefined) {
+      await productServiceRepo.updateAllProductServicesStatusByServiceIdRepo(
+        updateServiceRequestDto.id,
+        serviceUpdateData.isActive,
+        session
+      );
+    }
+
     if (Object.keys(productServiceUpdatePayload).length > 0) {
       // Update product services for the main service 
       await productServiceRepo.updateProductServicesByServiceIdAndIsDefaultRepo(
@@ -405,6 +413,14 @@ const updateServiceService = async (updateServiceRequestDto, logger) => {
           session,
         );
 
+        if (variant.isActive !== undefined) {
+          await productServiceRepo.updateAllProductServicesStatusByServiceIdRepo(
+            variant.id,
+            variant.isActive,
+            session,
+          );
+        }
+
         const variantProductServiceUpdatePayload = {};
         if (variantUpdateData.basePrice !== undefined) {
           variantProductServiceUpdatePayload.price = variantUpdateData.basePrice;
@@ -485,7 +501,7 @@ const updateServiceService = async (updateServiceRequestDto, logger) => {
               productId,
               price: variant.basePrice,
               estimatedTime: variant.estimatedTime,
-              isActive: true,
+              isActive: variant.isActive,
               isDefault: true,
             });
           }
@@ -530,6 +546,12 @@ const updateServiceStatusService = async (updateServiceStatusRequestDto, logger)
   }
 
   const updatedService = await serviceRepo.updateServiceStatusRepo(
+    updateServiceStatusRequestDto.id,
+    updateServiceStatusRequestDto.isActive,
+  );
+
+  // Sync with product services
+  await productServiceRepo.updateAllProductServicesStatusByServiceIdRepo(
     updateServiceStatusRequestDto.id,
     updateServiceStatusRequestDto.isActive,
   );

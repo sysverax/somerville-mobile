@@ -45,3 +45,14 @@ export const loginAdmin = async (email: string, password: string): Promise<Admin
 
   return payload.data;
 };
+
+export const logoutAdmin = async (): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/admin/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error('Logout failed');
+  }
+};

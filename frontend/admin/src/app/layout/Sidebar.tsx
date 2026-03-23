@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Smartphone, FolderTree, Layers, Package, Wrench, DollarSign, Calendar, Settings, X } from 'lucide-react';
 import logo from '@/assets/logo.jpeg';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -22,6 +23,7 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const { pathname } = useLocation();
+  const { logout } = useAuth();
 
   return (
     <>

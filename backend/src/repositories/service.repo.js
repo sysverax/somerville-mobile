@@ -131,6 +131,7 @@ const getVariantsByParentServiceIdRepo = async (
     isVariant: true,
   })
     .session(session)
+    .sort({ createdAt: 1, _id: 1 })
     .lean();
 };
 
@@ -253,207 +254,106 @@ const getAllServicesRepo = async ({
   if (userRole !== USER_ROLES.ADMIN) {
     matchFilter.isActive = true;
   } else if (isActive !== undefined) {
-    matchFilter.isActive = isActive; // 👈 fix: was query.isActive in HEAD
+    matchFilter.isActive = isActive; 
   }
 
   if (search) {
-    matchFilter.name = { $regex: search, $options: "i" };
+    const regex = new RegExp(search, 'i');
+    
+    // Find IDs of services matching search (both parents and variants)
+    const matchingServices = await Service.find({ 
+      name: { $regex: regex }
+    }).select('_id isVariant parentServiceId');
+
+    const parentIds = matchingServices.map(s => 
+      s.isVariant ? s.parentServiceId : s._id
+    );
+
+    matchFilter._id = { $in: parentIds };
   }
 
-  // ── 2. Resolve hierarchy IDs using $lookup inside pipeline ──
-  const levelMatchStages = [];
+  // ── 2. Resolve hierarchical IDs ──
+  let resolvedCategoryIds = [];
+  let resolvedSeriesIds = [];
+  let resolvedProductIds = [];
 
-  if (productId) {
-    matchFilter.level = level || "product";
-    matchFilter.levelId = new mongoose.Types.ObjectId(productId);
-  } else if (seriesId) {
-    const sid = new mongoose.Types.ObjectId(seriesId);
-    levelMatchStages.push({
-      $match: {
-        $or: [{ level: "series", levelId: sid }, { level: "product" }],
-      },
-    });
-  } else if (categoryId || brandId) {
-    // handled via $lookup pipeline stages below
+  try {
+    if (productId) {
+      resolvedProductIds = [new mongoose.Types.ObjectId(productId)];
+    } else if (seriesId) {
+      const sid = new mongoose.Types.ObjectId(seriesId);
+      resolvedSeriesIds = [sid];
+      const prods = await Product.find({ seriesId: sid }).select("_id");
+      resolvedProductIds = prods.map((p) => p._id);
+    } else if (categoryId) {
+      const cid = new mongoose.Types.ObjectId(categoryId);
+      resolvedCategoryIds = [cid];
+      const sers = await Series.find({ categoryId: cid }).select("_id");
+      resolvedSeriesIds = sers.map((s) => s._id);
+      const prods = await Product.find({
+        seriesId: { $in: resolvedSeriesIds },
+      }).select("_id");
+      resolvedProductIds = prods.map((p) => p._id);
+    } else if (brandId) {
+      const bid = new mongoose.Types.ObjectId(brandId);
+      const cats = await Category.find({ brandId: bid }).select("_id");
+      resolvedCategoryIds = cats.map((c) => c._id);
+      const sers = await Series.find({
+        categoryId: { $in: resolvedCategoryIds },
+      }).select("_id");
+      resolvedSeriesIds = sers.map((s) => s._id);
+      const prods = await Product.find({
+        seriesId: { $in: resolvedSeriesIds },
+      }).select("_id");
+      resolvedProductIds = prods.map((p) => p._id);
+    }
+
+    if (brandId || categoryId || seriesId || productId) {
+      const orConditions = [];
+      if (brandId) {
+        orConditions.push({
+          level: "brand",
+          levelId: new mongoose.Types.ObjectId(brandId),
+        });
+      }
+      if (resolvedCategoryIds.length > 0) {
+        orConditions.push({
+          level: "category",
+          levelId: { $in: resolvedCategoryIds },
+        });
+      }
+      if (resolvedSeriesIds.length > 0) {
+        orConditions.push({
+          level: "series",
+          levelId: { $in: resolvedSeriesIds },
+        });
+      }
+      if (resolvedProductIds.length > 0) {
+        orConditions.push({
+          level: "product",
+          levelId: { $in: resolvedProductIds },
+        });
+      }
+
+      if (orConditions.length > 0) {
+        matchFilter.$or = orConditions;
+      } else {
+        // If filters specified but no items found in hierarchy, return nothing
+        matchFilter._id = { $in: [] };
+      }
+    }
+  } catch (err) {
+    console.error("Error resolving hierarchy IDs:", err);
+    // Continue with existing matchFilter
   }
 
-  if (level && !productId) {
+  if (level) {
     matchFilter.level = level;
   }
 
   // ── 3. Build aggregation pipeline ──
   const pipeline = [
     { $match: matchFilter },
-
-    ...(seriesId
-      ? [
-          {
-            $lookup: {
-              from: "products",
-              let: { lvl: "$level", lid: "$levelId" },
-              pipeline: [
-                {
-                  $match: {
-                    $expr: {
-                      $and: [
-                        {
-                          $eq: [
-                            "$seriesId",
-                            new mongoose.Types.ObjectId(seriesId),
-                          ],
-                        },
-                      ],
-                    },
-                  },
-                },
-                { $project: { _id: 1 } },
-              ],
-              as: "_resolvedProducts",
-            },
-          },
-          {
-            $match: {
-              $or: [
-                {
-                  level: "series",
-                  levelId: new mongoose.Types.ObjectId(seriesId),
-                },
-                {
-                  level: "product",
-                  $expr: { $in: ["$levelId", "$_resolvedProducts._id"] },
-                },
-              ],
-            },
-          },
-        ]
-      : []),
-
-    ...(categoryId
-      ? [
-          {
-            $lookup: {
-              from: "series",
-              pipeline: [
-                {
-                  $match: {
-                    categoryId: new mongoose.Types.ObjectId(categoryId),
-                  },
-                },
-                { $project: { _id: 1 } },
-              ],
-              as: "_resolvedSeries",
-            },
-          },
-          {
-            $lookup: {
-              from: "products",
-              pipeline: [
-                {
-                  $match: {
-                    $expr: {
-                      $in: [
-                        "$seriesId",
-                        {
-                          $map: {
-                            input: "$_resolvedSeries",
-                            as: "s",
-                            in: "$$s._id",
-                          },
-                        },
-                      ],
-                    },
-                  },
-                },
-                { $project: { _id: 1 } },
-              ],
-              as: "_resolvedProducts",
-            },
-          },
-          {
-            $match: {
-              $or: [
-                {
-                  level: "category",
-                  levelId: new mongoose.Types.ObjectId(categoryId),
-                },
-                {
-                  level: "series",
-                  $expr: { $in: ["$levelId", "$_resolvedSeries._id"] },
-                },
-                {
-                  level: "product",
-                  $expr: { $in: ["$levelId", "$_resolvedProducts._id"] },
-                },
-              ],
-            },
-          },
-        ]
-      : []),
-
-    ...(brandId
-      ? [
-          {
-            $lookup: {
-              from: "categories",
-              pipeline: [
-                { $match: { brandId: new mongoose.Types.ObjectId(brandId) } },
-                { $project: { _id: 1 } },
-              ],
-              as: "_resolvedCategories",
-            },
-          },
-          {
-            $lookup: {
-              from: "series",
-              pipeline: [
-                {
-                  $match: {
-                    $expr: { $in: ["$categoryId", "$_resolvedCategories._id"] },
-                  },
-                },
-                { $project: { _id: 1 } },
-              ],
-              as: "_resolvedSeries",
-            },
-          },
-          {
-            $lookup: {
-              from: "products",
-              pipeline: [
-                {
-                  $match: {
-                    $expr: { $in: ["$seriesId", "$_resolvedSeries._id"] },
-                  },
-                },
-                { $project: { _id: 1 } },
-              ],
-              as: "_resolvedProducts",
-            },
-          },
-          {
-            $match: {
-              $or: [
-                {
-                  level: "brand",
-                  levelId: new mongoose.Types.ObjectId(brandId),
-                },
-                {
-                  level: "category",
-                  $expr: { $in: ["$levelId", "$_resolvedCategories._id"] },
-                },
-                {
-                  level: "series",
-                  $expr: { $in: ["$levelId", "$_resolvedSeries._id"] },
-                },
-                {
-                  level: "product",
-                  $expr: { $in: ["$levelId", "$_resolvedProducts._id"] },
-                },
-              ],
-            },
-          },
-        ]
-      : []),
 
     // ── 4. Facet — count + paginate in one pass ──
     {
@@ -467,17 +367,29 @@ const getAllServicesRepo = async ({
           {
             $lookup: {
               from: "services",
-              let: { parentId: "$_id" },
+              let: { parentId: "$_id", parentName: "$name" },
               pipeline: [
                 {
                   $match: {
-                    $expr: { $eq: ["$parentServiceId", "$$parentId"] },
-                    isVariant: true,
-                    ...(userRole !== USER_ROLES.ADMIN
-                      ? { isActive: true }
-                      : {}),
+                    $expr: {
+                      $and: [
+                        { $eq: ["$parentServiceId", "$$parentId"] },
+                        { $eq: ["$isVariant", true] },
+                        ...(isActive !== undefined ? [{ $eq: ["$isActive", isActive] }] : []),
+                        ...(userRole !== USER_ROLES.ADMIN ? [{ $eq: ["$isActive", true] }] : []),
+                        ...(search ? [
+                          {
+                            $or: [
+                              { $regexMatch: { input: "$name", regex: search, options: "i" } },
+                              { $regexMatch: { input: "$$parentName", regex: search, options: "i" } }
+                            ]
+                          }
+                        ] : []),
+                      ]
+                    },
                   },
                 },
+                { $sort: { createdAt: 1, _id: 1 } },
                 {
                   $lookup: {
                     from: "product_services",
@@ -489,9 +401,10 @@ const getAllServicesRepo = async ({
                 {
                   $addFields: {
                     linkedProductsCount: { $size: "$v_prod_entries" },
+                    // Keep IDs for parent aggregation
+                    _variantProductIds: "$v_prod_entries.productId"
                   },
                 },
-                { $project: { v_prod_entries: 0 } },
               ],
               as: "variants",
             },
@@ -522,7 +435,7 @@ const getAllServicesRepo = async ({
                           $concatArrays: [
                             "$$value",
                             {
-                              $ifNull: ["$$this.v_prod_entries.productId", []],
+                              $ifNull: ["$$this._variantProductIds", []],
                             },
                           ],
                         },
@@ -645,7 +558,6 @@ const getAllServicesRepo = async ({
             },
           },
 
-          // ── Clean up temp fields ──
           {
             $project: {
               p_prod_entries: 0,

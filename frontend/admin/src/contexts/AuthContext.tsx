@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
-import { loginAdmin } from '@/services/auth.service';
+import { loginAdmin, logoutAdmin } from '@/services/auth.service';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -25,9 +25,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem(ADMIN_TOKEN_KEY);
-    setIsAuthenticated(false);
+  const logout = async () => {
+    try {
+      await logoutAdmin();
+    } finally {
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+      setIsAuthenticated(false);
+    }
   };
 
   return (
