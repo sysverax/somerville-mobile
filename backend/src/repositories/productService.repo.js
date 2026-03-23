@@ -44,6 +44,18 @@ const updateProductServicesByServiceIdAndIsDefaultRepo = async (
   ).lean();
 };
 
+const updateAllProductServicesStatusByServiceIdRepo = async (
+  serviceId,
+  isActive,
+  session = null
+) => {
+  return ProductService.updateMany(
+    { serviceId: new mongoose.Types.ObjectId(serviceId) },
+    { $set: { isActive } },
+    { runValidators: true, session },
+  ).lean();
+};
+
 const bulkUpdateProductServicesRepo = async (bulkOps, session) => {
   return ProductService.bulkWrite(bulkOps, { session });
 };
@@ -60,28 +72,31 @@ const getProductServicesByProductIdRepo = async (productId) => {
 };
 
 const getProductsByServiceIdRepo = async (serviceId, page, limit) => {
-  const skip = (page - 1) * limit;
   const ids = Array.isArray(serviceId) ? serviceId : [serviceId];
   const query = {
     serviceId: { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) },
   };
 
-  const [productServices, total] = await Promise.all([
-    ProductService.find(query)
-      .populate({
-        path: "productId",
+  let mongooseQuery = ProductService.find(query)
+    .populate({
+      path: "productId",
+      populate: {
+        path: "seriesId",
         populate: {
-          path: "seriesId",
-          populate: {
-            path: "categoryId",
-            populate: { path: "brandId" },
-          },
+          path: "categoryId",
+          populate: { path: "brandId" },
         },
-      })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean(),
+      },
+    })
+    .sort({ createdAt: -1 });
+
+  if (page !== undefined && limit !== undefined) {
+    const skip = (page - 1) * limit;
+    mongooseQuery = mongooseQuery.skip(skip).limit(limit);
+  }
+
+  const [productServices, total] = await Promise.all([
+    mongooseQuery.lean(),
     ProductService.countDocuments(query),
   ]);
 
@@ -129,6 +144,7 @@ module.exports = {
   updateProductServiceRepo,
   updateProductServiceStatusRepo,
   updateProductServicesByServiceIdAndIsDefaultRepo,
+  updateAllProductServicesStatusByServiceIdRepo,
   bulkUpdateProductServicesRepo,
   getProductServicesByProductIdRepo,
   getProductsByServiceIdRepo,

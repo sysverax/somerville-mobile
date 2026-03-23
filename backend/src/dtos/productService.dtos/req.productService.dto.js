@@ -148,8 +148,8 @@ class GetServicesForProductRequestDTO {
 class GetProductsForServiceRequestDTO {
   constructor(params, query) {
     this.id = params.id;
-    this.page = Number(query.page) || 1;
-    this.limit = Number(query.limit) || 10;
+    this.page = query.page !== undefined ? Number(query.page) : undefined;
+    this.limit = query.limit !== undefined ? Number(query.limit) : undefined;
   }
 
   validate() {
@@ -167,14 +167,14 @@ class GetProductsForServiceRequestDTO {
         "Provide a valid service id and try again.",
       );
     }
-    if (this.page < 1) {
+    if (this.page !== undefined && this.page < 1) {
       throw new appError.BadRequestError(
         "Invalid page number",
         "The 'page' query parameter must be a positive integer.",
         "Provide a valid page number and try again.",
       );
     }
-    if (this.limit < 1 || this.limit > 100) {
+    if (this.limit !== undefined && (this.limit < 1 || this.limit > 100)) {
       throw new appError.BadRequestError(
         "Invalid limit",
         "The 'limit' query parameter must be between 1 and 100.",

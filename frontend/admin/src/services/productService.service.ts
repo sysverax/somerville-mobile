@@ -85,11 +85,9 @@ export const productServiceService = {
   },
 
   getProductsForService: async (
-    serviceId: string, 
-    page: number = 1, 
-    limit: number = 10
+    serviceId: string
   ): Promise<GetProductsForServiceResponse> => {
-    const response = await fetch(`${API_BASE_URL}/api/product-services/${serviceId}/product?page=${page}&limit=${limit}`, {
+    const response = await fetch(`${API_BASE_URL}/api/product-services/${serviceId}/product`, {
       method: 'GET',
       headers: {
         'x-user-role': 'admin',

@@ -28,6 +28,7 @@ interface VariantFormItem {
   description: string;
   basePrice: number;
   estimatedTime: number;
+  isActive: boolean;
   priceInput?: string;
   timeInput?: string;
 }
@@ -286,6 +287,7 @@ const ServicesPage = () => {
       description: v.description, 
       basePrice: v.basePrice, 
       estimatedTime: v.estimatedTime,
+      isActive: v.isActive,
       priceInput: String(v.basePrice),
       timeInput: String(v.estimatedTime)
     })));
@@ -302,7 +304,7 @@ const ServicesPage = () => {
 
 
   const addVariantItem = () => {
-    setVariantItems(prev => [...prev, { name: '', description: '', basePrice: 0, estimatedTime: 0, priceInput: '0', timeInput: '0' }]);
+    setVariantItems(prev => [...prev, { name: '', description: '', basePrice: 0, estimatedTime: 0, isActive: form.isActive, priceInput: '0', timeInput: '0' }]);
   };
 
   const removeVariantItem = (index: number) => {
@@ -392,7 +394,7 @@ const ServicesPage = () => {
             description: vi.description.trim(),
             basePrice: vi.basePrice,
             estimatedTime: vi.estimatedTime,
-            isActive: true
+            isActive: vi.isActive
           }));
 
           const newVariants = variantItems.filter(vi => !vi.id).map(vi => ({
@@ -400,7 +402,7 @@ const ServicesPage = () => {
             description: vi.description.trim(),
             basePrice: vi.basePrice,
             estimatedTime: vi.estimatedTime,
-            isActive: true
+            isActive: vi.isActive
           }));
 
           if (changedVariants.length > 0) updatePayload.variants = changedVariants;
@@ -435,7 +437,7 @@ const ServicesPage = () => {
         if (form.hasVariants && variantItems.length > 0) {
           createPayload.variants = variantItems
             .filter(vi => vi.name.trim())
-            .map(vi => ({ name: vi.name.trim(), description: vi.description.trim(), basePrice: vi.basePrice, estimatedTime: vi.estimatedTime }));
+            .map(vi => ({ name: vi.name.trim(), description: vi.description.trim(), basePrice: vi.basePrice, estimatedTime: vi.estimatedTime, isActive: vi.isActive }));
         } else {
           createPayload.basePrice = form.basePrice;
           createPayload.estimatedTime = form.estimatedTime;
@@ -444,7 +446,6 @@ const ServicesPage = () => {
         toast({ title: 'Service created successfully', variant: 'success' });
       }
       setIsFormOpen(false);
-      refresh(); 
       refreshOptions();
       if (mainTab === 'by-product') {
         fetchByProductList();
@@ -497,7 +498,6 @@ const ServicesPage = () => {
       } finally {
         setIsDeleting(false);
         setDeleteTarget(null);
-        refresh();
         refreshOptions();
         if (mainTab === 'by-product') {
           fetchByProductList();
@@ -543,11 +543,7 @@ const ServicesPage = () => {
     }
   }, [byProductBrand, byProductCategory, byProductSeries, debouncedSearch, byProductPage, toast]);
 
-  useEffect(() => {
-    if (mainTab === 'by-product') {
-      fetchByProductList();
-    }
-  }, [mainTab, fetchByProductList]);
+
 
   // By Product: filtered options for dropdowns
   const byProductFilteredCategories = byProductBrand !== 'all' ? categories.filter(c => c.brandId === byProductBrand) : categories;
@@ -567,7 +563,7 @@ const ServicesPage = () => {
     return result;
   }, [services, byServiceSearch]);
 
-  const selectByProduct = async (productId: string, silent = false) => {
+  const selectByProduct = useCallback(async (productId: string, silent = false) => {
     setByProductSelected(productId);
     if (!silent) {
       setByProductCollapsedParents(new Set());
@@ -588,9 +584,9 @@ const ServicesPage = () => {
     } finally {
       if (!silent) setIsLoadingProductServices(false);
     }
-  };
+  }, [toast]);
 
-  const selectByService = async (serviceId: string, silent = false) => {
+  const selectByService = useCallback(async (serviceId: string, silent = false) => {
     setByServiceSelected(serviceId);
     if (!silent) {
       setByServiceCollapsedVariants(new Set());
@@ -611,15 +607,69 @@ const ServicesPage = () => {
     } finally {
       if (!silent) setIsLoadingServiceProducts(false);
     }
-  };
+  }, [toast]);
 
-  const toggleServiceForProduct = async (productServiceId: string, isActive: boolean) => {
+  useEffect(() => {
+    if (mainTab === 'by-product') {
+      fetchByProductList();
+      if (byProductSelected) selectByProduct(byProductSelected, true);
+    }
+    if (mainTab === 'by-service') {
+      if (byServiceSelected) selectByService(byServiceSelected, true);
+    }
+  }, [mainTab, fetchByProductList, byProductSelected, selectByProduct, byServiceSelected, selectByService]);
+
+  const toggleServiceForProduct = async (productServiceId: string, productId: string, isActive: boolean) => {
     try {
       await productServiceService.updateProductServiceStatus(productServiceId, isActive);
-      if (mainTab === 'by-product' && byProductSelected) {
-        selectByProduct(byProductSelected, true);
+      
+      // Update byProductProducts counts
+      setByProductProducts(prev => prev.map(p => {
+        if (p.id === productId) {
+          const currentActive = p.activeServiceCount || 0;
+          return {
+            ...p,
+            activeServiceCount: isActive ? currentActive + 1 : Math.max(0, currentActive - 1)
+          };
+        }
+        return p;
+      }));
+
+      // Update productServices (using correct ID identification)
+      setProductServices(prev => {
+        if (!prev || !prev.services) return prev;
+        return {
+          ...prev,
+          services: prev.services.map((s: any) => {
+            if (s.id === productServiceId) return { ...s, isActive };
+            if (s.variants) {
+              return {
+                ...s,
+                variants: s.variants.map((v: any) => 
+                  v.id === productServiceId ? { ...v, isActive } : v
+                )
+              };
+            }
+            return s;
+          })
+        };
+      });
+
+      // Update serviceProducts
+      setServiceProducts(prev => {
+        if (!prev || !prev.products) return prev;
+        return {
+          ...prev,
+          products: prev.products.map((p: any) => 
+            p.productServiceId === productServiceId ? { ...p, isActive } : p
+          )
+        };
+      });
+
+      if (mainTab === 'by-product' && byProductSelected === productId) {
+        await selectByProduct(byProductSelected, true);
       } else if (mainTab === 'by-service' && byServiceSelected) {
-        selectByService(byServiceSelected, true);
+        await selectByService(byServiceSelected, true);
       }
       toast({ title: 'Status updated successfully', variant: 'success' });
     } catch (error) {
@@ -629,6 +679,8 @@ const ServicesPage = () => {
         description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive' 
       });
+      
+      if (mainTab === 'by-product' && byProductSelected) selectByProduct(byProductSelected, true);
     }
   };
 
@@ -642,9 +694,9 @@ const ServicesPage = () => {
       estimatedTime: Number(edit.time)
       });
       if (mainTab === 'by-product' && byProductSelected) {
-        selectByProduct(byProductSelected, true);
+        await selectByProduct(byProductSelected, true);
       } else if (mainTab === 'by-service' && byServiceSelected) {
-        selectByService(byServiceSelected, true);
+        await selectByService(byServiceSelected, true);
       }
       setOverrideEdits(prev => {
         const next = { ...prev };
@@ -666,9 +718,9 @@ const ServicesPage = () => {
     try {
       await productServiceService.resetToDefault(productServiceId);
       if (mainTab === 'by-product' && byProductSelected) {
-        selectByProduct(byProductSelected, true);
+        await selectByProduct(byProductSelected, true);
       } else if (mainTab === 'by-service' && byServiceSelected) {
-        selectByService(byServiceSelected, true);
+        await selectByService(byServiceSelected, true);
       }
       setOverrideEdits(prev => {
         const next = { ...prev };
@@ -764,20 +816,20 @@ const ServicesPage = () => {
     };
 
     return (
-      <div className={`rounded-lg border border-border p-3 space-y-2 ${isDisabledProp ? 'opacity-50' : ''}`}>
+      <div className="rounded-lg border border-border p-3 space-y-2">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-medium text-sm">{label}</p>
             <p className="text-xs text-muted-foreground mt-1">{sublabel}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center">
             {isToggling ? (
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
             ) : (
               <Switch checked={!isDisabledProp} onCheckedChange={async (checked) => {
                 setIsToggling(true);
                 try {
-                  await toggleServiceForProduct(productServiceId, checked);
+                  await toggleServiceForProduct(productServiceId, productId, checked);
                 } finally {
                   setIsToggling(false);
                 }
@@ -785,34 +837,33 @@ const ServicesPage = () => {
             )}
           </div>
         </div>
-        {!isDisabledProp && (
-          <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
-            <div className="space-y-1">
-              <Label className="text-xs">Price ($)</Label>
-              <Input type="number" min={0} step={0.01} placeholder={String(defaultPrice)}
-                value={localPrice}
-                onChange={e => setLocalPrice(e.target.value)}
-                onBlur={handlePriceBlur} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Time (min)</Label>
-              <Input type="number" min={1} placeholder={String(defaultTime)}
-                value={localTime}
-                onChange={e => setLocalTime(e.target.value)}
-                onBlur={handleTimeBlur} />
-            </div>
-            <div className="flex gap-1">
-              {!isDefault && (
-                <Button size="sm" variant="outline" className="h-9 w-9 p-0" title="Reset to default" onClick={handleReset} disabled={isResetting || isSubmitting}>
-                  {isResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-                </Button>
-              )}
-              <Button size="sm" variant="secondary" disabled={!edit || isSubmitting || isResetting} onClick={handleSave}>
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
-              </Button>
-            </div>
+        
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+          <div className="space-y-1">
+            <Label className="text-xs">Price ($)</Label>
+            <Input type="number" min={0} step={0.01} placeholder={String(defaultPrice)}
+              value={localPrice}
+              onChange={e => setLocalPrice(e.target.value)}
+              onBlur={handlePriceBlur} />
           </div>
-        )}
+          <div className="space-y-1">
+            <Label className="text-xs">Time (min)</Label>
+            <Input type="number" min={1} placeholder={String(defaultTime)}
+              value={localTime}
+              onChange={e => setLocalTime(e.target.value)}
+              onBlur={handleTimeBlur} />
+          </div>
+          <div className="flex gap-1">
+            {!isDefault && (
+              <Button size="sm" variant="outline" className="h-9 w-9 p-0" title="Reset to default" onClick={handleReset} disabled={isResetting || isSubmitting}>
+                {isResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+              </Button>
+            )}
+            <Button size="sm" variant="secondary" disabled={!edit || isSubmitting || isResetting} onClick={handleSave}>
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+            </Button>
+          </div>
+        </div>
       </div>
     );
   };
@@ -855,7 +906,7 @@ const ServicesPage = () => {
                 <SelectTrigger><SelectValue placeholder="All Levels" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Levels</SelectItem>
-                  {LEVELS.map(l => <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>)}
+                  {LEVELS.map(l => <SelectItem key={l} value={l} className="capitalize">{l.charAt(0).toUpperCase() + l.slice(1)}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={stagedFilters.status} onValueChange={v => setStagedFilters(f => ({ ...f, status: v }))}>
@@ -977,11 +1028,17 @@ const ServicesPage = () => {
                           <td className="py-3 px-4">{variantCount || '—'}</td>
                           <td className="py-3 px-4">{s.linkedProductsCount}</td>
                           <td className="py-3 px-4">
-                            <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
+                            {variantCount > 0 ? (
+                              '—'
+                            ) : (
+                              <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
+                            )}
                           </td>
                            <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-center">
-                              {isDeactivating && deactivateTarget?.id === s.id ? (
+                              {variantCount > 0 ? (
+                                '—'
+                              ) : isDeactivating && deactivateTarget?.id === s.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                               ) : (
                                 <Switch checked={s.isActive} onCheckedChange={() => setDeactivateTarget(s)} />
@@ -1321,7 +1378,9 @@ const ServicesPage = () => {
                                 <div className="flex items-center gap-2 border-b border-border pb-2">
                                   <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${isVariantExpanded ? 'rotate-90' : ''}`} />
                                   <h4 className="text-sm font-semibold text-foreground">{variant.name} — ${variant.basePrice} · {variant.estimatedTime} min</h4>
-                                  <Badge variant="outline" className="text-xs">{productsList.length} products</Badge>
+                                  <Badge variant="outline" className="text-xs">
+                                    {productsList.filter((p: any) => p.serviceId === variant.id).length} products
+                                  </Badge>
                                 </div>
                               </div>
                               {isVariantExpanded && (
@@ -1332,8 +1391,8 @@ const ServicesPage = () => {
                                       productServiceId={p.productServiceId}
                                       productId={p.product?.id || p.id}
                                       editKey={p.productServiceId}
-                                      defaultPrice={variant.basePrice}
-                                      defaultTime={variant.estimatedTime}
+                                      defaultPrice={p.price}
+                                      defaultTime={p.estimatedTime}
                                       label={p.product?.name || 'Product'}
                                       sublabel={`${p.product?.brand?.name || ''}${p.product?.category?.name ? ` · ${p.product.category.name}` : ''}`}
                                       disabled={!p.isActive}
@@ -1359,8 +1418,8 @@ const ServicesPage = () => {
                                 productServiceId={p.productServiceId}
                                 productId={p.product?.id || p.id}
                                 editKey={p.productServiceId}
-                                defaultPrice={p.price || svc.basePrice}
-                                defaultTime={p.estimatedTime || svc.estimatedTime}
+                                defaultPrice={p.price ?? svc.basePrice}
+                                defaultTime={p.estimatedTime ?? svc.estimatedTime}
                                 label={p.product?.name || p.name}
                                 sublabel={`${svc.level} service`}
                                 disabled={!p.isActive}
@@ -1550,13 +1609,20 @@ const ServicesPage = () => {
                 </div>
               )}
 
-              <div className="flex items-center justify-between">
-                <Label>Status</Label>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">{form.isActive ? 'Active' : 'Inactive'}</span>
-                  <Switch checked={form.isActive} onCheckedChange={v => setForm(f => ({ ...f, isActive: v }))} />
+              {!editing && (
+                <div className="flex items-center justify-between">
+                  <Label>Status</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">{form.isActive ? 'Active' : 'Inactive'}</span>
+                    <Switch checked={form.isActive} onCheckedChange={v => {
+                      setForm(f => ({ ...f, isActive: v }));
+                      if (!editing && form.hasVariants) {
+                        setVariantItems(prev => prev.map(item => ({ ...item, isActive: v })));
+                      }
+                    }} />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="space-y-4 border-t border-border pt-5 mx-1">
@@ -1569,7 +1635,7 @@ const ServicesPage = () => {
                 }}>
                   <SelectTrigger className="capitalize"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {LEVELS.map(l => <SelectItem key={l} value={l} className="capitalize">{l}</SelectItem>)}
+                    {LEVELS.map(l => <SelectItem key={l} value={l} className="capitalize">{l.charAt(0).toUpperCase() + l.slice(1)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
