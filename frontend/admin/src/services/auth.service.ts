@@ -56,3 +56,23 @@ export const logoutAdmin = async (): Promise<void> => {
     throw new Error('Logout failed');
   }
 };
+
+export const validateAdminSession = async (): Promise<{ userId: string; role: string }> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/admin/validate-session`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  let payload: ApiEnvelope<{ userId: string; role: string }> | null = null;
+  try {
+    payload = (await response.json()) as ApiEnvelope<{ userId: string; role: string }>;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok || !payload?.data) {
+    throw new Error(payload?.message || 'Session validation failed');
+  }
+
+  return payload.data;
+};
