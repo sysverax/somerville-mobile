@@ -5,7 +5,7 @@ const authController = require("../controllers/auth.controller");
 
 router.post("/admin/register", authController.adminRegisterController);
 router.post("/admin/login", authController.adminLoginController);
-router.post("/admin/logout", authController.adminLogoutController);
+router.post("/admin/logout", validateAdmin, authController.adminLogoutController);
 router.post(
   "/admin/validate-session",
   validateAdmin,

@@ -26,9 +26,14 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   const navigate = useNavigate();
   const title = pageTitles[pathname] || 'Admin Portal';
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      navigate('/login');
+    }
   };
 
   return (
