@@ -42,7 +42,7 @@ const createServiceService = async (createServiceRequestDto, logger) => {
         description: createServiceRequestDto.description?.trim() || "",
         basePrice: createServiceRequestDto.basePrice,
         estimatedTime: createServiceRequestDto.estimatedTime,
-        isActive: true,
+        isActive: createServiceRequestDto.isParent ? true : createServiceRequestDto.isActive,
         level: createServiceRequestDto.level,
         levelId: createServiceRequestDto.levelId,
         isParent: createServiceRequestDto.isParent,
@@ -70,7 +70,7 @@ const createServiceService = async (createServiceRequestDto, logger) => {
         description: v.description?.trim() || "",
         basePrice: v.basePrice,
         estimatedTime: v.estimatedTime,
-        isActive: createServiceRequestDto.isActive,
+        isActive: v.isActive,
         level: createServiceRequestDto.level,
         levelId: new mongoose.Types.ObjectId(createServiceRequestDto.levelId),
         isParent: false,
@@ -113,7 +113,7 @@ const createServiceService = async (createServiceRequestDto, logger) => {
               productId,
               price: variant.basePrice,
               estimatedTime: variant.estimatedTime,
-              isActive: true,
+              isActive: variant.isActive,
               isDefault: true,
             });
           }
@@ -125,7 +125,7 @@ const createServiceService = async (createServiceRequestDto, logger) => {
             productId,
             price: parentService.basePrice,
             estimatedTime: parentService.estimatedTime,
-            isActive: true,
+            isActive: parentService.isActive,
             isDefault: true,
           });
         }

@@ -21,6 +21,7 @@ class CreateServiceRequestDTO {
                 : v.description,
             basePrice: Number(v.basePrice),
             estimatedTime: Number(v.estimatedTime),
+            isActive: v.isActive !== undefined ? (v.isActive === true || v.isActive === "true") : (body.isActive === true || body.isActive === "true"),
           }))
         : null;
 
