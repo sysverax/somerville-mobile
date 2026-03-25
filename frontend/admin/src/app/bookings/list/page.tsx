@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useBookings } from '@/hooks/useBookings';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
@@ -14,6 +14,8 @@ import { format } from 'date-fns';
 import TablePagination from '@/components/TablePagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import BookingsTable from '@/components/BookingsTable';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { formatDate, formatTime, formatDateTime } from '@/utils/dateUtils';
 
 const BookingsListPage = () => {
   const { bookings, total, loading, error, refetch } = useBookings({ autoFetch: false });
@@ -30,6 +32,58 @@ const BookingsListPage = () => {
 
   const hasChanges = JSON.stringify(filters) !== JSON.stringify(applied);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [selected, setSelected] = useState<Booking | null>(null);
+
+  const filteredCategories = useMemo(() => {
+    if (!filters.brandName) return categories;
+    const brand = brands.find(b => b.name === filters.brandName);
+    if (!brand) return [];
+    return categories.filter(c => c.brandId === brand.id);
+  }, [categories, filters.brandName, brands]);
+
+  const filteredProducts = useMemo(() => {
+    let result = products;
+    if (filters.brandName) {
+      const brand = brands.find(b => b.name === filters.brandName);
+      if (brand) result = result.filter(p => p.brandId === brand.id);
+    }
+    if (filters.categoryName) {
+      const category = categories.find(c => c.name === filters.categoryName);
+      if (category) result = result.filter(p => p.categoryId === category.id);
+    }
+    return result;
+  }, [products, filters.brandName, filters.categoryName, brands, categories]);
+
+  const handleBrandChange = (v: string) => {
+    const val = v === 'all' ? '' : v;
+    setFilters(f => {
+      const next = { ...f, brandName: val };
+      if (val && f.categoryName) {
+        const brand = brands.find(b => b.name === val);
+        const category = categories.find(c => c.name === f.categoryName);
+        if (brand && category && category.brandId !== brand.id) {
+          next.categoryName = '';
+          next.productId = '';
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleCategoryChange = (v: string) => {
+    const val = v === 'all' ? '' : v;
+    setFilters(f => {
+      const next = { ...f, categoryName: val };
+      if (val && f.productId) {
+        const category = categories.find(c => c.name === val);
+        const product = products.find(p => p.id === f.productId);
+        if (category && product && product.categoryId !== category.id) {
+          next.productId = '';
+        }
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (optionsLoading) return;
@@ -71,7 +125,7 @@ const BookingsListPage = () => {
 
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-3 w-full">
         <div className="space-y-1"><Label className="text-xs">Brand</Label>
-          <Select value={filters.brandName || "all"} onValueChange={v => setFilters(f => ({ ...f, brandName: v === 'all' ? '' : v }))}>
+          <Select value={filters.brandName || "all"} onValueChange={handleBrandChange}>
             <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All Brands" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Brands</SelectItem>
@@ -82,24 +136,24 @@ const BookingsListPage = () => {
           </Select>
         </div>
         <div className="space-y-1"><Label className="text-xs">Category</Label>
-          <Select value={filters.categoryName || "all"} onValueChange={v => setFilters(f => ({ ...f, categoryName: v === 'all' ? '' : v }))}>
+          <Select value={filters.categoryName || "all"} onValueChange={handleCategoryChange} disabled={!filters.brandName}>
             <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All Categories" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               {optionsLoading && categories.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">Loading...</div>}
               {!optionsLoading && categories.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No categories found</div>}
-              {[...new Set(categories.map(c => c.name))].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+              {[...new Set(filteredCategories.map(c => c.name))].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1"><Label className="text-xs">Product</Label>
-          <Select value={filters.productId || "all"} onValueChange={v => setFilters(f => ({ ...f, productId: v === 'all' ? '' : v }))}>
+          <Select value={filters.productId || "all"} onValueChange={v => setFilters(f => ({ ...f, productId: v === 'all' ? '' : v }))} disabled={!filters.categoryName}>
             <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All Products" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Products</SelectItem>
               {optionsLoading && products.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">Loading...</div>}
               {!optionsLoading && products.length === 0 && <div className="text-muted-foreground italic text-xs py-3 px-2 text-center select-none cursor-default">No products found</div>}
-              {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              {filteredProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -148,8 +202,50 @@ const BookingsListPage = () => {
       <BookingsTable 
         bookings={bookings} 
         loading={loading || optionsLoading}
-        onRowClick={(booking) => {}}
+        onRowClick={(booking) => setSelected(booking)}
       />
+
+      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Booking Details</DialogTitle></DialogHeader>
+          {selected && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs text-muted-foreground">Customer</Label><p className="font-medium">{selected.customerName}</p></div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Email</Label>
+                  <p className="font-medium">
+                    <a 
+                      href={`https://mail.google.com/mail/?view=cm&to=${selected.customerEmail}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      // className="text-primary hover:underline"
+                    >
+                      {selected.customerEmail}
+                    </a>
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Phone</Label>
+                  <p className="font-medium">
+                    <a 
+                      href={`tel:${selected.customerPhone}`}
+                      // className="text-primary hover:underline"
+                    >
+                      {selected.customerPhone}
+                    </a>
+                  </p>
+                </div>
+                <div><Label className="text-xs text-muted-foreground">Brand</Label><p className="font-medium">{selected.brandName}</p></div>
+                <div><Label className="text-xs text-muted-foreground">Product</Label><p className="font-medium">{selected.productName}</p></div>
+                <div><Label className="text-xs text-muted-foreground">Service</Label><p className="font-medium">{selected.serviceName}</p></div>
+                <div><Label className="text-xs text-muted-foreground">Date & Time</Label><p className="font-medium">{formatDate(selected.date)} at {formatTime(selected.timeSlot)}</p></div>
+                <div><Label className="text-xs text-muted-foreground">Created</Label><p className="font-medium">{formatDateTime(selected.createdAt)}</p></div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <TablePagination totalItems={total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={s => { setPageSize(s); setPage(1); }} />
     </div>

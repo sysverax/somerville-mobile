@@ -246,7 +246,7 @@ const BrandContent = ({ params }: Props) => {
           >
             {selectedCategory 
               ? `${categories.find(c => c.id === selectedCategory)?.name} Series`
-              : "All Product Series"
+              : "All Device Series"
             }
           </motion.h2>
           
@@ -268,7 +268,7 @@ const BrandContent = ({ params }: Props) => {
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">
-              No product series available.
+              No device series available.
             </div>
           )}
         </div>

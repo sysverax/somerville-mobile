@@ -279,32 +279,48 @@ const getAllServicesRepo = async ({
 
   try {
     if (productId) {
-      resolvedProductIds = [new mongoose.Types.ObjectId(productId)];
+      const pid = new mongoose.Types.ObjectId(productId);
+      resolvedProductIds = [pid];
+      // Resolve upward to include parent levels services
+      const product = await Product.findById(pid).select("seriesId").lean();
+      if (product) {
+        resolvedSeriesIds = [product.seriesId];
+        const series = await Series.findById(product.seriesId).select("categoryId").lean();
+        if (series) {
+          resolvedCategoryIds = [series.categoryId];
+        }
+      }
     } else if (seriesId) {
       const sid = new mongoose.Types.ObjectId(seriesId);
       resolvedSeriesIds = [sid];
-      const prods = await Product.find({ seriesId: sid }).select("_id");
+      // Resolve upward to include parent category services
+      const series = await Series.findById(sid).select("categoryId").lean();
+      if (series) {
+        resolvedCategoryIds = [series.categoryId];
+      }
+      // Resolve downward to include all product services for this series
+      const prods = await Product.find({ seriesId: sid }).select("_id").lean();
       resolvedProductIds = prods.map((p) => p._id);
     } else if (categoryId) {
       const cid = new mongoose.Types.ObjectId(categoryId);
       resolvedCategoryIds = [cid];
-      const sers = await Series.find({ categoryId: cid }).select("_id");
+      const sers = await Series.find({ categoryId: cid }).select("_id").lean();
       resolvedSeriesIds = sers.map((s) => s._id);
       const prods = await Product.find({
         seriesId: { $in: resolvedSeriesIds },
-      }).select("_id");
+      }).select("_id").lean();
       resolvedProductIds = prods.map((p) => p._id);
     } else if (brandId) {
       const bid = new mongoose.Types.ObjectId(brandId);
-      const cats = await Category.find({ brandId: bid }).select("_id");
+      const cats = await Category.find({ brandId: bid }).select("_id").lean();
       resolvedCategoryIds = cats.map((c) => c._id);
       const sers = await Series.find({
         categoryId: { $in: resolvedCategoryIds },
-      }).select("_id");
+      }).select("_id").lean();
       resolvedSeriesIds = sers.map((s) => s._id);
       const prods = await Product.find({
         seriesId: { $in: resolvedSeriesIds },
-      }).select("_id");
+      }).select("_id").lean();
       resolvedProductIds = prods.map((p) => p._id);
     }
 

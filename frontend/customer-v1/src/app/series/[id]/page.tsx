@@ -144,7 +144,7 @@ const SeriesPage = ({ params }: Props) => {
             className="flex items-center justify-between mb-8"
           >
             <h2 className="text-2xl font-bold">
-              Products ({products.length})
+              Devices ({products.length})
             </h2>
           </motion.div>
 

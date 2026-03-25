@@ -36,6 +36,57 @@ const BookingsPage = () => {
 
   const hasChanges = JSON.stringify(filters) !== JSON.stringify(applied);
 
+  const filteredCategories = useMemo(() => {
+    if (!filters.brandName) return categories;
+    const brand = brands.find(b => b.name === filters.brandName);
+    if (!brand) return [];
+    return categories.filter(c => c.brandId === brand.id);
+  }, [categories, filters.brandName, brands]);
+
+  const filteredProducts = useMemo(() => {
+    let result = products;
+    if (filters.brandName) {
+      const brand = brands.find(b => b.name === filters.brandName);
+      if (brand) result = result.filter(p => p.brandId === brand.id);
+    }
+    if (filters.categoryName) {
+      const category = categories.find(c => c.name === filters.categoryName);
+      if (category) result = result.filter(p => p.categoryId === category.id);
+    }
+    return result;
+  }, [products, filters.brandName, filters.categoryName, brands, categories]);
+
+  const handleBrandChange = (v: string) => {
+    const val = v === 'all' ? '' : v;
+    setFilters(f => {
+      const next = { ...f, brandName: val };
+      if (val && f.categoryName) {
+        const brand = brands.find(b => b.name === val);
+        const category = categories.find(c => c.name === f.categoryName);
+        if (brand && category && category.brandId !== brand.id) {
+          next.categoryName = '';
+          next.productId = '';
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleCategoryChange = (v: string) => {
+    const val = v === 'all' ? '' : v;
+    setFilters(f => {
+      const next = { ...f, categoryName: val };
+      if (val && f.productId) {
+        const category = categories.find(c => c.name === val);
+        const product = products.find(p => p.id === f.productId);
+        if (category && product && product.categoryId !== category.id) {
+          next.productId = '';
+        }
+      }
+      return next;
+    });
+  };
+
   useEffect(() => {
     if (optionsLoading) return;
 
@@ -49,13 +100,15 @@ const BookingsPage = () => {
     }
 
     refetch({
-      limit: 500, // Fetch many for calendar
+      limit: 0, // 0 means fetch all for calendar
       brandId,
       categoryId,
       productId: applied.productId || undefined,
-      date: applied.date || undefined
+      date: applied.date || undefined,
+      month: currentMonth.getMonth() + 1,
+      year: currentMonth.getFullYear()
     });
-  }, [applied, brands, categories, optionsLoading, refetch]);
+  }, [applied, brands, categories, optionsLoading, refetch, currentMonth]);
 
   const days = useMemo(() => {
     const start = startOfMonth(currentMonth);
@@ -93,7 +146,7 @@ const BookingsPage = () => {
       {/* Filters (Original Style) */}
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-3 w-full">
         <div className="space-y-1"><Label className="text-xs">Brand</Label>
-          <Select value={filters.brandName || "all"} onValueChange={v => setFilters(f => ({ ...f, brandName: v === 'all' ? '' : v }))}>
+          <Select value={filters.brandName || "all"} onValueChange={handleBrandChange}>
             <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All Brands" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Brands</SelectItem>
@@ -102,20 +155,20 @@ const BookingsPage = () => {
           </Select>
         </div>
         <div className="space-y-1"><Label className="text-xs">Category</Label>
-          <Select value={filters.categoryName || "all"} onValueChange={v => setFilters(f => ({ ...f, categoryName: v === 'all' ? '' : v }))}>
+          <Select value={filters.categoryName || "all"} onValueChange={handleCategoryChange} disabled={!filters.brandName}>
             <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All Categories" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              {[...new Set(categories.map(c => c.name))].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+              {[...new Set(filteredCategories.map(c => c.name))].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1"><Label className="text-xs">Product</Label>
-          <Select value={filters.productId || "all"} onValueChange={v => setFilters(f => ({ ...f, productId: v === 'all' ? '' : v }))}>
+          <Select value={filters.productId || "all"} onValueChange={v => setFilters(f => ({ ...f, productId: v === 'all' ? '' : v }))} disabled={!filters.categoryName}>
             <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All Products" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Products</SelectItem>
-              {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              {filteredProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -213,8 +266,30 @@ const BookingsPage = () => {
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div><Label className="text-xs text-muted-foreground">Customer</Label><p className="font-medium">{selected.customerName}</p></div>
-                <div><Label className="text-xs text-muted-foreground">Email</Label><p className="font-medium">{selected.customerEmail}</p></div>
-                <div><Label className="text-xs text-muted-foreground">Phone</Label><p className="font-medium">{selected.customerPhone}</p></div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Email</Label>
+                  <p className="font-medium">
+                    <a 
+                      href={`https://mail.google.com/mail/?view=cm&to=${selected.customerEmail}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      // className="text-primary hover:underline"
+                    >
+                      {selected.customerEmail}
+                    </a>
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Phone</Label>
+                  <p className="font-medium">
+                    <a 
+                      href={`tel:${selected.customerPhone}`}
+                      // className="text-primary hover:underline"
+                    >
+                      {selected.customerPhone}
+                    </a>
+                  </p>
+                </div>
                 <div><Label className="text-xs text-muted-foreground">Brand</Label><p className="font-medium">{selected.brandName}</p></div>
                 <div><Label className="text-xs text-muted-foreground">Product</Label><p className="font-medium">{selected.productName}</p></div>
                 <div><Label className="text-xs text-muted-foreground">Service</Label><p className="font-medium">{selected.serviceName}</p></div>

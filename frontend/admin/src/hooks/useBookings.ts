@@ -7,16 +7,16 @@ export const useBookings = ({
   initialFilters = {} 
 }: { 
   autoFetch?: boolean; 
-  initialFilters?: { page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string } 
+  initialFilters?: { page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string; month?: number; year?: number } 
 } = {}) => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [config, setConfig] = useState<TimeSlotConfig>(bookingService.getTimeSlotConfig());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const lastFilters = useRef<{ page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string } | undefined>(initialFilters);
+  const lastFilters = useRef<{ page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string; month?: number; year?: number } | undefined>(initialFilters);
 
-  const fetchBookings = useCallback(async (filters?: { page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string }) => {
+  const fetchBookings = useCallback(async (filters?: { page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string; month?: number; year?: number }) => {
     try {
       setLoading(true);
       setError(null);
@@ -44,7 +44,7 @@ export const useBookings = ({
     setConfig(bookingService.getTimeSlotConfig());
   }, []);
 
-  const refetch = useCallback((filters?: { page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string }) => {
+  const refetch = useCallback((filters?: { page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string; month?: number; year?: number }) => {
     fetchBookings(filters);
   }, [fetchBookings]);
 

@@ -162,7 +162,7 @@ const ProductFilterCard = ({ options, loading: externalLoading }: ProductFilterC
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="border-t border-border pt-6">
           <h4 className="font-medium mb-4 flex items-center gap-2">
             <Search className="h-4 w-4 text-primary" />
-            {filteredProducts.length} {filteredProducts.length === 1 ? "Product" : "Products"} Found
+            {filteredProducts.length} {filteredProducts.length === 1 ? "Device" : "Devices"} Found
           </h4>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {filteredProducts.map((product, index) => (
@@ -174,7 +174,7 @@ const ProductFilterCard = ({ options, loading: externalLoading }: ProductFilterC
 
       {!loading && selectedSeriesId && filteredProducts.length === 0 && (
         <div className="text-center py-8 text-muted-foreground">
-          No products found for this series.
+          No devices found for this series.
         </div>
       )}
     </motion.div>

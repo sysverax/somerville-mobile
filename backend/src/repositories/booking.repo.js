@@ -16,6 +16,14 @@ const getAllBookingsRepo = async (filters, page, limit) => {
     const endOfDay = new Date(filters.date);
     endOfDay.setHours(23, 59, 59, 999);
     matchStage.scheduleDateTime = { $gte: startOfDay, $lte: endOfDay };
+  } else if (filters.month && filters.year) {
+    const startOfMonth = new Date(filters.year, filters.month - 1, 1);
+    const endOfMonth = new Date(filters.year, filters.month, 0, 23, 59, 59, 999);
+    matchStage.scheduleDateTime = { $gte: startOfMonth, $lte: endOfMonth };
+  } else if (filters.year) {
+    const startOfYear = new Date(filters.year, 0, 1);
+    const endOfYear = new Date(filters.year, 11, 31, 23, 59, 59, 999);
+    matchStage.scheduleDateTime = { $gte: startOfYear, $lte: endOfYear };
   }
 
   const pipeline = [
@@ -86,11 +94,10 @@ const getAllBookingsRepo = async (filters, page, limit) => {
   pipeline.push({
     $facet: {
       metadata: [{ $count: "total" }],
-      data: [
-        { $sort: { createdAt: -1 } },
-        { $skip: skip },
-        { $limit: limit },
-      ],
+    data: [
+      { $sort: { createdAt: -1 } },
+      ...(limit > 0 ? [{ $skip: skip }, { $limit: limit }] : []),
+    ],
     },
   });
 
