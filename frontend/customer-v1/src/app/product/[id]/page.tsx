@@ -144,7 +144,7 @@ const ProductDetailPage = ({ params }: Props) => {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-20 text-center">
-          <h1 className="text-2xl font-bold">Product not found</h1>
+          <h1 className="text-2xl font-bold">Device not found</h1>
         </div>
       </Layout>
     );
@@ -528,7 +528,7 @@ const ProductDetailPage = ({ params }: Props) => {
                   onClick={() => setActiveTab("stock")}
                   className="hidden sm:flex"
                 >
-                  View Product Details
+                  View Device Details
                 </Button> */}
               </div>
 
@@ -620,7 +620,7 @@ const ProductDetailPage = ({ params }: Props) => {
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
                                       <span className="font-bold text-primary">${variant.price}</span>
-                                      <span className="text-xs text-muted-foreground">{variant.estimatedTime} min</span>
+                                      <span className="text-xs text-muted-foreground">{variant.duration}</span>
                                       {isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
                                     </div>
                                   </div>
@@ -650,7 +650,7 @@ const ProductDetailPage = ({ params }: Props) => {
                   <Wrench className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-xl font-bold mb-2">No Services Available</h3>
                   <p className="text-muted-foreground max-w-md mx-auto">
-                    There are currently no repair or support services available for this product.
+                    There are currently no repair or support services available for this device.
                     Please check back later or contact us for assistance.
                   </p>
                 </div>

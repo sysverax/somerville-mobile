@@ -49,6 +49,8 @@ const getAllBookingsService = async (getAllBookingsRequestDto, logger) => {
       seriesId: getAllBookingsRequestDto.seriesId,
       productId: getAllBookingsRequestDto.productId,
       date: getAllBookingsRequestDto.date,
+      month: getAllBookingsRequestDto.month,
+      year: getAllBookingsRequestDto.year,
     },
     getAllBookingsRequestDto.page,
     getAllBookingsRequestDto.limit,

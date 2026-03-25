@@ -76,7 +76,7 @@ const SeriesCard = ({
           {showProducts && products.length > 0 && (
             <div className="space-y-2 mb-4 border-t border-border/50 pt-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                Products in this series
+                Devices in this series
               </p>
               <div className="space-y-1">
                 {products.slice(0, 4).map((product) => (
@@ -110,7 +110,7 @@ const SeriesCard = ({
                 ))}
                 {products.length > 4 && (
                   <p className="text-xs text-muted-foreground px-3 py-1">
-                    +{products.length - 4} more products
+                    +{products.length - 4} more devices
                   </p>
                 )}
               </div>
@@ -122,7 +122,7 @@ const SeriesCard = ({
               href={`/series/${series.id}`}
               className="flex items-center text-primary font-medium text-sm hover:underline"
             >
-              <span>View All Products</span>
+              <span>View All Devices</span>
               <ArrowRight className="ml-2 h-4 w-4 transition-transform md:group-hover:translate-x-1" />
             </Link>
           )}

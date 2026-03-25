@@ -98,8 +98,10 @@ class GetAllBookingsRequestDTO {
     this.seriesId = query?.seriesId;
     this.productId = query?.productId;
     this.date = query?.date;
+    this.month = query?.month ? parseInt(query.month, 10) : undefined;
+    this.year = query?.year ? parseInt(query.year, 10) : undefined;
     this.page = query?.page ? parseInt(query.page, 10) : 1;
-    this.limit = query?.limit ? parseInt(query.limit, 10) : 10;
+    this.limit = query?.limit ? parseInt(query.limit, 10) : (query?.month ? 0 : 10);
   }
 
   validate() {
@@ -111,7 +113,7 @@ class GetAllBookingsRequestDTO {
       );
     }
 
-    if (isNaN(this.limit) || this.limit < 1 || this.limit > 500) {
+    if (this.limit !== 0 && (isNaN(this.limit) || this.limit < 1 || this.limit > 500)) {
       throw new appError.BadRequestError(
         "Invalid limit value",
         "The 'limit' query parameter must be a positive integer between 1 and 100.",
@@ -156,6 +158,22 @@ class GetAllBookingsRequestDTO {
         "Invalid date format",
         "The provided 'date' filter is not a valid date.",
         "Ensure you provide a valid date string (YYYY-MM-DD).",
+      );
+    }
+
+    if (this.month && (isNaN(this.month) || this.month < 1 || this.month > 12)) {
+      throw new appError.BadRequestError(
+        "Invalid month",
+        "The 'month' query parameter must be an integer between 1 and 12.",
+        "Provide a valid month and try again.",
+      );
+    }
+
+    if (this.year && (isNaN(this.year) || this.year < 1900)) {
+      throw new appError.BadRequestError(
+        "Invalid year",
+        "The 'year' query parameter must be a valid four-digit year.",
+        "Provide a valid year and try again.",
       );
     }
   }

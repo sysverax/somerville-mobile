@@ -65,7 +65,7 @@ function SearchForm() {
           ) : (
             <div className="text-center py-20">
               <Search className="h-16 w-16 mx-auto mb-6 text-muted-foreground" />
-              <h2 className="text-2xl font-bold mb-2">No products found</h2>
+              <h2 className="text-2xl font-bold mb-2">No devices found</h2>
               <p className="text-muted-foreground">
                 Try searching with different keywords
               </p>

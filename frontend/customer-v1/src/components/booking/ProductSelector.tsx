@@ -217,7 +217,7 @@ const ProductSelector = () => {
             {/* Series Cards with Accordion Products */}
             <AnimatePresence mode="wait">
                 {selectedCategoryId && filteredSeries.length > 0 && (
-                    <motion.section {...fadeIn} key="series" aria-label="Select series and product">
+                    <motion.section {...fadeIn} key="series" aria-label="Select series and device">
                         <h3 key="series-title" className="text-sm font-medium text-muted-foreground mb-3">
                             Select Series
                         </h3>

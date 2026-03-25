@@ -6,7 +6,7 @@ import { cn } from "@/src/lib/utils";
 import { useBookingStore } from "@/src/stores/useBookingStore";
 
 const steps = [
-    { label: "Select Product", icon: Smartphone },
+    { label: "Select Device", icon: Smartphone },
     { label: "Select Service", icon: Wrench },
     { label: "Schedule & Details", icon: CalendarDays },
 ];

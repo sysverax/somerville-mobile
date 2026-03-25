@@ -318,14 +318,14 @@ export const getStorefrontLatestSeries = async (): Promise<StorefrontSeries[]> =
 // ---- Service helpers ----
 
 const formatDuration = (minutes: number): string => {
-  if (minutes < 60) return `${minutes} minutes`;
+  if (minutes < 60) return `${minutes} min`;
   
   if (minutes < 1440) {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     const hourStr = hours === 1 ? '1 hour' : `${hours} hours`;
     if (mins === 0) return hourStr;
-    return `${hourStr} ${mins} minutes`;
+    return `${hourStr} ${mins} min`;
   }
   
   const days = Math.floor(minutes / 1440);
@@ -335,7 +335,7 @@ const formatDuration = (minutes: number): string => {
   
   const dayStr = days === 1 ? '1 day' : `${days} days`;
   const hourStr = hours > 0 ? (hours === 1 ? ' 1 hour' : ` ${hours} hours`) : '';
-  const minStr = mins > 0 ? ` ${mins} minutes` : '';
+  const minStr = mins > 0 ? ` ${mins} min` : '';
   
   return `${dayStr}${hourStr}${minStr}`.trim();
 };
