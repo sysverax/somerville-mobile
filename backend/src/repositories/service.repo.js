@@ -262,9 +262,16 @@ const getAllServicesRepo = async ({
       ...(isActive !== undefined && { isActive }),
     };
     const matching = await Service.find(query)
-      .select("_id isVariant parentServiceId")
+      .select("_id isVariant isParent parentServiceId")
       .lean();
-    const parentIds = matching.map((s) => (s.isVariant ? s.parentServiceId : s._id));
+
+    const parentIds = matching
+      .filter((s) => {
+        if (s.isVariant) return true;
+        if (!s.isParent) return true;
+        return isActive === undefined;
+      })
+      .map((s) => (s.isVariant ? s.parentServiceId : s._id));
     matchFilter._id = { $in: parentIds.filter(Boolean) };
   }
 
