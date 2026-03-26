@@ -203,9 +203,35 @@ const BookingsPage = () => {
           </Popover>
         </div>
         <div className="col-span-2 sm:contents flex gap-2">
-          {hasChanges && <Button className="flex-1 sm:flex-none" onClick={() => setApplied({ ...filters })}>Apply</Button>}
+          {hasChanges && (
+            <Button 
+              className="flex-1 sm:flex-none" 
+              onClick={() => {
+                setApplied({ ...filters });
+                // If a specific date is selected and applied, jump the calendar to that month
+                if (filters.date) {
+                  const selectedDate = new Date(filters.date + 'T00:00:00');
+                  setCurrentMonth(selectedDate);
+                }
+              }}
+            >
+              Apply
+            </Button>
+          )}
           {(applied.brandName || applied.categoryName || applied.productId || applied.date) && (
-            <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => { const empty = { brandName: '', categoryName: '', productId: '', date: '' }; setFilters(empty); setApplied(empty); }}>Clear</Button>
+            <Button 
+              variant="outline" 
+              className="flex-1 sm:flex-none" 
+              onClick={() => { 
+                const empty = { brandName: '', categoryName: '', productId: '', date: '' }; 
+                setFilters(empty); 
+                setApplied(empty); 
+                // Reset calendar to current month when clearing filters
+                setCurrentMonth(new Date());
+              }}
+            >
+              Clear
+            </Button>
           )}
           <div className="ml-auto">
             <Button variant="outline" className="gap-2 w-full sm:w-auto" onClick={() => navigate('/bookings/list')}><List className="h-4 w-4" /> List View</Button>

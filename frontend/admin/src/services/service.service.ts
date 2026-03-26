@@ -156,7 +156,7 @@ export const serviceService = {
     });
     serviceCache = allServices;
     return {
-      data: [...serviceCache].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) as ServiceRecord[],
+      data: serviceCache as ServiceRecord[],
       total: data.totalServices || 0
     };
   },

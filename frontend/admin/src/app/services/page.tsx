@@ -797,15 +797,6 @@ const ServicesPage = () => {
       }
     };
 
-    const handleSave = async () => {
-      setIsSubmitting(true);
-      try {
-        await saveOverride(productServiceId, editKey);
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
-
     const handleReset = async () => {
       setIsResetting(true);
       try {
@@ -814,6 +805,43 @@ const ServicesPage = () => {
         setIsResetting(false);
       }
     };
+
+    const handleSave = async () => {
+      setIsSubmitting(true);
+      try {
+        await productServiceService.updateProductService(productServiceId, {
+          price: Number(localPrice),
+          estimatedTime: Number(localTime)
+        });
+        
+        // Refresh based on current tab
+        if (mainTab === 'by-product' && byProductSelected) {
+          await selectByProduct(byProductSelected, true);
+        } else if (mainTab === 'by-service' && byServiceSelected) {
+          await selectByService(byServiceSelected, true);
+        }
+        
+        // Clean up edits from global state
+        setOverrideEdits(prev => {
+          const next = { ...prev };
+          delete next[editKey];
+          return next;
+        });
+        
+        toast({ title: 'Override saved successfully', variant: 'success' });
+      } catch (error) {
+        console.error('Failed to save override:', error);
+        toast({ 
+          title: 'Failed to save override', 
+          description: error instanceof Error ? error.message : 'Unknown error',
+          variant: 'destructive' 
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    const isDirty = Number(localPrice) !== defaultPrice || Number(localTime) !== defaultTime;
 
     return (
       <div className="rounded-lg border border-border p-3 space-y-2">
@@ -859,7 +887,7 @@ const ServicesPage = () => {
                 {isResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
               </Button>
             )}
-            <Button size="sm" variant="secondary" disabled={!edit || isSubmitting || isResetting} onClick={handleSave}>
+            <Button size="sm" variant="secondary" disabled={!isDirty || isSubmitting || isResetting} onClick={handleSave}>
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
             </Button>
           </div>
