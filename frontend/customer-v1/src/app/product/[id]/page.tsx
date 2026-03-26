@@ -582,7 +582,7 @@ const ProductDetailPage = ({ params }: Props) => {
                       }
 
                       const { parent, variants } = group;
-                      const selectedVariantId = selectedVariantsByParent[parent.serviceId] || null;
+                      const selectedVariantId = selectedVariantsByParent[parent.serviceId] || (variants.length === 1 ? variants[0].id : null);
                       const selectedVariant = variants.find(variant => variant.id === selectedVariantId) || null;
                       const minPrice = Math.min(...variants.map(variant => variant.price));
 

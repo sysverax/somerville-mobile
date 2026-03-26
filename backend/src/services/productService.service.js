@@ -107,12 +107,6 @@ const getServicesForProductService = async (
       const service = ps.serviceId;
       if (!service) return false;
 
-      if (!service.isActive) return false;
-
-      if (service.isVariant && service.parentServiceId) {
-        return service.parentServiceId.isActive;
-      }
-
       return true;
     });
   }

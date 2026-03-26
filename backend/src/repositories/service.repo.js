@@ -253,19 +253,23 @@ const getAllServicesRepo = async ({
 
   if (userRole !== USER_ROLES.ADMIN) {
     matchFilter.isActive = true;
+  } else if (isActive !== undefined) {
+    matchFilter.isActive = isActive; 
   }
 
-  // Pre-filter parents by status and search to include those with matching variants
-  if (search || (userRole === USER_ROLES.ADMIN && isActive !== undefined)) {
-    const query = {
-      ...(search && { name: { $regex: new RegExp(search, "i") } }),
-      ...(isActive !== undefined && { isActive }),
-    };
-    const matching = await Service.find(query)
-      .select("_id isVariant parentServiceId")
-      .lean();
-    const parentIds = matching.map((s) => (s.isVariant ? s.parentServiceId : s._id));
-    matchFilter._id = { $in: parentIds.filter(Boolean) };
+  if (search) {
+    const regex = new RegExp(search, 'i');
+    
+    // Find IDs of services matching search (both parents and variants)
+    const matchingServices = await Service.find({ 
+      name: { $regex: regex }
+    }).select('_id isVariant parentServiceId');
+
+    const parentIds = matchingServices.map(s => 
+      s.isVariant ? s.parentServiceId : s._id
+    );
+
+    matchFilter._id = { $in: parentIds };
   }
 
   // ── 2. Resolve hierarchical IDs ──
