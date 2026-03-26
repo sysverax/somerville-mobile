@@ -558,7 +558,7 @@ const ServicesPage = () => {
 
   // By Service: filtered services list (only non-variant)
   const byServiceFilteredServices = useMemo(() => {
-    let result = services.filter(s => s.level !== 'product' && !s.isVariant);
+    let result = services.filter(s => !s.isVariant);
     if (byServiceSearch) result = result.filter(s => s.name.toLowerCase().includes(byServiceSearch.toLowerCase()));
     return result;
   }, [services, byServiceSearch]);
@@ -1298,7 +1298,7 @@ const ServicesPage = () => {
             <div className={`space-y-4 ${byServiceSelected ? 'hidden lg:block' : 'block'}`}>
               <div className="p-4 rounded-lg bg-card border border-border space-y-3">
                 <h3 className="text-sm font-semibold text-foreground">Select a Service</h3>
-                <p className="text-xs text-muted-foreground">Only Brand, Category, and Series level services are shown (product-level services don't need overrides).</p>
+                <p className="text-xs text-muted-foreground">Select a service to view and manage its product overrides across all applicable devices.</p>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="Search services..." value={byServiceSearch} onChange={e => setByServiceSearch(e.target.value)} className="pl-9" />

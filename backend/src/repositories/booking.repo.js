@@ -35,7 +35,7 @@ const getAllBookingsRepo = async (filters, page, limit) => {
         as: "productService",
       },
     },
-    { $unwind: "$productService" },
+    { $unwind: { path: "$productService", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
         from: "products",
@@ -44,7 +44,7 @@ const getAllBookingsRepo = async (filters, page, limit) => {
         as: "product",
       },
     },
-    { $unwind: "$product" },
+    { $unwind: { path: "$product", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
         from: "series",
@@ -53,7 +53,7 @@ const getAllBookingsRepo = async (filters, page, limit) => {
         as: "series",
       },
     },
-    { $unwind: "$series" },
+    { $unwind: { path: "$series", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
         from: "categories",
@@ -62,7 +62,7 @@ const getAllBookingsRepo = async (filters, page, limit) => {
         as: "category",
       },
     },
-    { $unwind: "$category" },
+    { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
         from: "brands",
@@ -71,7 +71,7 @@ const getAllBookingsRepo = async (filters, page, limit) => {
         as: "brand",
       },
     },
-    { $unwind: "$brand" },
+    { $unwind: { path: "$brand", preserveNullAndEmptyArrays: true } },
     {
         $lookup: {
           from: "services",
@@ -80,7 +80,7 @@ const getAllBookingsRepo = async (filters, page, limit) => {
           as: "serviceDetails",
         },
       },
-      { $unwind: "$serviceDetails" },
+      { $unwind: { path: "$serviceDetails", preserveNullAndEmptyArrays: true } },
   ];
 
   const filterMatch = { ...matchStage };
@@ -121,7 +121,7 @@ const getUpcomingBookingsRepo = async (limit) => {
         as: "productService",
       },
     },
-    { $unwind: "$productService" },
+    { $unwind: { path: "$productService", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
         from: "products",
@@ -130,7 +130,7 @@ const getUpcomingBookingsRepo = async (limit) => {
         as: "product",
       },
     },
-    { $unwind: "$product" },
+    { $unwind: { path: "$product", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
         from: "series",
@@ -139,7 +139,7 @@ const getUpcomingBookingsRepo = async (limit) => {
         as: "series",
       },
     },
-    { $unwind: "$series" },
+    { $unwind: { path: "$series", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
         from: "categories",
@@ -148,7 +148,7 @@ const getUpcomingBookingsRepo = async (limit) => {
         as: "category",
       },
     },
-    { $unwind: "$category" },
+    { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
         from: "brands",
@@ -157,7 +157,7 @@ const getUpcomingBookingsRepo = async (limit) => {
         as: "brand",
       },
     },
-    { $unwind: "$brand" },
+    { $unwind: { path: "$brand", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
         from: "services",
@@ -166,7 +166,7 @@ const getUpcomingBookingsRepo = async (limit) => {
         as: "serviceDetails",
       },
     },
-    { $unwind: "$serviceDetails" },
+    { $unwind: { path: "$serviceDetails", preserveNullAndEmptyArrays: true } },
     { $sort: { scheduleDateTime: 1 } },
     { $limit: limit },
   ];

@@ -102,14 +102,12 @@ const getServicesForProductService = async (
 
   if (userRole !== USER_ROLES.ADMIN) {
     productServices = productServices.filter((ps) => {
+      if (!ps.isActive) return false;
+
       const service = ps.serviceId;
       if (!service) return false;
 
-      if (service.isVariant && service.parentServiceId) {
-        return service.isActive && service.parentServiceId.isActive;
-      }
-
-      return service.isActive;
+      return true;
     });
   }
 
