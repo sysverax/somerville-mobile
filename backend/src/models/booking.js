@@ -32,6 +32,10 @@ const bookingSchema = new mongoose.Schema(
       enum: Object.values(bookingConstants.BOOKING_STATUS),
       required: true,
     },
+    productName: String,
+    serviceName: String,
+    categoryName: String,
+    brandName: String,
   },
   {
     timestamps: true,

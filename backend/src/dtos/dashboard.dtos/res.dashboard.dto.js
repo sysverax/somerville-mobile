@@ -23,15 +23,15 @@ class DashboardStatsResponseDTO {
                 _id: booking.product._id?.toString(),
                 name: booking.product.name,
               }
-            : null,
+            : { name: booking.productName || "Deleted Product" },
           brand: {
-            name: booking.brand?.name || "",
+            name: booking.brand?.name || booking.brandName || "",
           },
           category: {
-            name: booking.category?.name || "",
+            name: booking.category?.name || booking.categoryName || "",
           },
           serviceDetails: {
-            name: booking.serviceDetails?.name || "",
+            name: booking.serviceDetails?.name || booking.serviceName || "",
           },
         }))
       : [];
