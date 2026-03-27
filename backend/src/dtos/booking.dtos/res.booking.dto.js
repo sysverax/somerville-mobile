@@ -25,21 +25,21 @@ class BookingListResponseDTO {
       ? {
           id: booking.product._id?.toString(),
           name: booking.product.name,
-          brandName: booking.brand?.name || "N/A",
-          categoryName: booking.category?.name || "N/A",
+          brandName: booking.brand?.name || booking.brandName || "N/A",
+          categoryName: booking.category?.name || booking.categoryName || "N/A",
         }
       : {
           id: null,
-          name: "Deleted Product",
-          brandName: "N/A",
-          categoryName: "N/A",
+          name: booking.productName || "Deleted Product",
+          brandName: booking.brandName || "N/A",
+          categoryName: booking.categoryName || "N/A",
         };
     this.service = booking.serviceDetails
       ? {
           id: booking.serviceDetails._id?.toString(),
           name: booking.serviceDetails.name,
         }
-      : { id: null, name: "Deleted Service" };
+      : { id: null, name: booking.serviceName || "Deleted Service" };
   }
 }
 

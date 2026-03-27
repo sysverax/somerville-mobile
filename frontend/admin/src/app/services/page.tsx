@@ -66,6 +66,186 @@ const validateEstimatedTime = (value: number): string | undefined => {
 
 type FormErrors = { name?: string; brandId?: string; categoryId?: string; seriesId?: string; productId?: string; basePrice?: string; estimatedTime?: string; variants?: string };
 
+interface OverrideRowProps {
+  productServiceId: string;
+  productId: string;
+  defaultPrice: number;
+  defaultTime: number;
+  editKey: string;
+  label: string;
+  sublabel: string;
+  disabled: boolean;
+  isDefault: boolean;
+  mainTab: string;
+  byProductSelected: string;
+  byServiceSelected: string;
+  selectByProduct: (productId: string, silent?: boolean) => Promise<void>;
+  selectByService: (serviceId: string, silent?: boolean) => Promise<void>;
+  setOverrideEdits: React.Dispatch<React.SetStateAction<Record<string, { price: string; time: string }>>>;
+  overrideEdits: Record<string, { price: string; time: string }>;
+  toggleServiceForProduct: (productServiceId: string, productId: string, isActive: boolean) => Promise<void>;
+  resetOverride: (productServiceId: string, editKey: string) => Promise<void>;
+}
+
+const OverrideRow = ({
+  productServiceId,
+  productId,
+  defaultPrice,
+  defaultTime,
+  editKey,
+  label,
+  sublabel,
+  disabled: isDisabledProp,
+  isDefault,
+  mainTab,
+  byProductSelected,
+  byServiceSelected,
+  selectByProduct,
+  selectByService,
+  setOverrideEdits,
+  overrideEdits,
+  toggleServiceForProduct,
+  resetOverride
+}: OverrideRowProps) => {
+  const { toast } = useToast();
+  const edit = overrideEdits[editKey];
+  const [localPrice, setLocalPrice] = useState(edit?.price ?? String(defaultPrice));
+  const [localTime, setLocalTime] = useState(edit?.time ?? String(defaultTime));
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
+
+  // Update local state when edit changes
+  useEffect(() => {
+    if (edit) {
+      setLocalPrice(edit.price);
+      setLocalTime(edit.time);
+    } else {
+      setLocalPrice(String(defaultPrice));
+      setLocalTime(String(defaultTime));
+    }
+  }, [edit, defaultPrice, defaultTime]);
+
+  const handlePriceBlur = () => {
+    const priceChanged = localPrice !== (edit?.price ?? String(defaultPrice));
+    if (priceChanged) {
+      setOverrideEdits(prev => ({
+        ...prev,
+        [editKey]: { price: localPrice, time: prev[editKey]?.time ?? String(defaultTime) }
+      }));
+    }
+  };
+
+  const handleTimeBlur = () => {
+    const timeChanged = localTime !== (edit?.time ?? String(defaultTime));
+    if (timeChanged) {
+      setOverrideEdits(prev => ({
+        ...prev,
+        [editKey]: { price: prev[editKey]?.price ?? String(defaultPrice), time: localTime }
+      }));
+    }
+  };
+
+  const handleReset = async () => {
+    setIsResetting(true);
+    try {
+      await resetOverride(productServiceId, editKey);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    try {
+      await productServiceService.updateProductService(productServiceId, {
+        price: Number(localPrice),
+        estimatedTime: Number(localTime)
+      });
+
+      // Refresh based on current tab
+      if (mainTab === 'by-product' && byProductSelected) {
+        await selectByProduct(byProductSelected, true);
+      } else if (mainTab === 'by-service' && byServiceSelected) {
+        await selectByService(byServiceSelected, true);
+      }
+
+      // Clean up edits from global state
+      setOverrideEdits(prev => {
+        const next = { ...prev };
+        delete next[editKey];
+        return next;
+      });
+
+      toast({ title: 'Override saved successfully', variant: 'success' });
+    } catch (error) {
+      console.error('Failed to save override:', error);
+      toast({
+        title: 'Failed to save override',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isDirty = Number(localPrice) !== defaultPrice || Number(localTime) !== defaultTime;
+
+  return (
+    <div className="rounded-lg border border-border p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-medium text-sm">{label}</p>
+          <p className="text-xs text-muted-foreground mt-1">{sublabel}</p>
+        </div>
+        <div className="flex items-center justify-center">
+          {isToggling ? (
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          ) : (
+            <Switch checked={!isDisabledProp} onCheckedChange={async (checked) => {
+              setIsToggling(true);
+              try {
+                await toggleServiceForProduct(productServiceId, productId, checked);
+              } finally {
+                setIsToggling(false);
+              }
+            }} />
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+        <div className="space-y-1">
+          <Label className="text-xs">Price ($)</Label>
+          <Input type="number" min={0} step={0.01} placeholder={String(defaultPrice)}
+            value={localPrice}
+            onChange={e => setLocalPrice(e.target.value)}
+            onBlur={handlePriceBlur} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Time (min)</Label>
+          <Input type="number" min={1} placeholder={String(defaultTime)}
+            value={localTime}
+            onChange={e => setLocalTime(e.target.value)}
+            onBlur={handleTimeBlur} />
+        </div>
+        <div className="flex gap-1">
+          {!isDefault && (
+            <Button size="sm" variant="outline" className="h-9 w-9 p-0" title="Reset to default" onMouseDown={handleReset} disabled={isResetting || isSubmitting}>
+              {isResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+            </Button>
+          )}
+          <Button size="sm" variant="secondary" disabled={!isDirty || isSubmitting || isResetting} onMouseDown={handleSave}>
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 const ServicesPage = () => {
   const { toast } = useToast();
   const { services, total, createService, updateService, updateServiceStatus, deleteService, getVariants, hasVariants, isLoading: servicesLoading, error: servicesError, refresh } = useServices();
@@ -738,163 +918,18 @@ const ServicesPage = () => {
     }
   };
 
-  const OverrideRow = ({ 
-    productServiceId, 
-    productId, 
-    defaultPrice, 
-    defaultTime, 
-    editKey, 
-    label, 
-    sublabel, 
-    disabled: isDisabledProp,
-    isDefault
-  }: {
-    productServiceId: string; 
-    productId: string; 
-    defaultPrice: number; 
-    defaultTime: number;
-    editKey: string; 
-    label: string; 
-    sublabel: string; 
-    disabled: boolean;
-    isDefault: boolean;
-  }) => {
-    const edit = overrideEdits[editKey];
-    const [localPrice, setLocalPrice] = useState(edit?.price ?? String(defaultPrice));
-    const [localTime, setLocalTime] = useState(edit?.time ?? String(defaultTime));
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isResetting, setIsResetting] = useState(false);
-    const [isToggling, setIsToggling] = useState(false);
-
-    // Update local state when edit changes
-    useEffect(() => {
-      if (edit) {
-        setLocalPrice(edit.price);
-        setLocalTime(edit.time);
-      } else {
-        setLocalPrice(String(defaultPrice));
-        setLocalTime(String(defaultTime));
-      }
-    }, [edit, defaultPrice, defaultTime]);
-
-    const handlePriceBlur = () => {
-      const priceChanged = localPrice !== (edit?.price ?? String(defaultPrice));
-      if (priceChanged) {
-        setOverrideEdits(prev => ({ 
-          ...prev, 
-          [editKey]: { price: localPrice, time: prev[editKey]?.time ?? String(defaultTime) } 
-        }));
-      }
-    };
-
-    const handleTimeBlur = () => {
-      const timeChanged = localTime !== (edit?.time ?? String(defaultTime));
-      if (timeChanged) {
-        setOverrideEdits(prev => ({ 
-          ...prev, 
-          [editKey]: { price: prev[editKey]?.price ?? String(defaultPrice), time: localTime } 
-        }));
-      }
-    };
-
-    const handleReset = async () => {
-      setIsResetting(true);
-      try {
-        await resetOverride(productServiceId, editKey);
-      } finally {
-        setIsResetting(false);
-      }
-    };
-
-    const handleSave = async () => {
-      setIsSubmitting(true);
-      try {
-        await productServiceService.updateProductService(productServiceId, {
-          price: Number(localPrice),
-          estimatedTime: Number(localTime)
-        });
-        
-        // Refresh based on current tab
-        if (mainTab === 'by-product' && byProductSelected) {
-          await selectByProduct(byProductSelected, true);
-        } else if (mainTab === 'by-service' && byServiceSelected) {
-          await selectByService(byServiceSelected, true);
-        }
-        
-        // Clean up edits from global state
-        setOverrideEdits(prev => {
-          const next = { ...prev };
-          delete next[editKey];
-          return next;
-        });
-        
-        toast({ title: 'Override saved successfully', variant: 'success' });
-      } catch (error) {
-        console.error('Failed to save override:', error);
-        toast({ 
-          title: 'Failed to save override', 
-          description: error instanceof Error ? error.message : 'Unknown error',
-          variant: 'destructive' 
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
-
-    const isDirty = Number(localPrice) !== defaultPrice || Number(localTime) !== defaultTime;
-
-    return (
-      <div className="rounded-lg border border-border p-3 space-y-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium text-sm">{label}</p>
-            <p className="text-xs text-muted-foreground mt-1">{sublabel}</p>
-          </div>
-          <div className="flex items-center justify-center">
-            {isToggling ? (
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            ) : (
-              <Switch checked={!isDisabledProp} onCheckedChange={async (checked) => {
-                setIsToggling(true);
-                try {
-                  await toggleServiceForProduct(productServiceId, productId, checked);
-                } finally {
-                  setIsToggling(false);
-                }
-              }} />
-            )}
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
-          <div className="space-y-1">
-            <Label className="text-xs">Price ($)</Label>
-            <Input type="number" min={0} step={0.01} placeholder={String(defaultPrice)}
-              value={localPrice}
-              onChange={e => setLocalPrice(e.target.value)}
-              onBlur={handlePriceBlur} />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Time (min)</Label>
-            <Input type="number" min={1} placeholder={String(defaultTime)}
-              value={localTime}
-              onChange={e => setLocalTime(e.target.value)}
-              onBlur={handleTimeBlur} />
-          </div>
-          <div className="flex gap-1">
-            {!isDefault && (
-              <Button size="sm" variant="outline" className="h-9 w-9 p-0" title="Reset to default" onClick={handleReset} disabled={isResetting || isSubmitting}>
-                {isResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-              </Button>
-            )}
-            <Button size="sm" variant="secondary" disabled={!isDirty || isSubmitting || isResetting} onClick={handleSave}>
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+  const commonOverrideProps = {
+    mainTab,
+    byProductSelected,
+    byServiceSelected,
+    selectByProduct,
+    selectByService,
+    setOverrideEdits,
+    overrideEdits,
+    toggleServiceForProduct,
+    resetOverride
   };
+
 
   return (
     <div className="space-y-6">
@@ -1278,18 +1313,20 @@ const ServicesPage = () => {
                               {isExpanded && svc.variants && svc.variants.length > 0 && (
                                 <div className="ml-4 border-l-2 border-border pl-3 space-y-2">
                                   {svc.variants.map((variant: any) => (
-                                    <OverrideRow
-                                      key={variant.id}
-                                      productServiceId={variant.id}
-                                      productId={p.id}
-                                      editKey={variant.id}
-                                      defaultPrice={variant.price}
-                                      defaultTime={variant.estimatedTime}
-                                      label={variant.name}
-                                      sublabel={`${svc.level} service variant`}
-                                      disabled={!variant.isActive}
-                                      isDefault={variant.isDefault}
-                                    />
+                                      <OverrideRow
+                                        key={variant.id}
+                                        productServiceId={variant.id}
+                                        productId={p.id}
+                                        editKey={variant.id}
+                                        defaultPrice={variant.price}
+                                        defaultTime={variant.estimatedTime}
+                                        label={variant.name}
+                                        sublabel={`${svc.level} service variant`}
+                                        disabled={!variant.isActive}
+                                        isDefault={variant.isDefault}
+                                        {...commonOverrideProps}
+                                      />
+
                                   ))}
                                 </div>
                               )}
@@ -1308,7 +1345,9 @@ const ServicesPage = () => {
                               sublabel={`${svc.level} service`}
                               disabled={!svc.isActive}
                               isDefault={svc.isDefault}
+                              {...commonOverrideProps}
                             />
+
                           );
                         }
                       })}
@@ -1425,7 +1464,9 @@ const ServicesPage = () => {
                                       sublabel={`${p.product?.brand?.name || ''}${p.product?.category?.name ? ` · ${p.product.category.name}` : ''}`}
                                       disabled={!p.isActive}
                                       isDefault={p.isDefault}
+                                      {...commonOverrideProps}
                                     />
+
                                   ))}
                                 </div>
                               )}
@@ -1452,7 +1493,9 @@ const ServicesPage = () => {
                                 sublabel={`${svc.level} service`}
                                 disabled={!p.isActive}
                                 isDefault={p.isDefault}
+                                {...commonOverrideProps}
                               />
+
                             ))}
                           </div>
                         )}

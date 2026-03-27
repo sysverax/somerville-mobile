@@ -30,6 +30,10 @@ const createBookingService = async (createBookingRequestDto, logger) => {
     email: createBookingRequestDto.email,
     phone: createBookingRequestDto.phone,
     status: bookingConstants.BOOKING_STATUS.PENDING,
+    productName: productService.productId?.name || "N/A",
+    serviceName: productService.serviceId?.name || "N/A",
+    categoryName: productService.productId?.seriesId?.categoryId?.name || "N/A",
+    brandName: productService.productId?.seriesId?.categoryId?.brandId?.name || "N/A",
   };
 
   const booking = await bookingRepo.createBookingRepo(bookingData);
