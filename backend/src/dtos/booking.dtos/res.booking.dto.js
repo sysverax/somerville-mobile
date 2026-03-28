@@ -21,25 +21,19 @@ class BookingListResponseDTO {
     this.status = booking.status || null;
     this.createdAt = booking.createdAt || null;
 
-    this.product = booking.product
-      ? {
-          id: booking.product._id?.toString(),
-          name: booking.product.name,
-          brandName: booking.brand?.name || booking.brandName || "N/A",
-          categoryName: booking.category?.name || booking.categoryName || "N/A",
-        }
-      : {
-          id: null,
-          name: booking.productName || "Deleted Product",
-          brandName: booking.brandName || "N/A",
-          categoryName: booking.categoryName || "N/A",
-        };
+    this.product = {
+      id: booking.product?._id?.toString() || null,
+      name: booking.product?.name || "Deleted Product",
+      seriesName: booking.series?.name || "Deleted Series",
+      categoryName: booking.category?.name || "Deleted Category",
+      brandName: booking.brand?.name || "Deleted Brand",
+    };
     this.service = booking.serviceDetails
       ? {
           id: booking.serviceDetails._id?.toString(),
           name: booking.serviceDetails.name,
         }
-      : { id: null, name: booking.serviceName || "Deleted Service" };
+      : { id: null, name: "Deleted Service" };
   }
 }
 

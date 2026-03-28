@@ -8,20 +8,8 @@ const createManyProductServicesRepo = async (productServicesArray, session) => {
 const getProductServiceByIdRepo = async (id) => {
   if (!mongoose.Types.ObjectId.isValid(id)) return null;
   return ProductService.findById(id)
-    .populate({
-      path: "serviceId",
-      populate: { path: "parentServiceId" },
-    })
-    .populate({
-      path: "productId",
-      populate: {
-        path: "seriesId",
-        populate: {
-          path: "categoryId",
-          populate: { path: "brandId" },
-        },
-      },
-    })
+    .populate("serviceId")
+    .populate("productId")
     .lean();
 };
 
