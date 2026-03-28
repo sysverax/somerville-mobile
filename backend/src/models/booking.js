@@ -8,6 +8,31 @@ const bookingSchema = new mongoose.Schema(
       ref: "ProductService",
       required: true,
     },
+    brandId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Brand",
+      required: true,
+    },
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
+    seriesId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Series",
+      required: true,
+    },
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
+    serviceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Service",
+      required: true,
+    },
     scheduleDateTime: {
       type: Date,
       required: true,
@@ -32,10 +57,6 @@ const bookingSchema = new mongoose.Schema(
       enum: Object.values(bookingConstants.BOOKING_STATUS),
       required: true,
     },
-    productName: String,
-    serviceName: String,
-    categoryName: String,
-    brandName: String,
   },
   {
     timestamps: true,

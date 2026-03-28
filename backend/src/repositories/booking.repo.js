@@ -29,17 +29,17 @@ const getAllBookingsRepo = async (filters, page, limit) => {
   const pipeline = [
     {
       $lookup: {
-        from: "product_services",
-        localField: "productServiceId",
+        from: "services",
+        localField: "serviceId",
         foreignField: "_id",
-        as: "productService",
+        as: "serviceDetails",
       },
     },
-    { $unwind: { path: "$productService", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$serviceDetails", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
         from: "products",
-        localField: "productService.productId",
+        localField: "productId",
         foreignField: "_id",
         as: "product",
       },
@@ -48,7 +48,7 @@ const getAllBookingsRepo = async (filters, page, limit) => {
     {
       $lookup: {
         from: "series",
-        localField: "product.seriesId",
+        localField: "seriesId",
         foreignField: "_id",
         as: "series",
       },
@@ -57,7 +57,7 @@ const getAllBookingsRepo = async (filters, page, limit) => {
     {
       $lookup: {
         from: "categories",
-        localField: "series.categoryId",
+        localField: "categoryId",
         foreignField: "_id",
         as: "category",
       },
@@ -66,21 +66,12 @@ const getAllBookingsRepo = async (filters, page, limit) => {
     {
       $lookup: {
         from: "brands",
-        localField: "category.brandId",
+        localField: "brandId",
         foreignField: "_id",
         as: "brand",
       },
     },
     { $unwind: { path: "$brand", preserveNullAndEmptyArrays: true } },
-    {
-        $lookup: {
-          from: "services",
-          localField: "productService.serviceId",
-          foreignField: "_id",
-          as: "serviceDetails",
-        },
-      },
-      { $unwind: { path: "$serviceDetails", preserveNullAndEmptyArrays: true } },
   ];
 
   const filterMatch = { ...matchStage };
@@ -115,17 +106,17 @@ const getUpcomingBookingsRepo = async (limit) => {
     { $match: { scheduleDateTime: { $gte: currentDate } } },
     {
       $lookup: {
-        from: "product_services",
-        localField: "productServiceId",
+        from: "services",
+        localField: "serviceId",
         foreignField: "_id",
-        as: "productService",
+        as: "serviceDetails",
       },
     },
-    { $unwind: { path: "$productService", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$serviceDetails", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
         from: "products",
-        localField: "productService.productId",
+        localField: "productId",
         foreignField: "_id",
         as: "product",
       },
@@ -134,7 +125,7 @@ const getUpcomingBookingsRepo = async (limit) => {
     {
       $lookup: {
         from: "series",
-        localField: "product.seriesId",
+        localField: "seriesId",
         foreignField: "_id",
         as: "series",
       },
@@ -143,7 +134,7 @@ const getUpcomingBookingsRepo = async (limit) => {
     {
       $lookup: {
         from: "categories",
-        localField: "series.categoryId",
+        localField: "categoryId",
         foreignField: "_id",
         as: "category",
       },
@@ -152,21 +143,12 @@ const getUpcomingBookingsRepo = async (limit) => {
     {
       $lookup: {
         from: "brands",
-        localField: "category.brandId",
+        localField: "brandId",
         foreignField: "_id",
         as: "brand",
       },
     },
     { $unwind: { path: "$brand", preserveNullAndEmptyArrays: true } },
-    {
-      $lookup: {
-        from: "services",
-        localField: "productService.serviceId",
-        foreignField: "_id",
-        as: "serviceDetails",
-      },
-    },
-    { $unwind: { path: "$serviceDetails", preserveNullAndEmptyArrays: true } },
     { $sort: { scheduleDateTime: 1 } },
     { $limit: limit },
   ];

@@ -3,6 +3,7 @@ const bookingConstants = require("../utils/constants/booking.constants");
 const bookingResDto = require("../dtos/booking.dtos/res.booking.dto");
 const appError = require("../utils/errors/errors");
 const productServiceRepo = require("../repositories/productService.repo");
+const productRepo = require("../repositories/product.repo");
 
 const createBookingService = async (createBookingRequestDto, logger) => {
   const productService = await productServiceRepo.getProductServiceByIdRepo(
@@ -23,17 +24,22 @@ const createBookingService = async (createBookingRequestDto, logger) => {
     );
   }
 
+  const product = await productRepo.getProductByIdRepo(
+    productService.productId._id || productService.productId,
+  );
+
   const bookingData = {
     productServiceId: createBookingRequestDto.productServiceId,
+    brandId: product.seriesId.categoryId.brandId._id || product.seriesId.categoryId.brandId,
+    categoryId: product.seriesId.categoryId._id || product.seriesId.categoryId,
+    seriesId: product.seriesId._id || product.seriesId,
+    productId: product._id,
+    serviceId: productService.serviceId._id || productService.serviceId,
     scheduleDateTime: createBookingRequestDto.scheduleDateTime,
     name: createBookingRequestDto.name,
     email: createBookingRequestDto.email,
     phone: createBookingRequestDto.phone,
     status: bookingConstants.BOOKING_STATUS.PENDING,
-    productName: productService.productId?.name || "N/A",
-    serviceName: productService.serviceId?.name || "N/A",
-    categoryName: productService.productId?.seriesId?.categoryId?.name || "N/A",
-    brandName: productService.productId?.seriesId?.categoryId?.brandId?.name || "N/A",
   };
 
   const booking = await bookingRepo.createBookingRepo(bookingData);
