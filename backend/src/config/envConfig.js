@@ -35,6 +35,21 @@ const PASSWORD_CONFIG = {
   PREDEFINED_SALT: "predefined_salt_for_password_hashing",
 };
 
+const EMAIL_CONFIG = {
+  SES_FROM_EMAIL: process.env.SES_FROM_EMAIL,
+  BOOKING_NOTIFICATION_EMAILS: process.env.BOOKING_NOTIFICATION_EMAILS
+    ? process.env.BOOKING_NOTIFICATION_EMAILS.split(",")
+        .map((email) => email.trim().replace(/^['\"]|['\"]$/g, ""))
+        .filter(Boolean)
+    : [],
+  BOOKING_EMAIL_MAX_RETRIES: process.env.BOOKING_EMAIL_MAX_RETRIES || "3",
+  BOOKING_EMAIL_COMPANY_NAME:
+    process.env.BOOKING_EMAIL_COMPANY_NAME || "Somerville Mobile",
+  BOOKING_EMAIL_COMPANY_LOGO_URL: process.env.BOOKING_EMAIL_COMPANY_LOGO_URL,
+  BOOKING_EMAIL_COMPANY_WEBSITE_URL:
+    process.env.BOOKING_EMAIL_COMPANY_WEBSITE_URL,
+};
+
 module.exports = {
   NODE_ENV,
   MONGO_URI,
@@ -44,4 +59,5 @@ module.exports = {
   JWT_CONFIG,
   COOKIE_CONFIG,
   PASSWORD_CONFIG,
+  EMAIL_CONFIG,
 };

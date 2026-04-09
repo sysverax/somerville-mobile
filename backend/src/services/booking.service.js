@@ -4,6 +4,7 @@ const bookingResDto = require("../dtos/booking.dtos/res.booking.dto");
 const appError = require("../utils/errors/errors");
 const productServiceRepo = require("../repositories/productService.repo");
 const productRepo = require("../repositories/product.repo");
+const { sendBookingNotificationEmail } = require("./email.service");
 
 const createBookingService = async (createBookingRequestDto, logger) => {
   const productService = await productServiceRepo.getProductServiceByIdRepo(
@@ -47,6 +48,32 @@ const createBookingService = async (createBookingRequestDto, logger) => {
   logger.info("Booking created successfully", {
     bookingId: booking._id.toString(),
   });
+
+  const emailPayload = {
+    bookingId: booking._id.toString(),
+    createdAt: booking.createdAt,
+    scheduleDateTime: booking.scheduleDateTime,
+    status: booking.status,
+    customerName: booking.name,
+    customerEmail: booking.email,
+    customerPhone: booking.phone,
+    brandName: product?.seriesId?.categoryId?.brandId?.name,
+    categoryName: product?.seriesId?.categoryId?.name,
+    seriesName: product?.seriesId?.name,
+    productName: product?.name,
+    serviceName: productService?.serviceId?.name,
+    estimatedTime: productService?.estimatedTime,
+    price: productService?.price,
+  };
+
+  try {
+    sendBookingNotificationEmail(emailPayload, logger);
+  } catch (error) {
+    logger.warn("Booking created but notification email failed", {
+      bookingId: booking._id.toString(),
+      error: error.message,
+    });
+  }
 
   return new bookingResDto.CreateBookingResponseDTO(booking);
 };
