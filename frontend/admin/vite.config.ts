@@ -7,9 +7,13 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const appPort = 4000;
-  const allowedHosts = env.VITE_ALLOWED_HOSTS
-    ? env.VITE_ALLOWED_HOSTS.split(",").map((host) => host.trim())
-    : ["localhost"];
+  const envAllowedHosts = (env.VITE_ALLOWED_HOSTS || "")
+    .split(",")
+    .map((host) => host.trim().replace(/^['\"]|['\"]$/g, ""))
+    .filter(Boolean);
+  const allowedHosts = Array.from(
+    new Set(["localhost", "admin.somerville.sysverax.com", ...envAllowedHosts]),
+  );
 
   return {
     server: {
