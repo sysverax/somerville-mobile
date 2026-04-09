@@ -22,8 +22,9 @@ const setCookie = (res, userRole, value, options = {}) => {
     secure: NODE_ENV === "dev" ? false : true,
     sameSite: NODE_ENV === "dev" ? "Strict" : "None",
     path: "/",
-    maxAge: Number(COOKIE_EXPIRY_DURATION),
+    maxAge: parseInt(COOKIE_EXPIRY_DURATION, 10) || 30 * 24 * 60 * 60 * 1000, // Default to 30 days if not set
   };
+
   const cookieOptions = { ...defaultOptions, ...options };
   res.cookie(name(userRole), value, cookieOptions);
 };
