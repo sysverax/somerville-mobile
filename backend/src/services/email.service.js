@@ -1,7 +1,7 @@
 const { SendEmailCommand } = require("@aws-sdk/client-ses");
 
 const ses = require("../config/aws/ses");
-const { EMAIL_CONFIG } = require("../config/envConfig");
+const { EMAIL_CONFIG, SHOP_CONTACT_CONFIG } = require("../config/envConfig");
 const {
     buildBookingNotificationTemplate,
 } = require("../utils/templates/bookingNotification.template");
@@ -118,6 +118,10 @@ const sendCustomerConfirmationEmail = async (payload, logger) => {
         companyName: EMAIL_CONFIG.BOOKING_EMAIL_COMPANY_NAME,
         companyLogoUrl: EMAIL_CONFIG.BOOKING_EMAIL_COMPANY_LOGO_URL,
         companyWebsiteUrl: EMAIL_CONFIG.BOOKING_EMAIL_COMPANY_WEBSITE_URL,
+        shopPhone: SHOP_CONTACT_CONFIG.SHOP_PHONE,
+        shopEmail: SHOP_CONTACT_CONFIG.SHOP_EMAIL,
+        shopAddress: SHOP_CONTACT_CONFIG.SHOP_ADDRESS,
+        shopLocationUrl: SHOP_CONTACT_CONFIG.SHOP_LOCATION_URL,
     };
 
     const { subject, html, text } = buildCustomerConfirmationTemplate(templatePayload);

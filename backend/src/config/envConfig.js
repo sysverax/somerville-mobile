@@ -51,6 +51,13 @@ const EMAIL_CONFIG = {
     process.env.BOOKING_EMAIL_COMPANY_WEBSITE_URL,
 };
 
+const SHOP_CONTACT_CONFIG = {
+  SHOP_PHONE: process.env.SHOP_PHONE,
+  SHOP_EMAIL: process.env.SHOP_EMAIL,
+  SHOP_ADDRESS: process.env.SHOP_ADDRESS,
+  SHOP_LOCATION_URL: process.env.SHOP_LOCATION_URL,
+}
+
 module.exports = {
   NODE_ENV,
   MONGO_URI,
@@ -61,4 +68,5 @@ module.exports = {
   COOKIE_CONFIG,
   PASSWORD_CONFIG,
   EMAIL_CONFIG,
+  SHOP_CONTACT_CONFIG,
 };

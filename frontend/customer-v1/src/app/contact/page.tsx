@@ -9,6 +9,7 @@ import { Textarea } from "@/src/components/ui/textarea";
 import { Label } from "@/src/components/ui/label";
 import { useToast } from "@/src/hooks/use-toast";
 import Layout from "@/src/components/layout/Layout";
+import { link } from "fs";
 
 const ContactPage = () => {
   const { toast } = useToast();
@@ -18,13 +19,15 @@ const ContactPage = () => {
     name: "",
     email: "",
     phone: "",
-    message: ""
+    message: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }));
   };
 
@@ -33,7 +36,7 @@ const ContactPage = () => {
     setIsSubmitting(true);
 
     // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     setIsSubmitting(false);
     setIsSubmitted(true);
@@ -47,26 +50,33 @@ const ContactPage = () => {
     {
       icon: Phone,
       title: "Phone",
-      content: "(03) 5977 6911",
-      link: "tel:0359776911"
+      content: process.env.NEXT_PUBLIC_SHOP_PHONE || "(03) 5977 6911",
+      link: `tel:${process.env.NEXT_PUBLIC_SHOP_PHONE?.replace(/\s+/g, "") || "0359776911"}`,
     },
     {
       icon: Mail,
       title: "Email",
-      content: "info@somervillemobile.com.au",
-      link: "mailto:info@somervillemobile.com.au"
+      content:
+        process.env.NEXT_PUBLIC_SHOP_EMAIL || "info@somervillemobile.com.au",
+      link: `mailto:${process.env.NEXT_PUBLIC_SHOP_EMAIL || "info@somervillemobile.com.au"}`,
     },
     {
       icon: MapPin,
       title: "Address",
       content: (
-      <>
-        Shop 14, <br /> 49 Eramosa Road West,<br />
-        Somerville, VIC 3912
-      </>
-      ),      
-      link: "https://maps.google.com/?q=Shop+14,+49+Eramosa+Road+West,+Somerville+VIC+3912"
-    }
+        <>
+          {process.env.NEXT_PUBLIC_SHOP_ADDRESS ||
+            "Shop 14, 49 Eramosa Road West, Somerville, VIC 3912"}
+        </>
+      ),
+      // link: `https://maps.google.com/?q=${encodeURIComponent(
+      //   process.env.NEXT_PUBLIC_SHOP_ADDRESS ||
+      //     "Shop 14, 49 Eramosa Road West, Somerville, VIC 3912",
+      // )}`,
+      link:
+        process.env.NEXT_PUBLIC_SHOP_LOCATION_URL ||
+        "https://maps.google.com/?q=Shop+14,+49+Eramosa+Road+West,+Somerville+VIC+3912",
+    },
   ];
 
   const businessHours = [
@@ -94,8 +104,10 @@ const ContactPage = () => {
               Get in <span className="text-primary">Touch</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Have a question, need a repair quote, or want to book an appointment? <br />
-              We're here to help. Reach out to us using any of the methods below.
+              Have a question, need a repair quote, or want to book an
+              appointment? <br />
+              We're here to help. Reach out to us using any of the methods
+              below.
             </p>
           </motion.div>
         </div>
@@ -110,7 +122,9 @@ const ContactPage = () => {
                 key={info.title}
                 href={info.link}
                 target={info.title === "Address" ? "_blank" : undefined}
-                rel={info.title === "Address" ? "noopener noreferrer" : undefined}
+                rel={
+                  info.title === "Address" ? "noopener noreferrer" : undefined
+                }
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -121,7 +135,9 @@ const ContactPage = () => {
                 </div>
                 <div>
                   <h3 className="font-bold mb-1">{info.title}</h3>
-                  <p className="text-muted-foreground text-sm">{info.content}</p>
+                  <p className="text-muted-foreground text-sm">
+                    {info.content}
+                  </p>
                 </div>
               </motion.a>
             ))}
@@ -147,17 +163,28 @@ const ContactPage = () => {
                   </div>
                   <h3 className="text-xl font-bold mb-2">Thank You!</h3>
                   <p className="text-muted-foreground mb-6">
-                    Your message has been sent successfully. We'll get back to you as soon as possible.
+                    Your message has been sent successfully. We'll get back to
+                    you as soon as possible.
                   </p>
-                  <Button onClick={() => {
-                    setIsSubmitted(false);
-                    setFormData({ name: "", email: "", phone: "", message: "" });
-                  }}>
+                  <Button
+                    onClick={() => {
+                      setIsSubmitted(false);
+                      setFormData({
+                        name: "",
+                        email: "",
+                        phone: "",
+                        message: "",
+                      });
+                    }}
+                  >
                     Send Another Message
                   </Button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="bg-card rounded-2xl border border-border/50 p-8 space-y-6">
+                <form
+                  onSubmit={handleSubmit}
+                  className="bg-card rounded-2xl border border-border/50 p-8 space-y-6"
+                >
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name *</Label>
                     <Input
@@ -208,7 +235,12 @@ const ContactPage = () => {
                     />
                   </div>
 
-                  <Button type="submit" size="lg" className="w-full gap-2" disabled={isSubmitting}>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full gap-2"
+                    disabled={isSubmitting}
+                  >
                     {isSubmitting ? (
                       "Sending..."
                     ) : (
@@ -221,7 +253,10 @@ const ContactPage = () => {
 
                   <p className="text-xs text-muted-foreground text-center">
                     By submitting this form, you agree to our{" "}
-                    <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
+                    <a href="/privacy" className="text-primary hover:underline">
+                      Privacy Policy
+                    </a>
+                    .
                   </p>
                 </form>
               )}
@@ -244,11 +279,18 @@ const ContactPage = () => {
                 <div className="bg-card rounded-2xl border border-border/50 p-6">
                   <div className="space-y-3">
                     {businessHours.map((item) => (
-                      <div key={item.day} className="flex justify-between items-center">
-                        <span className="text-foreground">
-                          {item.day}
-                        </span>
-                        <span className={item.hours === "Closed" ? "text-muted-foreground" : "text-primary font-medium"}>
+                      <div
+                        key={item.day}
+                        className="flex justify-between items-center"
+                      >
+                        <span className="text-foreground">{item.day}</span>
+                        <span
+                          className={
+                            item.hours === "Closed"
+                              ? "text-muted-foreground"
+                              : "text-primary font-medium"
+                          }
+                        >
                           {item.hours}
                         </span>
                       </div>
@@ -279,7 +321,9 @@ const ContactPage = () => {
                   />
                   <div className="p-4">
                     <p className="text-sm text-muted-foreground">
-                      Shop 14, <br />49 Eramosa Road West,<br />
+                      Shop 14, <br />
+                      49 Eramosa Road West,
+                      <br />
                       Somerville, VIC 3912
                     </p>
                     <a
@@ -309,10 +353,15 @@ const ContactPage = () => {
           >
             <h2 className="text-3xl font-bold mb-4">Need an Urgent Repair?</h2>
             <p className="text-muted-foreground mb-6">
-              Book an appointment online or call us directly for same-day service.
+              Book an appointment online or call us directly for same-day
+              service.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Button size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground" asChild>
+              <Button
+                size="lg"
+                className="bg-gradient-primary hover:opacity-90 text-primary-foreground"
+                asChild
+              >
                 <a href="/booking">Book Appointment</a>
               </Button>
               <Button size="lg" variant="outline" asChild>

@@ -7,8 +7,8 @@ import logo from "@/public/logo.jpeg";
 
 const Footer = () => {
   const handleLinkClick = () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   return (
     <footer className="bg-card border-t border-border">
       <div className="container mx-auto px-4 py-12">
@@ -16,7 +16,6 @@ const Footer = () => {
           {/* Brand */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-3">
-
               <Image
                 src={logo}
                 alt="Somerville Mobile"
@@ -29,13 +28,24 @@ const Footer = () => {
               </span>
             </Link>
             <p className="text-muted-foreground text-sm">
-              Your trusted partner for device repairs, quality products, and professional services in Somerville and the Mornington Peninsula.
+              Your trusted partner for device repairs, quality products, and
+              professional services in Somerville and the Mornington Peninsula.
             </p>
             <div className="flex items-center gap-4">
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
                 <Facebook className="h-5 w-5" />
               </a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
                 <Instagram className="h-5 w-5" />
               </a>
             </div>
@@ -46,27 +56,47 @@ const Footer = () => {
             <h4 className="font-semibold">Quick Links</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/about" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link
+                  href="/about"
+                  onClick={handleLinkClick}
+                  className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                >
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/services" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link
+                  href="/services"
+                  onClick={handleLinkClick}
+                  className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                >
                   Our Services
                 </Link>
               </li>
               <li>
-                <Link href="/booking" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link
+                  href="/booking"
+                  onClick={handleLinkClick}
+                  className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                >
                   Book a Repair
                 </Link>
               </li>
               <li>
-                <Link href="/faq" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link
+                  href="/faq"
+                  onClick={handleLinkClick}
+                  className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                >
                   FAQ
                 </Link>
               </li>
               <li>
-                <Link href="/contact" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link
+                  href="/contact"
+                  onClick={handleLinkClick}
+                  className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                >
                   Contact Us
                 </Link>
               </li>
@@ -78,12 +108,20 @@ const Footer = () => {
             <h4 className="font-semibold">Legal</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/privacy" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link
+                  href="/privacy"
+                  onClick={handleLinkClick}
+                  className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                >
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/terms" onClick={handleLinkClick} className="text-muted-foreground hover:text-foreground transition-colors text-sm">
+                <Link
+                  href="/terms"
+                  onClick={handleLinkClick}
+                  className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+                >
                   Terms & Conditions
                 </Link>
               </li>
@@ -106,25 +144,42 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center gap-3 text-muted-foreground text-sm">
                 <Phone className="h-4 w-4 text-primary" />
-                <a href="tel:0359776911" className="hover:text-foreground transition-colors">
-                  (03) 5977 6911
+                <a
+                  href={`tel:${process.env.NEXT_PUBLIC_SHOP_PHONE || "0359776911"}`}
+                  className="hover:text-foreground transition-colors"
+                >
+                  {process.env.NEXT_PUBLIC_SHOP_PHONE || "(03) 5977 6911"}
                 </a>
               </li>
               <li className="flex items-center gap-3 text-muted-foreground text-sm">
                 <Mail className="h-4 w-4 text-primary" />
-                <a href="mailto:info@somervillemobile.com.au" className="hover:text-foreground transition-colors">
-                  info@somervillemobile.com.au
+                <a
+                  href={`mailto:${process.env.NEXT_PUBLIC_SHOP_EMAIL || "info@somervillemobile.com.au"}`}
+                  className="hover:text-foreground transition-colors"
+                >
+                  {process.env.NEXT_PUBLIC_SHOP_EMAIL ||
+                    "info@somervillemobile.com.au"}
                 </a>
               </li>
               <li className="flex items-start gap-3 text-muted-foreground text-sm">
                 <MapPin className="h-4 w-4 text-primary mt-0.5" />
                 <a
-                  href="https://maps.google.com/?q=Shop+14,+49+Eramosa+Road+West,+Somerville+VIC+3912"
+                  href={
+                    process.env.NEXT_PUBLIC_SHOP_LOCATION_URL ||
+                    "https://maps.google.com/?q=Shop+14,+49+Eramosa+Road+West,+Somerville+VIC+3912"
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-foreground transition-colors"
                 >
-                  Shop 14,<br /> 49 Eramosa Road West,<br />Somerville, VIC 3912
+                  {(process.env.NEXT_PUBLIC_SHOP_ADDRESS ||
+                    "Shop 14, 49 Eramosa Road West, Somerville, VIC 3912").split(",").map((line, i) => (
+                    <span key={i}>
+                      {line.trim()}
+                      {i < (process.env.NEXT_PUBLIC_SHOP_ADDRESS ||
+                        "Shop 14, 49 Eramosa Road West, Somerville, VIC 3912").split(",").length - 1 && <br />}
+                    </span>
+                  ))}
                 </a>
               </li>
             </ul>
@@ -132,7 +187,10 @@ const Footer = () => {
         </div>
 
         <div className="mt-12 pt-8 border-t border-border text-center text-muted-foreground text-sm">
-          <p>&copy; {new Date().getFullYear()} Somerville Mobile. All rights reserved.</p>
+          <p>
+            &copy; {new Date().getFullYear()} Somerville Mobile. All rights
+            reserved.
+          </p>
         </div>
       </div>
     </footer>

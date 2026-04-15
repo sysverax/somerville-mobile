@@ -44,10 +44,20 @@ function row(label, value) {
   `;
 }
 
+function rowHtml(label, htmlValue) {
+  return `
+    <tr>
+      <td style="padding:11px 14px;border:1px solid #2b3343;background:#161d2a;font-weight:600;color:#f2f4f8;width:220px;">${escapeHtml(label)}</td>
+      <td style="padding:11px 14px;border:1px solid #2b3343;color:#cfd5df;background:#0e1523;">${htmlValue}</td>
+    </tr>
+  `;
+}
+
 function buildBookingNotificationTemplate(payload) {
-  const companyName = normalizeDisplayValue(payload.companyName) === "-"
-    ? "Somerville Mobile"
-    : payload.companyName;
+  const companyName =
+    normalizeDisplayValue(payload.companyName) === "-"
+      ? "Somerville Mobile"
+      : payload.companyName;
   const logoUrl = payload.companyLogoUrl || "";
   const brandUrl = payload.companyWebsiteUrl || "";
   const heading = `New Booking for ${companyName}`;
@@ -59,6 +69,14 @@ function buildBookingNotificationTemplate(payload) {
   const companyNameCell = brandUrl
     ? `<a href="${escapeHtml(brandUrl)}" style="color:#ffffff;text-decoration:none;font-weight:700;">${escapeHtml(companyName)}</a>`
     : `<span style="color:#ffffff;font-weight:700;">${escapeHtml(companyName)}</span>`;
+  const normalizedCustomerPhone = normalizeDisplayValue(payload.customerPhone);
+  const customerPhoneForTel = String(payload.customerPhone || "").replace(
+    /[^+\d]/g,
+    "",
+  );
+  const customerPhoneCell = customerPhoneForTel
+    ? `<a href="tel:${escapeHtml(customerPhoneForTel)}" style="color:#8fd3ff;text-decoration:underline;">${escapeHtml(normalizedCustomerPhone)}</a>`
+    : escapeHtml(normalizedCustomerPhone);
 
   const html = `
   <div style="margin:0;padding:26px;background:#080d17;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:#d6dbe5;">
@@ -86,7 +104,7 @@ function buildBookingNotificationTemplate(payload) {
             ${row("Status", payload.status)}
             ${row("Customer Name", payload.customerName)}
             ${row("Customer Email", payload.customerEmail)}
-            ${row("Customer Phone", payload.customerPhone)}
+            ${rowHtml("Customer Phone", customerPhoneCell)}
             ${row("Brand", payload.brandName)}
             ${row("Category", payload.categoryName)}
             ${row("Series", payload.seriesName)}

@@ -44,6 +44,15 @@ function row(label, value) {
   `;
 }
 
+function rowHtml(label, htmlValue) {
+  return `
+    <tr>
+      <td style="padding:11px 14px;border:1px solid #2b3343;background:#161d2a;font-weight:600;color:#f2f4f8;width:220px;">${escapeHtml(label)}</td>
+      <td style="padding:11px 14px;border:1px solid #2b3343;color:#cfd5df;background:#0e1523;">${htmlValue}</td>
+    </tr>
+  `;
+}
+
 function buildCustomerConfirmationTemplate(payload) {
   const companyName =
     normalizeDisplayValue(payload.companyName) === "-"
@@ -60,6 +69,14 @@ function buildCustomerConfirmationTemplate(payload) {
   const companyNameCell = brandUrl
     ? `<a href="${escapeHtml(brandUrl)}" style="color:#ffffff;text-decoration:none;font-weight:700;">${escapeHtml(companyName)}</a>`
     : `<span style="color:#ffffff;font-weight:700;">${escapeHtml(companyName)}</span>`;
+  const normalizedShopPhone = normalizeDisplayValue(payload.shopPhone);
+  const shopPhoneForTel = String(payload.shopPhone || "").replace(
+    /[^+\d]/g,
+    "",
+  );
+  const shopPhoneCell = shopPhoneForTel
+    ? `<a href="tel:${escapeHtml(shopPhoneForTel)}" style="color:#8fd3ff;text-decoration:underline;">${escapeHtml(normalizedShopPhone)}</a>`
+    : escapeHtml(normalizedShopPhone);
 
   const html = `
   <div style="margin:0;padding:26px;background:#080d17;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:#d6dbe5;">
@@ -88,6 +105,10 @@ function buildCustomerConfirmationTemplate(payload) {
             ${row("Product", payload.productName)}
             ${row("Service", payload.serviceName)}
             ${row("Price", formatPrice(payload.price))}
+            ${rowHtml("Shop Phone", shopPhoneCell)}
+            ${row("Shop Email", payload.shopEmail)}
+            ${row("Shop Address", payload.shopAddress)}
+            ${row("Shop Location", payload.shopLocationUrl)}
           </table>
         </td>
       </tr>
@@ -112,6 +133,10 @@ function buildCustomerConfirmationTemplate(payload) {
     `Product: ${normalizeDisplayValue(payload.productName)}`,
     `Service: ${normalizeDisplayValue(payload.serviceName)}`,
     `Price: ${formatPrice(payload.price)}`,
+    `Shop Phone: ${normalizeDisplayValue(payload.shopPhone)}`,
+    `Shop Email: ${normalizeDisplayValue(payload.shopEmail)}`,
+    `Shop Address: ${normalizeDisplayValue(payload.shopAddress)}`,
+    `Shop Location: ${normalizeDisplayValue(payload.shopLocationUrl)}`,
   ].join("\n");
 
   return { subject, html, text };
