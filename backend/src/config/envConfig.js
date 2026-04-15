@@ -7,8 +7,8 @@ const MONGO_URI = process.env.MONGO_URI;
 const PORT = process.env.PORT || 3000;
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",").map((url) =>
-      url.trim().replace(/\/$/, ""),
-    )
+    url.trim().replace(/\/$/, ""),
+  )
   : [];
 
 // AWS Configurations
@@ -37,10 +37,11 @@ const PASSWORD_CONFIG = {
 
 const EMAIL_CONFIG = {
   SES_FROM_EMAIL: process.env.SES_FROM_EMAIL,
+  SES_REGION: process.env.SES_REGION || "us-east-1",
   BOOKING_NOTIFICATION_EMAILS: process.env.BOOKING_NOTIFICATION_EMAILS
     ? process.env.BOOKING_NOTIFICATION_EMAILS.split(",")
-        .map((email) => email.trim().replace(/^['\"]|['\"]$/g, ""))
-        .filter(Boolean)
+      .map((email) => email.trim().replace(/^['\"]|['\"]$/g, ""))
+      .filter(Boolean)
     : [],
   BOOKING_EMAIL_MAX_RETRIES: process.env.BOOKING_EMAIL_MAX_RETRIES || "3",
   BOOKING_EMAIL_COMPANY_NAME:

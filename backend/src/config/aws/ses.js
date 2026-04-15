@@ -1,9 +1,9 @@
 const { SESClient } = require("@aws-sdk/client-ses");
 
-const { AWS_CONFIG } = require("../envConfig");
+const { AWS_CONFIG, EMAIL_CONFIG } = require("../envConfig");
 
 const sesConfig = {
-  region: AWS_CONFIG.REGION,
+  region: EMAIL_CONFIG.SES_REGION || AWS_CONFIG.REGION,
 };
 
 if (AWS_CONFIG.ACCESS_KEY_ID && AWS_CONFIG.SECRET_ACCESS_KEY) {
