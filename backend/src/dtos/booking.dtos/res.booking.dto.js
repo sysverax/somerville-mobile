@@ -1,6 +1,7 @@
 class CreateBookingResponseDTO {
   constructor(booking) {
     this.id = booking._id?.toString() || null;
+    this.bookingCode = booking.bookingCode || null;
     this.productServiceId = booking.productServiceId?.toString() || null;
     this.scheduleDateTime = booking.scheduleDateTime || null;
     this.name = booking.name || null;
@@ -14,6 +15,7 @@ class CreateBookingResponseDTO {
 class BookingListResponseDTO {
   constructor(booking) {
     this.id = booking._id?.toString() || null;
+    this.bookingCode = booking.bookingCode || null;
     this.scheduleDateTime = booking.scheduleDateTime || null;
     this.name = booking.name || null;
     this.email = booking.email || null;

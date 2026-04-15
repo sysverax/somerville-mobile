@@ -5,6 +5,9 @@ const { EMAIL_CONFIG } = require("../config/envConfig");
 const {
     buildBookingNotificationTemplate,
 } = require("../utils/templates/bookingNotification.template");
+const {
+    buildCustomerConfirmationTemplate,
+} = require("../utils/templates/customerConfirmation.template");
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -97,6 +100,38 @@ const sendBookingNotificationEmail = async (payload, logger) => {
     });
 };
 
+const sendCustomerConfirmationEmail = async (payload, logger) => {
+    const customerEmail = String(payload?.customerEmail || "").trim();
+
+    if (!EMAIL_CONFIG.SES_FROM_EMAIL) {
+        logger?.warn("Customer confirmation email skipped: SES_FROM_EMAIL is not configured");
+        return { sent: false, skipped: true, reason: "missing_sender" };
+    }
+
+    if (!customerEmail) {
+        logger?.warn("Customer confirmation email skipped: customer email is missing");
+        return { sent: false, skipped: true, reason: "missing_customer_email" };
+    }
+
+    const templatePayload = {
+        ...payload,
+        companyName: EMAIL_CONFIG.BOOKING_EMAIL_COMPANY_NAME,
+        companyLogoUrl: EMAIL_CONFIG.BOOKING_EMAIL_COMPANY_LOGO_URL,
+        companyWebsiteUrl: EMAIL_CONFIG.BOOKING_EMAIL_COMPANY_WEBSITE_URL,
+    };
+
+    const { subject, html, text } = buildCustomerConfirmationTemplate(templatePayload);
+
+    return sendEmailWithRetry({
+        toAddresses: [customerEmail],
+        subject,
+        html,
+        text,
+        logger,
+    });
+};
+
 module.exports = {
     sendBookingNotificationEmail,
+    sendCustomerConfirmationEmail,
 };

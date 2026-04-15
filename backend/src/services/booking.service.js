@@ -4,7 +4,10 @@ const bookingResDto = require("../dtos/booking.dtos/res.booking.dto");
 const appError = require("../utils/errors/errors");
 const productServiceRepo = require("../repositories/productService.repo");
 const productRepo = require("../repositories/product.repo");
-const { sendBookingNotificationEmail } = require("./email.service");
+const {
+  sendBookingNotificationEmail,
+  sendCustomerConfirmationEmail,
+} = require("./email.service");
 
 const createBookingService = async (createBookingRequestDto, logger) => {
   const productService = await productServiceRepo.getProductServiceByIdRepo(
@@ -44,13 +47,14 @@ const createBookingService = async (createBookingRequestDto, logger) => {
   };
 
   const booking = await bookingRepo.createBookingRepo(bookingData);
+  const readableBookingId = booking.bookingCode || booking._id.toString();
 
   logger.info("Booking created successfully", {
-    bookingId: booking._id.toString(),
+    bookingId: readableBookingId,
   });
 
   const emailPayload = {
-    bookingId: booking._id.toString(),
+    bookingId: readableBookingId,
     createdAt: booking.createdAt,
     scheduleDateTime: booking.scheduleDateTime,
     status: booking.status,
@@ -70,7 +74,29 @@ const createBookingService = async (createBookingRequestDto, logger) => {
     sendBookingNotificationEmail(emailPayload, logger);
   } catch (error) {
     logger.warn("Booking created but notification email failed", {
-      bookingId: booking._id.toString(),
+      bookingId: readableBookingId,
+      error: error.message,
+    });
+  }
+  const customerConfirmationPayload = {
+    bookingId: readableBookingId,
+    customerName: booking.name,
+    customerEmail: booking.email,
+    scheduleDateTime: booking.scheduleDateTime,
+    productName: product?.name,
+    serviceName: productService?.serviceId?.name,
+    price: productService?.price,
+  };
+
+  try {
+    logger.info("Attempting to send customer confirmation email", {
+      bookingId: readableBookingId,
+      customerEmail: booking.email,
+    });
+    sendCustomerConfirmationEmail(customerConfirmationPayload, logger);
+  } catch (error) {
+    logger.warn("Booking created but customer confirmation email failed", {
+      bookingId: readableBookingId,
       error: error.message,
     });
   }

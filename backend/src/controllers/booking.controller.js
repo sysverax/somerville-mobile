@@ -24,6 +24,7 @@ const createBookingController = async (req, res, next) => {
       error: null,
     });
   } catch (error) {
+    console.log("Error in createBookingController:", error);
     req.logger.error("Create booking request failed", {
       error: error.message,
     });
