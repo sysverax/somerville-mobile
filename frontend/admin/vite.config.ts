@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
     .map((host) => host.trim().replace(/^['\"]|['\"]$/g, ""))
     .filter(Boolean);
   const allowedHosts = Array.from(
-    new Set(["localhost", "admin.somerville.sysverax.com", ...envAllowedHosts]),
+    new Set(["localhost", "admin.somervillemobile.com.au", ...envAllowedHosts]),
   );
 
   return {
