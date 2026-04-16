@@ -36,7 +36,7 @@ function formatBookingDate(value) {
 function row(label, value) {
   return `
     <tr>
-      <td style="padding:11px 14px;border:1px solid #2b3343;background:#161d2a;font-weight:600;color:#f2f4f8;width:220px;">${escapeHtml(label)}</td>
+      <td style="padding:11px 14px;border:1px solid #2b3343;background:#161d2a;font-weight:600;color:#f2f4f8;">${escapeHtml(label)}</td>
       <td style="padding:11px 14px;border:1px solid #2b3343;color:#cfd5df;background:#0e1523;">${escapeHtml(
         normalizeDisplayValue(value),
       )}</td>
@@ -47,7 +47,7 @@ function row(label, value) {
 function rowHtml(label, htmlValue) {
   return `
     <tr>
-      <td style="padding:11px 14px;border:1px solid #2b3343;background:#161d2a;font-weight:600;color:#f2f4f8;width:220px;">${escapeHtml(label)}</td>
+      <td style="padding:11px 14px;border:1px solid #2b3343;background:#161d2a;font-weight:600;color:#f2f4f8;">${escapeHtml(label)}</td>
       <td style="padding:11px 14px;border:1px solid #2b3343;color:#cfd5df;background:#0e1523;">${htmlValue}</td>
     </tr>
   `;
@@ -75,45 +75,59 @@ function buildCustomerConfirmationTemplate(payload) {
     "",
   );
   const shopPhoneCell = shopPhoneForTel
-    ? `<a href="tel:${escapeHtml(shopPhoneForTel)}" style="color:#8fd3ff;text-decoration:underline;">${escapeHtml(normalizedShopPhone)}</a>`
+    ? `<a href="tel:${escapeHtml(shopPhoneForTel)}" style="color:#60a5fa;text-decoration:underline;">${escapeHtml(normalizedShopPhone)}</a>`
     : escapeHtml(normalizedShopPhone);
+
+  const customerPhoneForTel = String(payload.customerPhone || "").replace(/[^+\d]/g,"");
+  const customerPhoneCell = customerPhoneForTel
+    ? `<a href="tel:${escapeHtml(customerPhoneForTel)}" style="color:#60a5fa;text-decoration:underline;">${escapeHtml(normalizeDisplayValue(payload.customerPhone))}</a>`
+    : escapeHtml(normalizeDisplayValue(payload.customerPhone));
+
+  const customerEmailCell = payload.customerEmail && payload.customerEmail !== "-"
+    ? `<a href="mailto:${escapeHtml(payload.customerEmail)}" style="color:#60a5fa;text-decoration:underline;">${escapeHtml(normalizeDisplayValue(payload.customerEmail))}</a>`
+    : escapeHtml(normalizeDisplayValue(payload.customerEmail));
+
+  const shopEmailCell = payload.shopEmail && payload.shopEmail !== "-"
+    ? `<a href="mailto:${escapeHtml(payload.shopEmail)}" style="color:#60a5fa;text-decoration:underline;">${escapeHtml(normalizeDisplayValue(payload.shopEmail))}</a>`
+    : escapeHtml(normalizeDisplayValue(payload.shopEmail));
 
   const html = `
   <div style="margin:0;padding:26px;background:#080d17;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:#d6dbe5;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:780px;margin:0 auto;background:#0f1725;border-radius:16px;overflow:hidden;border:1px solid #273042;box-shadow:0 20px 45px rgba(0,0,0,0.35);">
       <tr>
-        <td style="padding:22px 24px 18px;background:linear-gradient(120deg,#0f1725 0%,#101a2b 52%,#d42929 100%);color:#ffffff;border-bottom:1px solid #293249;">
+        <td style="padding:22px 16px 18px;background-color:#101a2b;background-image:linear-gradient(120deg,#0f1725 0%,#101a2b 52%,#d42929 100%);color:#ffffff;border-bottom:1px solid #293249;border-radius:15px 15px 0 0;">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
             <tr>
               <td style="vertical-align:middle;">${logoSection}</td>
               <td style="text-align:right;vertical-align:middle;">
-                <div style="font-size:12px;letter-spacing:0.8px;text-transform:uppercase;color:#ffd6d6;">Booking Confirmed</div>
+                <div style="font-size:12px;letter-spacing:0.8px;text-transform:uppercase;color:#ffffff;font-weight:700;mix-blend-mode:screen;">Booking Confirmed</div>
               </td>
             </tr>
           </table>
-          <h1 style="margin:16px 0 0;font-size:24px;line-height:1.25;font-weight:800;">${escapeHtml(heading)}</h1>
-          <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#f5e9e9;">Thank you for your booking. Your request has been received and is now pending confirmation from our team.</p>
+          <h1 style="margin:16px 0 0;font-size:24px;line-height:1.25;font-weight:800;color:#ffffff;mix-blend-mode:screen;">${escapeHtml(heading)}</h1>
+          <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#ffffff;mix-blend-mode:screen;">Thank you for your booking. Your request has been received and is now pending confirmation from our team.</p>
         </td>
       </tr>
       <tr>
-        <td style="padding:22px 24px 12px;">
+        <td style="padding:22px 16px 12px;">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border:1px solid #2b3343;border-radius:10px;overflow:hidden;">
             ${row("Booking ID", payload.bookingId)}
             ${row("Scheduled Date & Time", formatBookingDate(payload.scheduleDateTime))}
             ${row("Customer Name", payload.customerName)}
-            ${row("Customer Email", payload.customerEmail)}
+            ${rowHtml("Customer Email", customerEmailCell)}
+            ${rowHtml("Customer Phone", customerPhoneCell)}
             ${row("Product", payload.productName)}
             ${row("Service", payload.serviceName)}
             ${row("Price", formatPrice(payload.price))}
             ${rowHtml("Shop Phone", shopPhoneCell)}
-            ${row("Shop Email", payload.shopEmail)}
+            ${rowHtml("Shop Email", shopEmailCell)}
             ${row("Shop Address", payload.shopAddress)}
             ${row("Shop Location", payload.shopLocationUrl)}
           </table>
         </td>
       </tr>
       <tr>
-        <td style="padding:10px 24px 22px;">
+        <td style="padding:10px 16px 22px;">
           <div style="padding:14px 16px;background:#111a2b;border:1px solid #2b3343;border-radius:10px;color:#bfc7d4;font-size:12px;line-height:1.6;">
             This is an automated confirmation from ${companyNameCell}. If you need to make any changes, please contact our team.
           </div>
@@ -130,6 +144,7 @@ function buildCustomerConfirmationTemplate(payload) {
     `Scheduled Date & Time: ${formatBookingDate(payload.scheduleDateTime)}`,
     `Customer Name: ${normalizeDisplayValue(payload.customerName)}`,
     `Customer Email: ${normalizeDisplayValue(payload.customerEmail)}`,
+    `Customer Phone: ${normalizeDisplayValue(payload.customerPhone)}`,
     `Product: ${normalizeDisplayValue(payload.productName)}`,
     `Service: ${normalizeDisplayValue(payload.serviceName)}`,
     `Price: ${formatPrice(payload.price)}`,

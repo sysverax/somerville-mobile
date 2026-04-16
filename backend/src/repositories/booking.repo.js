@@ -79,6 +79,13 @@ const getAllBookingsRepo = async (filters, page, limit) => {
   if (filters.categoryId) filterMatch["category._id"] = new mongoose.Types.ObjectId(filters.categoryId);
   if (filters.seriesId) filterMatch["series._id"] = new mongoose.Types.ObjectId(filters.seriesId);
   if (filters.productId) filterMatch["product._id"] = new mongoose.Types.ObjectId(filters.productId);
+  if (filters.search) {
+    const escapedSearch = filters.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filterMatch.$or = [
+      { bookingCode: { $regex: escapedSearch, $options: "i" } },
+      { name: { $regex: escapedSearch, $options: "i" } },
+    ];
+  }
 
   pipeline.push({ $match: filterMatch });
 

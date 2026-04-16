@@ -12,6 +12,7 @@ class DashboardStatsResponseDTO {
     this.recentBookings = Array.isArray(data.recentBookings)
       ? data.recentBookings.map((booking) => ({
           _id: booking._id?.toString(),
+          bookingCode: booking.bookingCode || null,
           name: booking.name,
           email: booking.email,
           phone: booking.phone,
