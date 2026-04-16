@@ -16,6 +16,7 @@ const BookingsTable = ({ bookings, loading = false, compact = false, onRowClick 
       <table className="w-full text-sm">
         <thead>
           <tr className={compact ? "border-b border-border" : "bg-card border-b border-border"}>
+            <th className="text-left py-3 px-4 font-medium text-muted-foreground">Booking ID</th>
             <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
             <th className="text-left py-3 px-4 font-medium text-muted-foreground">Time</th>
             <th className="text-left py-3 px-4 font-medium text-muted-foreground">Customer</th>
@@ -29,13 +30,13 @@ const BookingsTable = ({ bookings, loading = false, compact = false, onRowClick 
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={compact ? 5 : 8} className="h-64 text-center">
+              <td colSpan={compact ? 6 : 9} className="h-64 text-center">
                 <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
               </td>
             </tr>
           ) : bookings.length === 0 ? (
             <tr>
-              <td colSpan={compact ? 5 : 8} className="py-0">
+              <td colSpan={compact ? 6 : 9} className="py-0">
                 <EmptyState 
                   title={compact ? "No recent bookings" : "No bookings found"} 
                   description="New bookings will appear here once customers place them." 
@@ -49,6 +50,7 @@ const BookingsTable = ({ bookings, loading = false, compact = false, onRowClick 
               className="border-b border-border/50 hover:bg-muted/30 cursor-pointer"
               onClick={() => onRowClick?.(b)}
             >
+              <td className="py-3 px-4">{b.bookingCode || '-'}</td>
               <td className="py-3 px-4">{formatDate(b.date)}</td>
               <td className="py-3 px-4">{formatTime(b.timeSlot)}</td>
               <td className="py-3 px-4">{b.customerName}</td>

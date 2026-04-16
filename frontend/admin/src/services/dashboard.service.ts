@@ -28,6 +28,7 @@ export interface DashboardData {
 
 const normalizeDashboardBooking = (booking: any): Booking => ({
   id: booking._id || booking.id,
+  bookingCode: booking.bookingCode || '',
   customerName: booking.name,
   customerEmail: booking.email,
   customerPhone: booking.phone,

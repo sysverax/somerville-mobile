@@ -9,21 +9,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { useNavigate } from 'react-router-dom';
-import { Calendar as CalendarIcon, Loader2, AlertCircle, List } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, AlertCircle, List, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import TablePagination from '@/components/TablePagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import BookingsTable from '@/components/BookingsTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatDate, formatTime, formatDateTime } from '@/utils/dateUtils';
+import { Input } from '@/components/ui/input';
 
 const BookingsListPage = () => {
   const { bookings, total, loading, error, refetch } = useBookings({ autoFetch: false });
   const { brands, categories, products, isLoading: optionsLoading } = useFilterOptions();
   const navigate = useNavigate();
 
-  const [filters, setFilters] = useState({ brandName: '', categoryName: '', productId: '', date: '' });
-  const [applied, setApplied] = useState({ brandName: '', categoryName: '', productId: '', date: '' });
+  const [filters, setFilters] = useState({ brandName: '', categoryName: '', productId: '', date: '', search: '' });
+  const [applied, setApplied] = useState({ brandName: '', categoryName: '', productId: '', date: '', search: '' });
   const selectedDate = filters.date ? new Date(filters.date + 'T00:00:00') : undefined;
 
   // Pagination
@@ -103,7 +104,8 @@ const BookingsListPage = () => {
       brandId,
       categoryId,
       productId: applied.productId || undefined,
-      date: applied.date || undefined
+      date: applied.date || undefined,
+      search: applied.search || undefined,
     });
   }, [applied, page, pageSize, brands, categories, optionsLoading, refetch]);
 
@@ -124,6 +126,20 @@ const BookingsListPage = () => {
       )}
 
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-3 w-full">
+        <div className="col-span-2 sm:contents">
+          <div className="space-y-1">
+            <Label className="text-xs">Search</Label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Booking ID..."
+                value={filters.search}
+                onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
+                className="pl-8 w-full sm:w-[200px] h-10"
+              />
+            </div>
+          </div>
+        </div>
         <div className="space-y-1"><Label className="text-xs">Brand</Label>
           <Select value={filters.brandName || "all"} onValueChange={handleBrandChange}>
             <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="All Brands" /></SelectTrigger>
@@ -190,8 +206,16 @@ const BookingsListPage = () => {
         </div>
         <div className="col-span-2 sm:contents flex gap-2">
           {hasChanges && <Button className="flex-1 sm:flex-none" onClick={() => { setApplied({ ...filters }); setPage(1); }}>Apply</Button>}
-          {(applied.brandName || applied.categoryName || applied.productId || applied.date) && (
-            <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => { const empty = { brandName: '', categoryName: '', productId: '', date: '' }; setFilters(empty); setApplied(empty); setPage(1); }}>Clear</Button>
+          {(applied.brandName || applied.categoryName || applied.productId || applied.date || applied.search) && (
+            <Button
+              variant="ghost"
+              className="px-2 sm:px-3 flex-1 sm:flex-none"
+              onClick={() => {
+                setFilters({ brandName: '', categoryName: '', productId: '', date: '', search: '' });
+                setApplied({ brandName: '', categoryName: '', productId: '', date: '', search: '' });
+                setPage(1);
+              }}
+            >Clear</Button>
           )}
           <div className="ml-auto">
             <Button variant="outline" className="gap-2 w-full sm:w-auto" onClick={() => navigate('/bookings')}><CalendarIcon className="h-4 w-4" /> Calendar View</Button>
@@ -211,6 +235,7 @@ const BookingsListPage = () => {
           {selected && (
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs text-muted-foreground">Booking ID</Label><p className="font-medium font-mono">{selected.bookingCode || '-'}</p></div>
                 <div><Label className="text-xs text-muted-foreground">Customer</Label><p className="font-medium">{selected.customerName}</p></div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Email</Label>

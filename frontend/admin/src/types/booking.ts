@@ -1,5 +1,6 @@
 export interface Booking {
   id: string;
+  bookingCode: string;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
