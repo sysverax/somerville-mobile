@@ -33,6 +33,7 @@ const normalizeBooking = (booking: any): Booking => {
 
   return {
     id: booking.id,
+    bookingCode: booking.bookingCode || '',
     customerName: booking.name,
     customerEmail: booking.email,
     customerPhone: booking.phone,
@@ -59,7 +60,7 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
 };
 
 export const bookingService = {
-  getAll: async (filters?: { page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string; month?: number; year?: number }): Promise<{ bookings: Booking[]; total: number }> => {
+  getAll: async (filters?: { page?: number; limit?: number; brandId?: string; categoryId?: string; productId?: string; date?: string; search?: string; month?: number; year?: number }): Promise<{ bookings: Booking[]; total: number }> => {
     try {
       const params = new URLSearchParams();
       if (filters?.page) params.append('page', String(filters.page));
@@ -68,6 +69,7 @@ export const bookingService = {
       if (filters?.categoryId) params.append('categoryId', filters.categoryId);
       if (filters?.productId) params.append('productId', filters.productId);
       if (filters?.date) params.append('date', filters.date);
+      if (filters?.search) params.append('search', filters.search);
       if (filters?.month) params.append('month', String(filters.month));
       if (filters?.year) params.append('year', String(filters.year));
 

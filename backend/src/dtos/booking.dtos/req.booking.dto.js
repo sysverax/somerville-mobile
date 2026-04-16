@@ -98,6 +98,7 @@ class GetAllBookingsRequestDTO {
     this.seriesId = query?.seriesId;
     this.productId = query?.productId;
     this.date = query?.date;
+    this.search = query?.search ? String(query.search).trim() : undefined;
     this.month = query?.month ? parseInt(query.month, 10) : undefined;
     this.year = query?.year ? parseInt(query.year, 10) : undefined;
     this.page = query?.page ? parseInt(query.page, 10) : 1;
