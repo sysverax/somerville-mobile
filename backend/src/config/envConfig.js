@@ -37,7 +37,7 @@ const PASSWORD_CONFIG = {
 
 const EMAIL_CONFIG = {
   SES_FROM_EMAIL: process.env.SES_FROM_EMAIL,
-  SES_REGION: process.env.SES_REGION || "us-east-1",
+  SES_REGION: AWS_CONFIG.REGION,
   BOOKING_NOTIFICATION_EMAILS: process.env.BOOKING_NOTIFICATION_EMAILS
     ? process.env.BOOKING_NOTIFICATION_EMAILS.split(",")
       .map((email) => email.trim().replace(/^['\"]|['\"]$/g, ""))
